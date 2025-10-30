@@ -1,6 +1,6 @@
 import { useState, useEffect } from "react";
 import { useParams, Link, useNavigate } from "react-router-dom";
-import { ArrowLeft, Plus, FileText, Trash2 } from "lucide-react";
+import { ArrowLeft, Plus, FileText, Trash2, Edit2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { supabase } from "@/integrations/supabase/client";
@@ -128,12 +128,20 @@ export default function ClientScripts() {
               {client.service_type} {client.city && `• ${client.city}`}
             </p>
           </div>
-          <Link to={`/create-script/${clientId}`}>
-            <Button>
-              <Plus className="mr-2 h-4 w-4" />
-              Add Script
-            </Button>
-          </Link>
+          <div className="flex gap-2">
+            <Link to={`/edit/${clientId}`}>
+              <Button variant="outline">
+                <Edit2 className="mr-2 h-4 w-4" />
+                Edit Client
+              </Button>
+            </Link>
+            <Link to={`/create-script/${clientId}`}>
+              <Button>
+                <Plus className="mr-2 h-4 w-4" />
+                Add Script
+              </Button>
+            </Link>
+          </div>
         </div>
 
         {scripts.length === 0 ? (

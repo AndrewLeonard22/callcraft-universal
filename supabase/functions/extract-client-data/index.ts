@@ -12,7 +12,7 @@ serve(async (req) => {
   }
 
   try {
-    const { onboarding_form, transcript, client_id, service_name, use_template, template_script } = await req.json();
+    const { onboarding_form, transcript, client_id, service_name, use_template, template_script, regenerate } = await req.json();
 
     const LOVABLE_API_KEY = Deno.env.get("LOVABLE_API_KEY");
     const SUPABASE_URL = Deno.env.get("SUPABASE_URL");
@@ -226,6 +226,29 @@ Make it natural, conversational, and specific to their business. Include specifi
 
       if (clientFetchError) throw clientFetchError;
       clientData = existingClient;
+
+      // If regenerating, update client details
+      if (regenerate && Object.keys(extractedInfo).length > 0) {
+        // Delete existing details
+        await supabase.from("client_details").delete().eq("client_id", client_id);
+
+        // Insert new details
+        const detailsToInsert = Object.entries(extractedInfo)
+          .filter(([key]) => !["company_name", "service_type", "city"].includes(key))
+          .map(([key, value]) => ({
+            client_id: client_id,
+            field_name: key,
+            field_value: typeof value === "string" ? value : JSON.stringify(value),
+          }));
+
+        if (detailsToInsert.length > 0) {
+          const { error: detailsError } = await supabase
+            .from("client_details")
+            .insert(detailsToInsert);
+
+          if (detailsError) throw detailsError;
+        }
+      }
     } else {
       // Insert new client
       const { data: newClient, error: clientError } = await supabase

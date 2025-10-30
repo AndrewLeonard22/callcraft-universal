@@ -273,6 +273,10 @@ export default function ScriptViewer() {
               </p>
             </div>
             <div className="flex gap-3">
+              <Button variant="outline" onClick={() => navigate(`/edit/${client.id}`)} className="h-9">
+                <Edit2 className="mr-2 h-4 w-4" />
+                Edit
+              </Button>
               <Button variant="outline" onClick={handleCopy} className="h-9">
                 <Copy className="mr-2 h-4 w-4" />
                 Copy
