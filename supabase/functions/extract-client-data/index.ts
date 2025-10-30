@@ -12,7 +12,8 @@ serve(async (req) => {
   }
 
   try {
-    const { onboarding_form, transcript, client_id, service_name, use_template, template_script, regenerate } = await req.json();
+    const requestBody = await req.json();
+    const { onboarding_form, transcript, client_id, service_name, use_template, template_script, regenerate, links } = requestBody;
 
     const LOVABLE_API_KEY = Deno.env.get("LOVABLE_API_KEY");
     const SUPABASE_URL = Deno.env.get("SUPABASE_URL");
@@ -236,12 +237,12 @@ Make it natural, conversational, and specific to their business. Include specifi
           .eq("client_id", client_id)
           .in("field_name", ["_original_onboarding_form", "_original_transcript"]);
 
-        // Delete existing details except original source data
+        // Delete existing details except original source data and links
         await supabase
           .from("client_details")
           .delete()
           .eq("client_id", client_id)
-          .not("field_name", "in", '("_original_onboarding_form","_original_transcript")');
+          .not("field_name", "in", '("_original_onboarding_form","_original_transcript","website","facebook_page","instagram","crm_account_link","appointment_calendar","reschedule_calendar")');
 
         // Insert new details
         const detailsToInsert = Object.entries(extractedInfo)
@@ -274,6 +275,28 @@ Make it natural, conversational, and specific to their business. Include specifi
             client_id: client_id,
             field_name: "_original_transcript",
             field_value: transcript,
+          });
+        }
+
+        // Add links if provided
+        if (links) {
+          const linkFields = [
+            { name: "website", value: links.website },
+            { name: "facebook_page", value: links.facebook_page },
+            { name: "instagram", value: links.instagram },
+            { name: "crm_account_link", value: links.crm_account_link },
+            { name: "appointment_calendar", value: links.appointment_calendar },
+            { name: "reschedule_calendar", value: links.reschedule_calendar },
+          ];
+
+          linkFields.forEach(({ name, value }) => {
+            if (value) {
+              detailsToInsert.push({
+                client_id: client_id,
+                field_name: name,
+                field_value: value,
+              });
+            }
           });
         }
 
@@ -322,6 +345,28 @@ Make it natural, conversational, and specific to their business. Include specifi
           client_id: clientData.id,
           field_name: "_original_transcript",
           field_value: transcript,
+        });
+      }
+
+      // Add links if provided
+      if (links) {
+        const linkFields = [
+          { name: "website", value: links.website },
+          { name: "facebook_page", value: links.facebook_page },
+          { name: "instagram", value: links.instagram },
+          { name: "crm_account_link", value: links.crm_account_link },
+          { name: "appointment_calendar", value: links.appointment_calendar },
+          { name: "reschedule_calendar", value: links.reschedule_calendar },
+        ];
+
+        linkFields.forEach(({ name, value }) => {
+          if (value) {
+            detailsToInsert.push({
+              client_id: clientData.id,
+              field_name: name,
+              field_value: value,
+            });
+          }
         });
       }
 
