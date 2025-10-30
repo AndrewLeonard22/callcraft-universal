@@ -5,6 +5,7 @@ import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
+import ServiceAreaMap from "@/components/ServiceAreaMap";
 
 interface ClientData {
   id: string;
@@ -282,6 +283,24 @@ export default function ScriptViewer() {
               </Button>
             </div>
           </div>
+
+          {/* Service Area Map */}
+          {(client.city || getDetailValue("service_area") !== "N/A") && (
+            <Card className="mb-8 border border-border shadow-sm">
+              <CardContent className="p-8">
+                <h2 className="text-lg font-semibold mb-4 text-foreground">Service Coverage Area</h2>
+                <ServiceAreaMap 
+                  city={client.city} 
+                  serviceArea={getDetailValue("service_area")} 
+                />
+                {getDetailValue("service_area") !== "N/A" && (
+                  <p className="text-sm text-muted-foreground mt-3">
+                    Coverage: {getDetailValue("service_area")}
+                  </p>
+                )}
+              </CardContent>
+            </Card>
+          )}
 
           {/* Client Information Section */}
           <Card className="mb-8 border border-border shadow-sm">
