@@ -112,6 +112,64 @@ export default function ScriptViewer() {
     return details.find((d) => d.field_name === fieldName)?.field_value || "N/A";
   };
 
+  const FormattedScript = ({ content }: { content: string }) => {
+    const lines = content.split('\n');
+    
+    return (
+      <div className="space-y-4">
+        {lines.map((line, index) => {
+          // Section headers (all caps or ending with colon)
+          if (line.match(/^[A-Z\s]+:$/) || line.match(/^[*#]+\s*[A-Z][^a-z]*$/)) {
+            return (
+              <h3 key={index} className="text-xl font-bold mt-6 mb-3 text-primary border-b-2 border-primary/20 pb-2">
+                {line.replace(/^[*#]+\s*/, '').replace(/:$/, '')}
+              </h3>
+            );
+          }
+          
+          // Stage markers (like "Stage 1:", "Phase 2:")
+          if (line.match(/^(Stage|Phase|Step)\s+\d+/i)) {
+            return (
+              <h4 key={index} className="text-lg font-semibold mt-4 mb-2 text-accent">
+                {line}
+              </h4>
+            );
+          }
+          
+          // Sub-headers (lines starting with ** or ending with :)
+          if (line.match(/^\*\*[^*]+\*\*/) || (line.endsWith(':') && line.length < 60 && !line.includes('.'))) {
+            return (
+              <h5 key={index} className="font-bold text-base mt-3 mb-1 text-foreground">
+                {line.replace(/^\*\*/, '').replace(/\*\*$/, '').replace(/:$/, '')}
+              </h5>
+            );
+          }
+          
+          // Format inline content
+          let formattedLine = line;
+          
+          // Highlight names in brackets or quotes
+          formattedLine = formattedLine.replace(/\[([^\]]+)\]/g, '<span class="bg-primary/20 text-primary font-medium px-2 py-0.5 rounded">$1</span>');
+          formattedLine = formattedLine.replace(/"([^"]+)"/g, '<span class="bg-accent/20 text-accent font-medium px-1 rounded">$1</span>');
+          
+          // Bold text between asterisks
+          formattedLine = formattedLine.replace(/\*\*([^*]+)\*\*/g, '<strong class="font-bold text-foreground">$1</strong>');
+          formattedLine = formattedLine.replace(/\*([^*]+)\*/g, '<strong class="font-semibold">$1</strong>');
+          
+          // Empty lines
+          if (!line.trim()) {
+            return <div key={index} className="h-2" />;
+          }
+          
+          // Regular content
+          return (
+            <p key={index} className="text-base leading-relaxed" dangerouslySetInnerHTML={{ __html: formattedLine }} />
+          );
+        })}
+      </div>
+    );
+  };
+
   return (
     <div className="min-h-screen bg-background p-8">
       <div className="max-w-5xl mx-auto">
@@ -172,10 +230,8 @@ export default function ScriptViewer() {
 
         <Card className="shadow-lg">
           <CardContent className="pt-6">
-            <div className="prose prose-sm max-w-none">
-              <div className="whitespace-pre-wrap font-mono text-sm leading-relaxed">
-                {script.script_content}
-              </div>
+            <div className="prose prose-lg max-w-none">
+              <FormattedScript content={script.script_content} />
             </div>
           </CardContent>
         </Card>
