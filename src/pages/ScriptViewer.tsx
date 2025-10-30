@@ -178,20 +178,21 @@ export default function ScriptViewer() {
           Back to Dashboard
         </Button>
 
+        {/* Client Header */}
         <div className="mb-6">
-          <div className="flex items-start justify-between mb-4">
+          <div className="flex items-start justify-between mb-6">
             <div className="flex-1">
               <h1 className="text-4xl font-bold mb-2 bg-gradient-to-r from-primary to-accent bg-clip-text text-transparent">
                 {client.name}
               </h1>
-              <p className="text-muted-foreground capitalize">
+              <p className="text-lg text-muted-foreground capitalize">
                 {client.service_type} {client.city && `• ${client.city}`}
               </p>
             </div>
             <div className="flex gap-2">
               <Button variant="outline" onClick={handleCopy}>
                 <Copy className="mr-2 h-4 w-4" />
-                Copy
+                Copy Script
               </Button>
               <Button variant="outline" onClick={handleDownload}>
                 <Download className="mr-2 h-4 w-4" />
@@ -200,36 +201,138 @@ export default function ScriptViewer() {
             </div>
           </div>
 
-          <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mb-6">
-            <Card>
-              <CardContent className="pt-4">
-                <div className="text-sm text-muted-foreground mb-1">Sales Rep</div>
-                <div className="font-medium">{getDetailValue("sales_rep_name")}</div>
-              </CardContent>
-            </Card>
-            <Card>
-              <CardContent className="pt-4">
-                <div className="text-sm text-muted-foreground mb-1">Starting Price</div>
-                <div className="font-medium">{getDetailValue("starting_price")}</div>
-              </CardContent>
-            </Card>
-            <Card>
-              <CardContent className="pt-4">
-                <div className="text-sm text-muted-foreground mb-1">Warranty</div>
-                <div className="font-medium">{getDetailValue("warranty")}</div>
-              </CardContent>
-            </Card>
-            <Card>
-              <CardContent className="pt-4">
-                <div className="text-sm text-muted-foreground mb-1">Version</div>
-                <div className="font-medium">v{script.version}</div>
-              </CardContent>
-            </Card>
-          </div>
+          {/* Client Information Section */}
+          <Card className="mb-6 shadow-lg border-2">
+            <CardContent className="pt-6">
+              <h2 className="text-2xl font-bold mb-4 text-primary">Client Information</h2>
+              
+              {/* Key Details Grid */}
+              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4 mb-6">
+                {getDetailValue("sales_rep_name") !== "N/A" && (
+                  <div className="space-y-1">
+                    <div className="text-sm font-medium text-muted-foreground">Sales Representative</div>
+                    <div className="text-base font-semibold">{getDetailValue("sales_rep_name")}</div>
+                    {getDetailValue("sales_rep_phone") !== "N/A" && (
+                      <div className="text-sm text-muted-foreground">{getDetailValue("sales_rep_phone")}</div>
+                    )}
+                  </div>
+                )}
+                
+                {getDetailValue("starting_price") !== "N/A" && (
+                  <div className="space-y-1">
+                    <div className="text-sm font-medium text-muted-foreground">Starting Price</div>
+                    <div className="text-base font-semibold">{getDetailValue("starting_price")}</div>
+                  </div>
+                )}
+                
+                {getDetailValue("minimum_size") !== "N/A" && (
+                  <div className="space-y-1">
+                    <div className="text-sm font-medium text-muted-foreground">Minimum Size</div>
+                    <div className="text-base font-semibold">{getDetailValue("minimum_size")}</div>
+                  </div>
+                )}
+                
+                {getDetailValue("warranty") !== "N/A" && (
+                  <div className="space-y-1">
+                    <div className="text-sm font-medium text-muted-foreground">Warranty</div>
+                    <div className="text-base font-semibold">{getDetailValue("warranty")}</div>
+                  </div>
+                )}
+                
+                {getDetailValue("guarantee") !== "N/A" && (
+                  <div className="space-y-1">
+                    <div className="text-sm font-medium text-muted-foreground">Guarantee</div>
+                    <div className="text-base font-semibold">{getDetailValue("guarantee")}</div>
+                  </div>
+                )}
+                
+                {getDetailValue("years_in_business") !== "N/A" && (
+                  <div className="space-y-1">
+                    <div className="text-sm font-medium text-muted-foreground">Years in Business</div>
+                    <div className="text-base font-semibold">{getDetailValue("years_in_business")}</div>
+                  </div>
+                )}
+              </div>
+
+              {/* Contact & Location */}
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-6">
+                {getDetailValue("address") !== "N/A" && (
+                  <div className="space-y-1">
+                    <div className="text-sm font-medium text-muted-foreground">Address</div>
+                    <div className="text-base">{getDetailValue("address")}</div>
+                  </div>
+                )}
+                
+                {getDetailValue("service_area") !== "N/A" && (
+                  <div className="space-y-1">
+                    <div className="text-sm font-medium text-muted-foreground">Service Area</div>
+                    <div className="text-base">{getDetailValue("service_area")}</div>
+                  </div>
+                )}
+              </div>
+
+              {/* Offer Details */}
+              {(getDetailValue("offer_name") !== "N/A" || getDetailValue("offer_description") !== "N/A") && (
+                <div className="border-t pt-4 mb-6">
+                  <h3 className="text-lg font-semibold mb-3 text-accent">Current Offer</h3>
+                  {getDetailValue("offer_name") !== "N/A" && (
+                    <div className="text-base font-semibold mb-2">{getDetailValue("offer_name")}</div>
+                  )}
+                  {getDetailValue("offer_description") !== "N/A" && (
+                    <div className="text-sm text-muted-foreground">{getDetailValue("offer_description")}</div>
+                  )}
+                </div>
+              )}
+
+              {/* Additional Details */}
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                {getDetailValue("business_hours") !== "N/A" && (
+                  <div className="space-y-1">
+                    <div className="text-sm font-medium text-muted-foreground">Business Hours</div>
+                    <div className="text-sm">{getDetailValue("business_hours")}</div>
+                  </div>
+                )}
+                
+                {getDetailValue("financing_options") !== "N/A" && (
+                  <div className="space-y-1">
+                    <div className="text-sm font-medium text-muted-foreground">Financing</div>
+                    <div className="text-sm">{getDetailValue("financing_options")}</div>
+                  </div>
+                )}
+                
+                {getDetailValue("appointment_link") !== "N/A" && (
+                  <div className="space-y-1">
+                    <div className="text-sm font-medium text-muted-foreground">Appointment Link</div>
+                    <a href={getDetailValue("appointment_link")} target="_blank" rel="noopener noreferrer" 
+                       className="text-sm text-primary hover:underline break-all">
+                      {getDetailValue("appointment_link")}
+                    </a>
+                  </div>
+                )}
+                
+                {getDetailValue("calendar_link") !== "N/A" && (
+                  <div className="space-y-1">
+                    <div className="text-sm font-medium text-muted-foreground">Calendar Link</div>
+                    <a href={getDetailValue("calendar_link")} target="_blank" rel="noopener noreferrer"
+                       className="text-sm text-primary hover:underline break-all">
+                      {getDetailValue("calendar_link")}
+                    </a>
+                  </div>
+                )}
+              </div>
+
+              {/* Script Version */}
+              <div className="mt-6 pt-4 border-t text-sm text-muted-foreground">
+                Script Version: v{script.version}
+              </div>
+            </CardContent>
+          </Card>
         </div>
 
-        <Card className="shadow-lg">
+        {/* Call Script */}
+        <Card className="shadow-lg border-2">
           <CardContent className="pt-6">
+            <h2 className="text-2xl font-bold mb-4 text-primary">Call Script</h2>
             <div className="prose prose-lg max-w-none">
               <FormattedScript content={script.script_content} />
             </div>
