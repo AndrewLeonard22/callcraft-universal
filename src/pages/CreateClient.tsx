@@ -16,6 +16,8 @@ export default function CreateClient() {
   const [transcript, setTranscript] = useState("");
   const [scriptTemplate, setScriptTemplate] = useState("");
   const [loading, setLoading] = useState(false);
+  const [isDragging, setIsDragging] = useState(false);
+  const [isScriptDragging, setIsScriptDragging] = useState(false);
   
   // Links
   const [website, setWebsite] = useState("");
@@ -32,6 +34,10 @@ export default function CreateClient() {
     try {
       if (file.type === "application/pdf") {
         toast.error("PDF parsing requires backend processing. Please paste the text content instead.");
+      } else if (file.type === "text/csv" || file.name.endsWith(".csv")) {
+        const text = await file.text();
+        setOnboardingForm(text);
+        toast.success("CSV uploaded successfully");
       } else {
         const text = await file.text();
         setOnboardingForm(text);
@@ -55,6 +61,52 @@ export default function CreateClient() {
       console.error("Error reading file:", error);
       toast.error("Failed to read file");
     }
+  };
+
+  const handleFormDrop = async (e: React.DragEvent) => {
+    e.preventDefault();
+    setIsDragging(false);
+    
+    const file = e.dataTransfer.files[0];
+    if (!file) return;
+
+    try {
+      if (file.type === "application/pdf") {
+        toast.error("PDF parsing requires backend processing. Please paste the text content instead.");
+      } else if (file.type === "text/csv" || file.name.endsWith(".csv")) {
+        const text = await file.text();
+        setOnboardingForm(text);
+        toast.success("CSV uploaded successfully");
+      } else {
+        const text = await file.text();
+        setOnboardingForm(text);
+        toast.success("Form uploaded successfully");
+      }
+    } catch (error) {
+      console.error("Error reading file:", error);
+      toast.error("Failed to read file");
+    }
+  };
+
+  const handleScriptDrop = async (e: React.DragEvent) => {
+    e.preventDefault();
+    setIsScriptDragging(false);
+    
+    const file = e.dataTransfer.files[0];
+    if (!file) return;
+
+    try {
+      const text = await file.text();
+      setScriptTemplate(text);
+      toast.success("Script uploaded successfully");
+    } catch (error) {
+      console.error("Error reading file:", error);
+      toast.error("Failed to read file");
+    }
+  };
+
+  const handleDragOver = (e: React.DragEvent) => {
+    e.preventDefault();
   };
 
   const handleGenerate = async () => {
@@ -146,14 +198,22 @@ export default function CreateClient() {
                 )}
               </div>
               
-              <div className="relative">
+              <div 
+                className={`relative border-2 border-dashed rounded-lg transition-colors ${
+                  isScriptDragging ? "border-primary bg-primary/5" : "border-muted-foreground/25"
+                }`}
+                onDrop={handleScriptDrop}
+                onDragOver={handleDragOver}
+                onDragEnter={() => setIsScriptDragging(true)}
+                onDragLeave={() => setIsScriptDragging(false)}
+              >
                 <Label htmlFor="script-template" className="text-sm font-medium">
-                  Or paste your script here
+                  Or paste/drag your script here
                 </Label>
                 <Textarea
                   id="script-template"
-                  placeholder="Paste your script template here..."
-                  className="min-h-[200px] font-mono text-sm mt-2"
+                  placeholder="Paste your script template here or drag a file..."
+                  className="min-h-[200px] font-mono text-sm mt-2 border-0 focus-visible:ring-0"
                   value={scriptTemplate}
                   onChange={(e) => setScriptTemplate(e.target.value)}
                 />
@@ -182,23 +242,33 @@ export default function CreateClient() {
                       <Label htmlFor="form-upload" className="cursor-pointer">
                         <div className="flex items-center gap-2 px-4 py-2 border border-input rounded-lg hover:bg-accent transition-colors">
                           <Upload className="h-4 w-4" />
-                          <span className="text-sm font-medium">Upload PDF/Text File</span>
+                          <span className="text-sm font-medium">Upload PDF/Text/CSV File</span>
                         </div>
                         <input
                           id="form-upload"
                           type="file"
-                          accept=".txt,.md,.pdf"
+                          accept=".txt,.md,.pdf,.csv"
                           onChange={handleFormUpload}
                           className="hidden"
                         />
                       </Label>
                     </div>
-                    <Textarea
-                      placeholder="Paste onboarding form data here..."
-                      className="min-h-[200px] font-mono text-sm"
-                      value={onboardingForm}
-                      onChange={(e) => setOnboardingForm(e.target.value)}
-                    />
+                    <div 
+                      className={`relative border-2 border-dashed rounded-lg transition-colors ${
+                        isDragging ? "border-primary bg-primary/5" : "border-muted-foreground/25"
+                      }`}
+                      onDrop={handleFormDrop}
+                      onDragOver={handleDragOver}
+                      onDragEnter={() => setIsDragging(true)}
+                      onDragLeave={() => setIsDragging(false)}
+                    >
+                      <Textarea
+                        placeholder="Paste onboarding form data here or drag a file..."
+                        className="min-h-[200px] font-mono text-sm border-0 focus-visible:ring-0"
+                        value={onboardingForm}
+                        onChange={(e) => setOnboardingForm(e.target.value)}
+                      />
+                    </div>
                   </div>
                 </TabsContent>
                 
