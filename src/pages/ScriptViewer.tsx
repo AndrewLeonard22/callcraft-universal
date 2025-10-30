@@ -123,6 +123,89 @@ export default function ScriptViewer() {
   const FormattedScript = ({ content }: { content: string }) => {
     const lines = content.split('\n');
     
+    const formatLine = (text: string) => {
+      const parts: (string | JSX.Element)[] = [];
+      let remaining = text;
+      let key = 0;
+      
+      // Process the text to find and replace patterns
+      while (remaining.length > 0) {
+        // Check for [bracketed text]
+        const bracketMatch = remaining.match(/\[([^\]]+)\]/);
+        if (bracketMatch && bracketMatch.index !== undefined) {
+          // Add text before match
+          if (bracketMatch.index > 0) {
+            parts.push(remaining.substring(0, bracketMatch.index));
+          }
+          // Add highlighted span
+          parts.push(
+            <span key={`bracket-${key++}`} className="bg-primary/20 text-primary font-medium px-2 py-0.5 rounded">
+              {bracketMatch[1]}
+            </span>
+          );
+          remaining = remaining.substring(bracketMatch.index + bracketMatch[0].length);
+          continue;
+        }
+        
+        // Check for "quoted text"
+        const quoteMatch = remaining.match(/"([^"]+)"/);
+        if (quoteMatch && quoteMatch.index !== undefined) {
+          // Add text before match
+          if (quoteMatch.index > 0) {
+            parts.push(remaining.substring(0, quoteMatch.index));
+          }
+          // Add highlighted span
+          parts.push(
+            <span key={`quote-${key++}`} className="bg-accent/20 text-accent font-medium px-1 rounded">
+              {quoteMatch[1]}
+            </span>
+          );
+          remaining = remaining.substring(quoteMatch.index + quoteMatch[0].length);
+          continue;
+        }
+        
+        // Check for **bold text**
+        const boldMatch = remaining.match(/\*\*([^*]+)\*\*/);
+        if (boldMatch && boldMatch.index !== undefined) {
+          // Add text before match
+          if (boldMatch.index > 0) {
+            parts.push(remaining.substring(0, boldMatch.index));
+          }
+          // Add bold text
+          parts.push(
+            <strong key={`bold-${key++}`} className="font-bold text-foreground">
+              {boldMatch[1]}
+            </strong>
+          );
+          remaining = remaining.substring(boldMatch.index + boldMatch[0].length);
+          continue;
+        }
+        
+        // Check for *italic/semibold text*
+        const italicMatch = remaining.match(/\*([^*]+)\*/);
+        if (italicMatch && italicMatch.index !== undefined) {
+          // Add text before match
+          if (italicMatch.index > 0) {
+            parts.push(remaining.substring(0, italicMatch.index));
+          }
+          // Add semibold text
+          parts.push(
+            <strong key={`semi-${key++}`} className="font-semibold">
+              {italicMatch[1]}
+            </strong>
+          );
+          remaining = remaining.substring(italicMatch.index + italicMatch[0].length);
+          continue;
+        }
+        
+        // No more matches, add remaining text
+        parts.push(remaining);
+        break;
+      }
+      
+      return parts.length > 0 ? parts : text;
+    };
+    
     return (
       <div className="space-y-4">
         {lines.map((line, index) => {
@@ -153,25 +236,16 @@ export default function ScriptViewer() {
             );
           }
           
-          // Format inline content
-          let formattedLine = line;
-          
-          // Highlight names in brackets or quotes
-          formattedLine = formattedLine.replace(/\[([^\]]+)\]/g, '<span class="bg-primary/20 text-primary font-medium px-2 py-0.5 rounded">$1</span>');
-          formattedLine = formattedLine.replace(/"([^"]+)"/g, '<span class="bg-accent/20 text-accent font-medium px-1 rounded">$1</span>');
-          
-          // Bold text between asterisks
-          formattedLine = formattedLine.replace(/\*\*([^*]+)\*\*/g, '<strong class="font-bold text-foreground">$1</strong>');
-          formattedLine = formattedLine.replace(/\*([^*]+)\*/g, '<strong class="font-semibold">$1</strong>');
-          
           // Empty lines
           if (!line.trim()) {
             return <div key={index} className="h-2" />;
           }
           
-          // Regular content
+          // Regular content with formatting
           return (
-            <p key={index} className="text-base leading-relaxed" dangerouslySetInnerHTML={{ __html: formattedLine }} />
+            <p key={index} className="text-base leading-relaxed">
+              {formatLine(line)}
+            </p>
           );
         })}
       </div>
