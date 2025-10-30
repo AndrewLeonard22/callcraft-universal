@@ -30,13 +30,22 @@ export default function CreateClient() {
         },
       });
 
-      if (error) throw error;
+      if (error) {
+        console.error("Function error:", error);
+        throw new Error(error.message || "Failed to call function");
+      }
+
+      if (data?.error) {
+        console.error("Function returned error:", data.error);
+        throw new Error(data.error);
+      }
 
       toast.success("Client script generated successfully!");
       navigate(`/script/${data.client_id}`);
     } catch (error) {
       console.error("Error generating script:", error);
-      toast.error("Failed to generate script. Please try again.");
+      const errorMessage = error instanceof Error ? error.message : "Failed to generate script";
+      toast.error(errorMessage);
     } finally {
       setLoading(false);
     }

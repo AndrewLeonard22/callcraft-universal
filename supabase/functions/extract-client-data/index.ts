@@ -39,31 +39,41 @@ serve(async (req) => {
         messages: [
           {
             role: "system",
-            content: `You are an expert at extracting business information from onboarding forms and call transcripts. Extract ALL relevant details and format them clearly. Be thorough and extract every piece of information provided.`,
+            content: `You are an expert at extracting business information from onboarding forms and call transcripts. 
+
+CRITICAL REQUIREMENTS:
+- You MUST extract both company_name and service_type - these are required fields
+- If service_type is not explicitly stated, infer it from context (e.g., "pergola", "turf", "lighting", "concrete", "landscaping", etc.)
+- If you cannot determine service_type, use "General Services" as a fallback
+- Extract ALL other relevant details thoroughly`,
           },
           {
             role: "user",
             content: `Extract all client information from the following data and format it as JSON with these fields:
-- company_name (required)
-- service_type (required)
-- city
-- address
-- service_area
-- offer_name
-- offer_description
-- starting_price
-- minimum_size
-- warranty
-- guarantee
+
+REQUIRED FIELDS (must be present):
+- company_name (string, required)
+- service_type (string, required - infer from context if not explicit)
+
+OPTIONAL FIELDS:
+- city (string)
+- address (string)
+- service_area (string)
+- offer_name (string)
+- offer_description (string)
+- starting_price (string)
+- minimum_size (string)
+- warranty (string)
+- guarantee (string)
 - addons (array of strings)
 - upgrades (array of strings)
-- sales_rep_name
-- sales_rep_phone
-- appointment_link
-- calendar_link
-- years_in_business
-- business_hours
-- financing_options
+- sales_rep_name (string)
+- sales_rep_phone (string)
+- appointment_link (string)
+- calendar_link (string)
+- years_in_business (string)
+- business_hours (string)
+- financing_options (string)
 - faqs (array of objects with question and answer)
 
 Onboarding Form:
@@ -72,7 +82,7 @@ ${onboarding_form}
 Call Transcript:
 ${transcript}
 
-Return ONLY valid JSON, no markdown formatting.`,
+Return ONLY valid JSON with at least company_name and service_type. No markdown formatting.`,
           },
         ],
       }),
@@ -88,6 +98,16 @@ Return ONLY valid JSON, no markdown formatting.`,
     const extractedInfo = JSON.parse(extractionData.choices[0].message.content);
 
     console.log("Extracted data:", extractedInfo);
+
+    // Validate required fields
+    if (!extractedInfo.company_name || !extractedInfo.service_type) {
+      console.error("Missing required fields:", extractedInfo);
+      throw new Error(
+        `Missing required information. Please ensure the data includes:\n` +
+        `${!extractedInfo.company_name ? "- Company name\n" : ""}` +
+        `${!extractedInfo.service_type ? "- Service type (e.g., pergola, turf, lighting)\n" : ""}`
+      );
+    }
 
     // Generate the script
     console.log("Generating call script...");
