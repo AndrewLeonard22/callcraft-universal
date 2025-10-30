@@ -180,12 +180,8 @@ export default function EditClient() {
       return;
     }
 
-    // Get new data from the textareas
-    const newOnboardingForm = (document.getElementById("new-onboarding-form") as HTMLTextAreaElement)?.value || "";
-    const newTranscript = (document.getElementById("new-transcript") as HTMLTextAreaElement)?.value || "";
-
-    if (!newOnboardingForm.trim() && !newTranscript.trim()) {
-      toast.error("Please provide new onboarding form or transcript data to regenerate");
+    if (!onboardingForm.trim() && !transcript.trim()) {
+      toast.error("Please provide onboarding form or transcript data to regenerate");
       return;
     }
 
@@ -193,8 +189,8 @@ export default function EditClient() {
     try {
       const { data, error } = await supabase.functions.invoke("extract-client-data", {
         body: { 
-          onboarding_form: newOnboardingForm, 
-          transcript: newTranscript,
+          onboarding_form: onboardingForm, 
+          transcript: transcript,
           use_template: true,
           template_script: scriptTemplate,
           client_id: clientId,
@@ -344,74 +340,33 @@ export default function EditClient() {
 
           <Card>
             <CardHeader>
-              <CardTitle>Source Data (Original)</CardTitle>
+              <CardTitle>Source Data</CardTitle>
               <CardDescription>
-                The original onboarding form and transcript used to create this client (read-only reference)
+                View and edit the onboarding form or transcript used to generate scripts
               </CardDescription>
             </CardHeader>
             <CardContent>
               <Tabs defaultValue="form" className="w-full">
                 <TabsList className="grid w-full grid-cols-2 mb-4">
-                  <TabsTrigger value="form">Original Onboarding Form</TabsTrigger>
-                  <TabsTrigger value="transcript">Original Call Transcript</TabsTrigger>
+                  <TabsTrigger value="form">Onboarding Form</TabsTrigger>
+                  <TabsTrigger value="transcript">Call Transcript</TabsTrigger>
                 </TabsList>
                 
                 <TabsContent value="form">
                   <Textarea
-                    placeholder="No original onboarding form data available"
-                    className="min-h-[200px] font-mono text-sm bg-muted"
+                    placeholder="Paste onboarding form data here..."
+                    className="min-h-[200px] font-mono text-sm"
                     value={onboardingForm}
-                    readOnly
+                    onChange={(e) => setOnboardingForm(e.target.value)}
                   />
-                  <p className="text-xs text-muted-foreground mt-2">
-                    This is the original data. To update, use "Regenerate Script" with new data below.
-                  </p>
                 </TabsContent>
                 
                 <TabsContent value="transcript">
                   <Textarea
-                    placeholder="No original transcript data available"
-                    className="min-h-[200px] font-mono text-sm bg-muted"
+                    placeholder="Paste call transcript here..."
+                    className="min-h-[200px] font-mono text-sm"
                     value={transcript}
-                    readOnly
-                  />
-                  <p className="text-xs text-muted-foreground mt-2">
-                    This is the original data. To update, use "Regenerate Script" with new data below.
-                  </p>
-                </TabsContent>
-              </Tabs>
-            </CardContent>
-          </Card>
-
-          <Card>
-            <CardHeader>
-              <CardTitle>New Source Data (Optional)</CardTitle>
-              <CardDescription>
-                Provide updated onboarding form or transcript to regenerate the script with new information
-              </CardDescription>
-            </CardHeader>
-            <CardContent>
-              <Tabs defaultValue="new-form" className="w-full">
-                <TabsList className="grid w-full grid-cols-2 mb-4">
-                  <TabsTrigger value="new-form">New Onboarding Form</TabsTrigger>
-                  <TabsTrigger value="new-transcript">New Call Transcript</TabsTrigger>
-                </TabsList>
-                
-                <TabsContent value="new-form">
-                  <Textarea
-                    placeholder="Paste new onboarding form data to regenerate script..."
-                    className="min-h-[200px] font-mono text-sm"
-                    defaultValue=""
-                    id="new-onboarding-form"
-                  />
-                </TabsContent>
-                
-                <TabsContent value="new-transcript">
-                  <Textarea
-                    placeholder="Paste new call transcript to regenerate script..."
-                    className="min-h-[200px] font-mono text-sm"
-                    defaultValue=""
-                    id="new-transcript"
+                    onChange={(e) => setTranscript(e.target.value)}
                   />
                 </TabsContent>
               </Tabs>
