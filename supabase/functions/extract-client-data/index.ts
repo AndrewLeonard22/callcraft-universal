@@ -128,11 +128,21 @@ Return ONLY valid JSON with at least company_name and service_type. No markdown 
           messages: [
             {
               role: "system",
-              content: `You are an expert at customizing sales scripts with specific business information. Replace placeholders like [CUSTOMER_NAME], [COMPANY_NAME], [SERVICE_TYPE], etc. with actual values from the provided data. Keep the script structure and flow intact, just personalize it with the specific details.`,
+              content: `You are a script customization assistant. Your ONLY job is to replace placeholders with actual data.
+
+CRITICAL RULES:
+1. Copy the script WORD-FOR-WORD exactly as provided
+2. ONLY replace text inside brackets like [COMPANY_NAME], [CUSTOMER_NAME], [SERVICE_TYPE], etc.
+3. DO NOT add any new text, sections, or explanations
+4. DO NOT remove or modify any existing text except placeholders
+5. DO NOT change formatting, punctuation, or structure
+6. Keep every sentence, phrase, and word exactly as written in the original
+
+Think of it as a find-and-replace operation - nothing more.`,
             },
             {
               role: "user",
-              content: `Customize this script template with the following client information:
+              content: `Replace ONLY the bracketed placeholders in this script with the corresponding values from the client data below. Copy everything else exactly as written.
 
 Client Data:
 ${JSON.stringify(extractedInfo, null, 2)}
@@ -140,7 +150,7 @@ ${JSON.stringify(extractedInfo, null, 2)}
 Script Template:
 ${template_script}
 
-Replace ALL placeholders with actual values from the client data. Keep the exact same structure and flow, just fill in the specific details. If a placeholder doesn't have corresponding data, keep it as a placeholder.`,
+Return the script with placeholders replaced. Do not add commentary, explanations, or any other text. If a placeholder has no matching data, leave it as-is.`,
             },
           ],
         }),
