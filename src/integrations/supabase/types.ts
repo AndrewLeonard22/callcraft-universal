@@ -78,21 +78,27 @@ export type Database = {
           client_id: string
           created_at: string | null
           id: string
+          is_template: boolean
           script_content: string
+          service_name: string
           version: number | null
         }
         Insert: {
           client_id: string
           created_at?: string | null
           id?: string
+          is_template?: boolean
           script_content: string
+          service_name?: string
           version?: number | null
         }
         Update: {
           client_id?: string
           created_at?: string | null
           id?: string
+          is_template?: boolean
           script_content?: string
+          service_name?: string
           version?: number | null
         }
         Relationships: [
