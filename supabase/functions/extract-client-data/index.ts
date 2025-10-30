@@ -12,7 +12,7 @@ serve(async (req) => {
   }
 
   try {
-    const { onboarding_form, transcript } = await req.json();
+    const { onboarding_form, transcript, client_id, service_name, use_template, template_script } = await req.json();
 
     const LOVABLE_API_KEY = Deno.env.get("LOVABLE_API_KEY");
     const SUPABASE_URL = Deno.env.get("SUPABASE_URL");
@@ -112,22 +112,64 @@ Return ONLY valid JSON with at least company_name and service_type. No markdown 
     // Generate the script
     console.log("Generating call script...");
 
-    const scriptResponse = await fetch("https://ai.gateway.lovable.dev/v1/chat/completions", {
-      method: "POST",
-      headers: {
-        Authorization: `Bearer ${LOVABLE_API_KEY}`,
-        "Content-Type": "application/json",
-      },
-      body: JSON.stringify({
-        model: "google/gemini-2.5-flash",
-        messages: [
-          {
-            role: "system",
-            content: `You are an expert sales script writer. Create comprehensive, natural-sounding call scripts for home improvement businesses. Follow the structure: Opening → Discovery → Emotional Drivers → Pre-Frame → Appointment Booking → FAQ Handling. Be conversational but professional.`,
-          },
-          {
-            role: "user",
-            content: `Create a complete call script for ${extractedInfo.company_name} using this information:
+    let scriptContent;
+    
+    if (use_template && template_script) {
+      // Customize the template with client data
+      console.log("Customizing template script...");
+      const customizationResponse = await fetch("https://ai.gateway.lovable.dev/v1/chat/completions", {
+        method: "POST",
+        headers: {
+          Authorization: `Bearer ${LOVABLE_API_KEY}`,
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({
+          model: "google/gemini-2.5-flash",
+          messages: [
+            {
+              role: "system",
+              content: `You are an expert at customizing sales scripts with specific business information. Replace placeholders like [CUSTOMER_NAME], [COMPANY_NAME], [SERVICE_TYPE], etc. with actual values from the provided data. Keep the script structure and flow intact, just personalize it with the specific details.`,
+            },
+            {
+              role: "user",
+              content: `Customize this script template with the following client information:
+
+Client Data:
+${JSON.stringify(extractedInfo, null, 2)}
+
+Script Template:
+${template_script}
+
+Replace ALL placeholders with actual values from the client data. Keep the exact same structure and flow, just fill in the specific details. If a placeholder doesn't have corresponding data, keep it as a placeholder.`,
+            },
+          ],
+        }),
+      });
+
+      if (!customizationResponse.ok) {
+        throw new Error("Failed to customize template script");
+      }
+
+      const customizationData = await customizationResponse.json();
+      scriptContent = customizationData.choices[0].message.content;
+    } else {
+      // Generate a fresh script
+      const scriptResponse = await fetch("https://ai.gateway.lovable.dev/v1/chat/completions", {
+        method: "POST",
+        headers: {
+          Authorization: `Bearer ${LOVABLE_API_KEY}`,
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({
+          model: "google/gemini-2.5-flash",
+          messages: [
+            {
+              role: "system",
+              content: `You are an expert sales script writer. Create comprehensive, natural-sounding call scripts for home improvement businesses. Follow the structure: Opening → Discovery → Emotional Drivers → Pre-Frame → Appointment Booking → FAQ Handling. Be conversational but professional.`,
+            },
+            {
+              role: "user",
+              content: `Create a complete call script for ${extractedInfo.company_name} using this information:
 
 ${JSON.stringify(extractedInfo, null, 2)}
 
@@ -140,56 +182,74 @@ Structure the script with these sections:
 6. FAQ HANDLING (Common objections and answers)
 
 Make it natural, conversational, and specific to their business. Include specific prices, warranties, and details from the data provided.`,
-          },
-        ],
-      }),
-    });
+            },
+          ],
+        }),
+      });
 
-    if (!scriptResponse.ok) {
-      throw new Error("Failed to generate script");
+      if (!scriptResponse.ok) {
+        throw new Error("Failed to generate script");
+      }
+
+      const scriptData = await scriptResponse.json();
+      scriptContent = scriptData.choices[0].message.content;
     }
-
-    const scriptData = await scriptResponse.json();
-    const scriptContent = scriptData.choices[0].message.content;
 
     // Save to database
     console.log("Saving to database...");
 
-    // Insert client
-    const { data: client, error: clientError } = await supabase
-      .from("clients")
-      .insert({
-        name: extractedInfo.company_name,
-        service_type: extractedInfo.service_type,
-        city: extractedInfo.city,
-      })
-      .select()
-      .single();
+    let clientData: any;
 
-    if (clientError) throw clientError;
+    if (client_id) {
+      // Use existing client
+      const { data: existingClient, error: clientFetchError } = await supabase
+        .from("clients")
+        .select("*")
+        .eq("id", client_id)
+        .single();
 
-    // Insert client details
-    const detailsToInsert = Object.entries(extractedInfo)
-      .filter(([key]) => !["company_name", "service_type", "city"].includes(key))
-      .map(([key, value]) => ({
-        client_id: client.id,
-        field_name: key,
-        field_value: typeof value === "string" ? value : JSON.stringify(value),
-      }));
+      if (clientFetchError) throw clientFetchError;
+      clientData = existingClient;
+    } else {
+      // Insert new client
+      const { data: newClient, error: clientError } = await supabase
+        .from("clients")
+        .insert({
+          name: extractedInfo.company_name,
+          service_type: extractedInfo.service_type,
+          city: extractedInfo.city,
+        })
+        .select()
+        .single();
 
-    if (detailsToInsert.length > 0) {
-      const { error: detailsError } = await supabase
-        .from("client_details")
-        .insert(detailsToInsert);
+      if (clientError) throw clientError;
+      clientData = newClient;
 
-      if (detailsError) throw detailsError;
+      // Insert client details for new clients
+      const detailsToInsert = Object.entries(extractedInfo)
+        .filter(([key]) => !["company_name", "service_type", "city"].includes(key))
+        .map(([key, value]) => ({
+          client_id: clientData.id,
+          field_name: key,
+          field_value: typeof value === "string" ? value : JSON.stringify(value),
+        }));
+
+      if (detailsToInsert.length > 0) {
+        const { error: detailsError } = await supabase
+          .from("client_details")
+          .insert(detailsToInsert);
+
+        if (detailsError) throw detailsError;
+      }
     }
 
-    // Insert script
+    // Insert script with service name
     const { error: scriptError } = await supabase.from("scripts").insert({
-      client_id: client.id,
+      client_id: clientData.id,
       script_content: scriptContent,
+      service_name: service_name || extractedInfo.service_type || "General Service",
       version: 1,
+      is_template: false,
     });
 
     if (scriptError) throw scriptError;
@@ -199,7 +259,7 @@ Make it natural, conversational, and specific to their business. Include specifi
     return new Response(
       JSON.stringify({
         success: true,
-        client_id: client.id,
+        client_id: clientData.id,
         extracted_data: extractedInfo,
       }),
       {

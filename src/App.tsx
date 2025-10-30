@@ -5,6 +5,8 @@ import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { BrowserRouter, Routes, Route } from "react-router-dom";
 import Dashboard from "./pages/Dashboard";
 import CreateClient from "./pages/CreateClient";
+import ClientScripts from "./pages/ClientScripts";
+import CreateScript from "./pages/CreateScript";
 import ScriptViewer from "./pages/ScriptViewer";
 import NotFound from "./pages/NotFound";
 
@@ -19,7 +21,9 @@ const App = () => (
         <Routes>
           <Route path="/" element={<Dashboard />} />
           <Route path="/create" element={<CreateClient />} />
-          <Route path="/script/:clientId" element={<ScriptViewer />} />
+          <Route path="/client/:clientId" element={<ClientScripts />} />
+          <Route path="/create-script/:clientId" element={<CreateScript />} />
+          <Route path="/script/:scriptId" element={<ScriptViewer />} />
           {/* ADD ALL CUSTOM ROUTES ABOVE THE CATCH-ALL "*" ROUTE */}
           <Route path="*" element={<NotFound />} />
         </Routes>

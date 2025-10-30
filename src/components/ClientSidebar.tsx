@@ -26,6 +26,7 @@ export function ClientSidebar() {
     const { data, error } = await supabase
       .from("clients")
       .select("*")
+      .neq("id", "00000000-0000-0000-0000-000000000001") // Exclude template client
       .order("created_at", { ascending: false });
 
     if (error) {
@@ -78,9 +79,9 @@ export function ClientSidebar() {
             filteredClients.map((client) => (
               <Link
                 key={client.id}
-                to={`/script/${client.id}`}
+                to={`/client/${client.id}`}
                 className={`block p-3 rounded-lg mb-2 transition-all ${
-                  location.pathname === `/script/${client.id}`
+                  location.pathname === `/client/${client.id}`
                     ? "bg-primary text-primary-foreground shadow-md"
                     : "hover:bg-secondary"
                 }`}

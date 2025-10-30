@@ -24,7 +24,7 @@ interface Script {
 }
 
 export default function ScriptViewer() {
-  const { clientId } = useParams();
+  const { scriptId } = useParams();
   const navigate = useNavigate();
   const [client, setClient] = useState<ClientData | null>(null);
   const [details, setDetails] = useState<ClientDetail[]>([]);
@@ -32,25 +32,33 @@ export default function ScriptViewer() {
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
-    if (clientId) {
+    if (scriptId) {
       loadClientData();
     }
-  }, [clientId]);
+  }, [scriptId]);
 
   const loadClientData = async () => {
     try {
-      const [clientResult, detailsResult, scriptResult] = await Promise.all([
-        supabase.from("clients").select("*").eq("id", clientId).single(),
-        supabase.from("client_details").select("*").eq("client_id", clientId),
-        supabase.from("scripts").select("*").eq("client_id", clientId).order("version", { ascending: false }).limit(1).single(),
+      // First load the script to get the client_id
+      const scriptResult = await supabase
+        .from("scripts")
+        .select("*, client_id, service_name")
+        .eq("id", scriptId)
+        .single();
+
+      if (scriptResult.error) throw scriptResult.error;
+      setScript(scriptResult.data);
+
+      // Then load client and details
+      const [clientResult, detailsResult] = await Promise.all([
+        supabase.from("clients").select("*").eq("id", scriptResult.data.client_id).single(),
+        supabase.from("client_details").select("*").eq("client_id", scriptResult.data.client_id),
       ]);
 
       if (clientResult.error) throw clientResult.error;
-      if (scriptResult.error) throw scriptResult.error;
 
       setClient(clientResult.data);
       setDetails(detailsResult.data || []);
-      setScript(scriptResult.data);
     } catch (error) {
       console.error("Error loading client data:", error);
       toast.error("Failed to load client data");
@@ -173,9 +181,9 @@ export default function ScriptViewer() {
   return (
     <div className="min-h-screen bg-background p-8">
       <div className="max-w-5xl mx-auto">
-        <Button variant="ghost" className="mb-6" onClick={() => navigate("/")}>
+        <Button variant="ghost" className="mb-6" onClick={() => navigate(`/client/${client.id}`)}>
           <ArrowLeft className="mr-2 h-4 w-4" />
-          Back to Dashboard
+          Back to Scripts
         </Button>
 
         {/* Client Header */}
@@ -186,7 +194,7 @@ export default function ScriptViewer() {
                 {client.name}
               </h1>
               <p className="text-lg text-muted-foreground capitalize">
-                {client.service_type} {client.city && `• ${client.city}`}
+                {(script as any)?.service_name || client.service_type} {client.city && `• ${client.city}`}
               </p>
             </div>
             <div className="flex gap-2">

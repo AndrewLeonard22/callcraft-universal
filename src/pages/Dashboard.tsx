@@ -26,6 +26,7 @@ export default function Dashboard() {
     const { data, error } = await supabase
       .from("clients")
       .select("*")
+      .neq("id", "00000000-0000-0000-0000-000000000001") // Exclude template client
       .order("created_at", { ascending: false });
 
     if (error) {
@@ -89,7 +90,7 @@ export default function Dashboard() {
         ) : (
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
             {clients.map((client) => (
-              <Link key={client.id} to={`/script/${client.id}`}>
+              <Link key={client.id} to={`/client/${client.id}`}>
                 <Card className="hover:shadow-lg transition-all hover:-translate-y-1 cursor-pointer h-full">
                   <CardHeader>
                     <CardTitle className="flex items-start gap-2">
