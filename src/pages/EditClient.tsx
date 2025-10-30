@@ -40,7 +40,7 @@ export default function EditClient() {
       const [clientResult, detailsResult, scriptResult] = await Promise.all([
         supabase.from("clients").select("*").eq("id", clientId).single(),
         supabase.from("client_details").select("*").eq("client_id", clientId),
-        supabase.from("scripts").select("script_content").eq("client_id", clientId).order("created_at", { ascending: false }).limit(1).single(),
+        supabase.from("scripts").select("script_content").eq("client_id", clientId).order("created_at", { ascending: false }).limit(1).maybeSingle(),
       ]);
 
       if (clientResult.error) throw clientResult.error;
@@ -49,13 +49,25 @@ export default function EditClient() {
       setServiceType(clientResult.data.service_type);
       setCity(clientResult.data.city || "");
 
-      // Convert client details to a readable JSON format
+      // Convert client details to a readable JSON format and extract original sources
       if (detailsResult.data) {
         const detailsObj: Record<string, string> = {};
+        let originalForm = "";
+        let originalTranscript = "";
+        
         detailsResult.data.forEach((detail) => {
-          detailsObj[detail.field_name] = detail.field_value || "";
+          if (detail.field_name === "_original_onboarding_form") {
+            originalForm = detail.field_value || "";
+          } else if (detail.field_name === "_original_transcript") {
+            originalTranscript = detail.field_value || "";
+          } else {
+            detailsObj[detail.field_name] = detail.field_value || "";
+          }
         });
+        
         setClientDetailsJson(JSON.stringify(detailsObj, null, 2));
+        setOnboardingForm(originalForm);
+        setTranscript(originalTranscript);
       }
 
       // Load script template from the most recent script
@@ -110,8 +122,19 @@ export default function EditClient() {
         try {
           const detailsObj = JSON.parse(clientDetailsJson);
           
-          // Delete existing details
-          await supabase.from("client_details").delete().eq("client_id", clientId);
+          // Keep original source data
+          const { data: originalData } = await supabase
+            .from("client_details")
+            .select("*")
+            .eq("client_id", clientId)
+            .in("field_name", ["_original_onboarding_form", "_original_transcript"]);
+          
+          // Delete existing details except original source data
+          await supabase
+            .from("client_details")
+            .delete()
+            .eq("client_id", clientId)
+            .not("field_name", "in", '("_original_onboarding_form","_original_transcript")');
           
           // Insert updated details
           const detailsArray = Object.entries(detailsObj).map(([key, value]) => ({
@@ -119,6 +142,15 @@ export default function EditClient() {
             field_name: key,
             field_value: value as string,
           }));
+
+          // Re-add original data
+          if (originalData && originalData.length > 0) {
+            detailsArray.push(...originalData.map(d => ({
+              client_id: clientId,
+              field_name: d.field_name,
+              field_value: d.field_value || "",
+            })));
+          }
 
           const { error: detailsError } = await supabase
             .from("client_details")
@@ -148,12 +180,21 @@ export default function EditClient() {
       return;
     }
 
+    // Get new data from the textareas
+    const newOnboardingForm = (document.getElementById("new-onboarding-form") as HTMLTextAreaElement)?.value || "";
+    const newTranscript = (document.getElementById("new-transcript") as HTMLTextAreaElement)?.value || "";
+
+    if (!newOnboardingForm.trim() && !newTranscript.trim()) {
+      toast.error("Please provide new onboarding form or transcript data to regenerate");
+      return;
+    }
+
     setSaving(true);
     try {
       const { data, error } = await supabase.functions.invoke("extract-client-data", {
         body: { 
-          onboarding_form: onboardingForm, 
-          transcript: transcript,
+          onboarding_form: newOnboardingForm, 
+          transcript: newTranscript,
           use_template: true,
           template_script: scriptTemplate,
           client_id: clientId,
@@ -303,33 +344,74 @@ export default function EditClient() {
 
           <Card>
             <CardHeader>
-              <CardTitle>Source Data (Optional)</CardTitle>
+              <CardTitle>Source Data (Original)</CardTitle>
               <CardDescription>
-                Provide updated onboarding form or transcript to regenerate the script
+                The original onboarding form and transcript used to create this client (read-only reference)
               </CardDescription>
             </CardHeader>
             <CardContent>
               <Tabs defaultValue="form" className="w-full">
                 <TabsList className="grid w-full grid-cols-2 mb-4">
-                  <TabsTrigger value="form">Onboarding Form</TabsTrigger>
-                  <TabsTrigger value="transcript">Call Transcript</TabsTrigger>
+                  <TabsTrigger value="form">Original Onboarding Form</TabsTrigger>
+                  <TabsTrigger value="transcript">Original Call Transcript</TabsTrigger>
                 </TabsList>
                 
                 <TabsContent value="form">
                   <Textarea
-                    placeholder="Paste updated onboarding form data here..."
-                    className="min-h-[200px] font-mono text-sm"
+                    placeholder="No original onboarding form data available"
+                    className="min-h-[200px] font-mono text-sm bg-muted"
                     value={onboardingForm}
-                    onChange={(e) => setOnboardingForm(e.target.value)}
+                    readOnly
                   />
+                  <p className="text-xs text-muted-foreground mt-2">
+                    This is the original data. To update, use "Regenerate Script" with new data below.
+                  </p>
                 </TabsContent>
                 
                 <TabsContent value="transcript">
                   <Textarea
-                    placeholder="Paste updated call transcript here..."
-                    className="min-h-[200px] font-mono text-sm"
+                    placeholder="No original transcript data available"
+                    className="min-h-[200px] font-mono text-sm bg-muted"
                     value={transcript}
-                    onChange={(e) => setTranscript(e.target.value)}
+                    readOnly
+                  />
+                  <p className="text-xs text-muted-foreground mt-2">
+                    This is the original data. To update, use "Regenerate Script" with new data below.
+                  </p>
+                </TabsContent>
+              </Tabs>
+            </CardContent>
+          </Card>
+
+          <Card>
+            <CardHeader>
+              <CardTitle>New Source Data (Optional)</CardTitle>
+              <CardDescription>
+                Provide updated onboarding form or transcript to regenerate the script with new information
+              </CardDescription>
+            </CardHeader>
+            <CardContent>
+              <Tabs defaultValue="new-form" className="w-full">
+                <TabsList className="grid w-full grid-cols-2 mb-4">
+                  <TabsTrigger value="new-form">New Onboarding Form</TabsTrigger>
+                  <TabsTrigger value="new-transcript">New Call Transcript</TabsTrigger>
+                </TabsList>
+                
+                <TabsContent value="new-form">
+                  <Textarea
+                    placeholder="Paste new onboarding form data to regenerate script..."
+                    className="min-h-[200px] font-mono text-sm"
+                    defaultValue=""
+                    id="new-onboarding-form"
+                  />
+                </TabsContent>
+                
+                <TabsContent value="new-transcript">
+                  <Textarea
+                    placeholder="Paste new call transcript to regenerate script..."
+                    className="min-h-[200px] font-mono text-sm"
+                    defaultValue=""
+                    id="new-transcript"
                   />
                 </TabsContent>
               </Tabs>

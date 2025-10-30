@@ -229,8 +229,19 @@ Make it natural, conversational, and specific to their business. Include specifi
 
       // If regenerating, update client details
       if (regenerate && Object.keys(extractedInfo).length > 0) {
-        // Delete existing details
-        await supabase.from("client_details").delete().eq("client_id", client_id);
+        // Keep original source data
+        const { data: originalData } = await supabase
+          .from("client_details")
+          .select("*")
+          .eq("client_id", client_id)
+          .in("field_name", ["_original_onboarding_form", "_original_transcript"]);
+
+        // Delete existing details except original source data
+        await supabase
+          .from("client_details")
+          .delete()
+          .eq("client_id", client_id)
+          .not("field_name", "in", '("_original_onboarding_form","_original_transcript")');
 
         // Insert new details
         const detailsToInsert = Object.entries(extractedInfo)
@@ -240,6 +251,31 @@ Make it natural, conversational, and specific to their business. Include specifi
             field_name: key,
             field_value: typeof value === "string" ? value : JSON.stringify(value),
           }));
+
+        // Re-add original data if it exists
+        if (originalData && originalData.length > 0) {
+          detailsToInsert.push(...originalData.map(d => ({
+            client_id: client_id,
+            field_name: d.field_name,
+            field_value: d.field_value || "",
+          })));
+        }
+
+        // Add new source data if provided
+        if (onboarding_form && !originalData?.some(d => d.field_name === "_original_onboarding_form")) {
+          detailsToInsert.push({
+            client_id: client_id,
+            field_name: "_original_onboarding_form",
+            field_value: onboarding_form,
+          });
+        }
+        if (transcript && !originalData?.some(d => d.field_name === "_original_transcript")) {
+          detailsToInsert.push({
+            client_id: client_id,
+            field_name: "_original_transcript",
+            field_value: transcript,
+          });
+        }
 
         if (detailsToInsert.length > 0) {
           const { error: detailsError } = await supabase
@@ -272,6 +308,22 @@ Make it natural, conversational, and specific to their business. Include specifi
           field_name: key,
           field_value: typeof value === "string" ? value : JSON.stringify(value),
         }));
+
+      // Add original source data for reference
+      if (onboarding_form) {
+        detailsToInsert.push({
+          client_id: clientData.id,
+          field_name: "_original_onboarding_form",
+          field_value: onboarding_form,
+        });
+      }
+      if (transcript) {
+        detailsToInsert.push({
+          client_id: clientData.id,
+          field_name: "_original_transcript",
+          field_value: transcript,
+        });
+      }
 
       if (detailsToInsert.length > 0) {
         const { error: detailsError } = await supabase
