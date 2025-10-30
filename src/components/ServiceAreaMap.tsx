@@ -33,6 +33,21 @@ const createCircleGeoJSON = (center: [number, number], radiusMiles: number) => {
   };
 };
 
+// Extract radius from service area text
+const extractRadius = (serviceArea?: string): number => {
+  if (!serviceArea) return 30;
+  
+  // Try to find patterns like "30 miles", "50 mile radius", "25mi", etc.
+  const match = serviceArea.match(/(\d+)\s*(mile|mi|km|kilometer)/i);
+  if (match) {
+    const distance = parseInt(match[1]);
+    const unit = match[2].toLowerCase();
+    return unit.startsWith('km') ? distance * 0.621371 : distance;
+  }
+  
+  return 30; // Default 30 miles if no radius found
+};
+
 export default function ServiceAreaMap({ city, serviceArea }: ServiceAreaMapProps) {
   const mapContainer = useRef<HTMLDivElement>(null);
   const map = useRef<mapboxgl.Map | null>(null);
@@ -54,15 +69,15 @@ export default function ServiceAreaMap({ city, serviceArea }: ServiceAreaMapProp
     mapboxgl.accessToken = mapboxToken;
 
     const searchLocation = city || serviceArea || 'United States';
-    const radius = 30; // Fixed 30 mile radius
+    const radius = extractRadius(serviceArea);
     
     fetch(`https://api.mapbox.com/geocoding/v5/mapbox.places/${encodeURIComponent(searchLocation)}.json?access_token=${mapboxToken}`)
       .then(res => res.json())
       .then(data => {
         const coordinates = data.features?.[0]?.center || [-98.5795, 39.8283];
         
-        // Zoom to fit the 30 mile radius
-        const zoom = 10;
+        // Calculate appropriate zoom based on radius
+        const zoom = Math.max(8, Math.min(12, 13 - Math.log2(radius / 10)));
         
         map.current = new mapboxgl.Map({
           container: mapContainer.current!,
