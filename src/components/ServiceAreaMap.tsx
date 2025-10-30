@@ -33,17 +33,6 @@ const createCircleGeoJSON = (center: [number, number], radiusMiles: number) => {
   };
 };
 
-// Extract radius from service area text
-const extractRadius = (serviceArea: string): number => {
-  const match = serviceArea.match(/(\d+)\s*(mile|mi|km|kilometer)/i);
-  if (match) {
-    const distance = parseInt(match[1]);
-    const unit = match[2].toLowerCase();
-    return unit.startsWith('km') ? distance * 0.621371 : distance;
-  }
-  return 30; // Default 30 miles
-};
-
 export default function ServiceAreaMap({ city, serviceArea }: ServiceAreaMapProps) {
   const mapContainer = useRef<HTMLDivElement>(null);
   const map = useRef<mapboxgl.Map | null>(null);
@@ -65,15 +54,15 @@ export default function ServiceAreaMap({ city, serviceArea }: ServiceAreaMapProp
     mapboxgl.accessToken = mapboxToken;
 
     const searchLocation = city || serviceArea || 'United States';
-    const radius = serviceArea ? extractRadius(serviceArea) : 30;
+    const radius = 30; // Fixed 30 mile radius
     
     fetch(`https://api.mapbox.com/geocoding/v5/mapbox.places/${encodeURIComponent(searchLocation)}.json?access_token=${mapboxToken}`)
       .then(res => res.json())
       .then(data => {
         const coordinates = data.features?.[0]?.center || [-98.5795, 39.8283];
         
-        // Calculate zoom level based on radius
-        const zoom = Math.min(Math.max(14 - Math.log2(radius / 5), 8), 13);
+        // Zoom to fit the 30 mile radius
+        const zoom = 10;
         
         map.current = new mapboxgl.Map({
           container: mapContainer.current!,
@@ -99,26 +88,26 @@ export default function ServiceAreaMap({ city, serviceArea }: ServiceAreaMapProp
               data: circleGeoJSON,
             });
 
-            // Fill layer
+            // Fill layer with more visible highlight
             map.current.addLayer({
               id: 'service-area-fill',
               type: 'fill',
               source: 'service-area',
               paint: {
-                'fill-color': 'hsl(var(--primary))',
-                'fill-opacity': 0.15,
+                'fill-color': '#3b82f6',
+                'fill-opacity': 0.2,
               },
             });
 
-            // Border layer
+            // Border layer with stronger visibility
             map.current.addLayer({
               id: 'service-area-outline',
               type: 'line',
               source: 'service-area',
               paint: {
-                'line-color': 'hsl(var(--primary))',
-                'line-width': 2,
-                'line-opacity': 0.6,
+                'line-color': '#3b82f6',
+                'line-width': 3,
+                'line-opacity': 0.8,
               },
             });
           }
