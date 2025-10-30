@@ -96,7 +96,14 @@ Return ONLY valid JSON with at least company_name and service_type. No markdown 
     }
 
     const extractionData = await extractionResponse.json();
-    const extractedInfo = JSON.parse(extractionData.choices[0].message.content);
+    let extractedContent = extractionData.choices[0].message.content;
+    
+    // Strip markdown code blocks if present
+    if (extractedContent.startsWith("```")) {
+      extractedContent = extractedContent.replace(/^```json\n?/i, "").replace(/\n?```$/, "");
+    }
+    
+    const extractedInfo = JSON.parse(extractedContent);
 
     console.log("Extracted data:", extractedInfo);
 
