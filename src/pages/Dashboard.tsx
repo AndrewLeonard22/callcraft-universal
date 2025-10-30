@@ -38,74 +38,72 @@ export default function Dashboard() {
   };
 
   return (
-    <div className="min-h-screen bg-background p-8">
-      <div className="max-w-7xl mx-auto">
+    <div className="min-h-screen bg-background">
+      <div className="container mx-auto px-6 py-8 max-w-7xl">
         <div className="flex items-center justify-between mb-8">
           <div>
-            <h1 className="text-4xl font-bold mb-2 bg-gradient-to-r from-primary to-accent bg-clip-text text-transparent">
-              Client Scripts Dashboard
-            </h1>
-            <p className="text-muted-foreground">
-              Manage and generate AI-powered call scripts for your clients
+            <h1 className="text-3xl font-bold mb-1">Client Scripts</h1>
+            <p className="text-sm text-muted-foreground">
+              Manage AI-powered call scripts for your clients
             </p>
           </div>
           <Link to="/create">
-            <Button size="lg" className="shadow-lg">
-              <Plus className="mr-2 h-5 w-5" />
-              Create New Client
+            <Button>
+              <Plus className="mr-2 h-4 w-4" />
+              New Client
             </Button>
           </Link>
         </div>
 
         {loading ? (
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
             {[1, 2, 3].map((i) => (
               <Card key={i} className="animate-pulse">
-                <CardHeader>
-                  <div className="h-6 bg-muted rounded w-3/4 mb-2" />
-                  <div className="h-4 bg-muted rounded w-1/2" />
+                <CardHeader className="pb-3">
+                  <div className="h-5 bg-muted rounded w-3/4 mb-2" />
+                  <div className="h-3 bg-muted rounded w-1/2" />
                 </CardHeader>
-                <CardContent>
-                  <div className="h-4 bg-muted rounded w-full" />
+                <CardContent className="pt-0">
+                  <div className="h-3 bg-muted rounded w-full" />
                 </CardContent>
               </Card>
             ))}
           </div>
         ) : clients.length === 0 ? (
-          <Card className="text-center py-16">
-            <CardContent>
-              <FileText className="h-16 w-16 mx-auto mb-4 text-muted-foreground" />
-              <h3 className="text-xl font-semibold mb-2">No clients yet</h3>
-              <p className="text-muted-foreground mb-6">
-                Get started by creating your first client and generating a script
+          <Card>
+            <CardContent className="flex flex-col items-center justify-center py-12">
+              <FileText className="h-12 w-12 text-muted-foreground/50 mb-3" />
+              <h3 className="text-lg font-semibold mb-1">No clients yet</h3>
+              <p className="text-sm text-muted-foreground mb-4 text-center max-w-sm">
+                Create your first client to get started
               </p>
               <Link to="/create">
                 <Button>
                   <Plus className="mr-2 h-4 w-4" />
-                  Create Your First Client
+                  Create Client
                 </Button>
               </Link>
             </CardContent>
           </Card>
         ) : (
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
             {clients.map((client) => (
               <Link key={client.id} to={`/client/${client.id}`}>
-                <Card className="hover:shadow-lg transition-all hover:-translate-y-1 cursor-pointer h-full">
-                  <CardHeader>
-                    <CardTitle className="flex items-start gap-2">
-                      <FileText className="h-5 w-5 text-primary flex-shrink-0 mt-1" />
-                      <span className="line-clamp-2">{client.name}</span>
+                <Card className="group hover:border-primary/50 transition-all cursor-pointer h-full">
+                  <CardHeader className="pb-3">
+                    <CardTitle className="text-base line-clamp-1 flex items-center gap-2">
+                      <FileText className="h-4 w-4 text-primary flex-shrink-0" />
+                      {client.name}
                     </CardTitle>
-                    <CardDescription className="capitalize">
+                    <CardDescription className="text-xs capitalize">
                       {client.service_type}
                       {client.city && ` • ${client.city}`}
                     </CardDescription>
                   </CardHeader>
-                  <CardContent>
-                    <div className="flex items-center gap-2 text-sm text-muted-foreground">
-                      <Calendar className="h-4 w-4" />
-                      <span>Created {format(new Date(client.created_at), "MMM d, yyyy")}</span>
+                  <CardContent className="pt-0">
+                    <div className="flex items-center gap-1.5 text-xs text-muted-foreground">
+                      <Calendar className="h-3 w-3" />
+                      <span>{format(new Date(client.created_at), "MMM d, yyyy")}</span>
                     </div>
                   </CardContent>
                 </Card>

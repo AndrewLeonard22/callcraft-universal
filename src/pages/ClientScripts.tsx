@@ -113,41 +113,41 @@ export default function ClientScripts() {
 
   return (
     <div className="min-h-screen bg-background">
-      <div className="container mx-auto p-8">
-        <div className="mb-6 flex items-center justify-between">
-          <div className="flex items-center gap-4">
-            <Link to="/">
-              <Button variant="ghost" size="icon">
-                <ArrowLeft className="h-5 w-5" />
-              </Button>
-            </Link>
-            <div>
-              <h1 className="text-3xl font-bold">{client.name}</h1>
-              <p className="text-muted-foreground">
-                {client.service_type} {client.city && `• ${client.city}`}
-              </p>
-            </div>
+      <div className="container mx-auto px-6 py-8 max-w-6xl">
+        <Link to="/">
+          <Button variant="ghost" size="sm" className="mb-6">
+            <ArrowLeft className="mr-2 h-4 w-4" />
+            Back to Dashboard
+          </Button>
+        </Link>
+
+        <div className="mb-8 flex items-start justify-between">
+          <div>
+            <h1 className="text-3xl font-bold mb-1">{client.name}</h1>
+            <p className="text-muted-foreground">
+              {client.service_type} {client.city && `• ${client.city}`}
+            </p>
           </div>
           <Link to={`/create-script/${clientId}`}>
             <Button>
               <Plus className="mr-2 h-4 w-4" />
-              Add New Script
+              Add Script
             </Button>
           </Link>
         </div>
 
         {scripts.length === 0 ? (
           <Card>
-            <CardContent className="flex flex-col items-center justify-center py-16">
-              <FileText className="h-16 w-16 text-muted-foreground mb-4" />
-              <h3 className="text-xl font-semibold mb-2">No scripts yet</h3>
-              <p className="text-muted-foreground mb-6 text-center">
-                Get started by creating your first script for this client
+            <CardContent className="flex flex-col items-center justify-center py-12">
+              <FileText className="h-12 w-12 text-muted-foreground/50 mb-3" />
+              <h3 className="text-lg font-semibold mb-1">No scripts yet</h3>
+              <p className="text-sm text-muted-foreground mb-4 text-center max-w-sm">
+                Create your first script for this client
               </p>
               <Link to={`/create-script/${clientId}`}>
                 <Button>
                   <Plus className="mr-2 h-4 w-4" />
-                  Create First Script
+                  Create Script
                 </Button>
               </Link>
             </CardContent>
@@ -155,36 +155,32 @@ export default function ClientScripts() {
         ) : (
           <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
             {scripts.map((script) => (
-              <Card key={script.id} className="hover:shadow-lg transition-shadow">
-                <CardHeader>
-                  <div className="flex items-start justify-between">
-                    <div className="flex items-start gap-3 flex-1">
-                      <FileText className="h-5 w-5 text-primary mt-1" />
-                      <div className="flex-1 min-w-0">
-                        <CardTitle className="text-lg mb-1">
-                          {script.service_name}
-                        </CardTitle>
-                        <CardDescription>
-                          Version {script.version} • Created{" "}
-                          {new Date(script.created_at).toLocaleDateString()}
-                        </CardDescription>
-                      </div>
+              <Card key={script.id} className="group hover:border-primary/50 transition-all">
+                <CardHeader className="pb-3">
+                  <div className="flex items-start justify-between gap-2">
+                    <div className="flex-1 min-w-0">
+                      <CardTitle className="text-base mb-1 line-clamp-1">
+                        {script.service_name}
+                      </CardTitle>
+                      <CardDescription className="text-xs">
+                        v{script.version} • {new Date(script.created_at).toLocaleDateString()}
+                      </CardDescription>
                     </div>
                     <AlertDialog>
                       <AlertDialogTrigger asChild>
                         <Button
                           variant="ghost"
                           size="icon"
-                          className="text-destructive hover:text-destructive"
+                          className="h-8 w-8 opacity-0 group-hover:opacity-100 transition-opacity text-muted-foreground hover:text-destructive"
                         >
-                          <Trash2 className="h-4 w-4" />
+                          <Trash2 className="h-3.5 w-3.5" />
                         </Button>
                       </AlertDialogTrigger>
                       <AlertDialogContent>
                         <AlertDialogHeader>
                           <AlertDialogTitle>Delete Script</AlertDialogTitle>
                           <AlertDialogDescription>
-                            Are you sure you want to delete this script? This action cannot be undone.
+                            Are you sure? This action cannot be undone.
                           </AlertDialogDescription>
                         </AlertDialogHeader>
                         <AlertDialogFooter>
@@ -200,9 +196,9 @@ export default function ClientScripts() {
                     </AlertDialog>
                   </div>
                 </CardHeader>
-                <CardContent>
+                <CardContent className="pt-0">
                   <Link to={`/script/${script.id}`}>
-                    <Button className="w-full">
+                    <Button className="w-full" size="sm">
                       View Script
                     </Button>
                   </Link>
