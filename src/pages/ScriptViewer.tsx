@@ -139,7 +139,7 @@ export default function ScriptViewer() {
           }
           // Add highlighted span
           parts.push(
-            <span key={`bracket-${key++}`} className="bg-primary/20 text-primary font-medium px-2 py-0.5 rounded">
+            <span key={`bracket-${key++}`} className="bg-primary/5 text-primary font-medium px-1.5 py-0.5 rounded">
               {bracketMatch[1]}
             </span>
           );
@@ -156,7 +156,7 @@ export default function ScriptViewer() {
           }
           // Add highlighted span
           parts.push(
-            <span key={`quote-${key++}`} className="bg-accent/20 text-accent font-medium px-1 rounded">
+            <span key={`quote-${key++}`} className="bg-accent/5 text-accent font-medium px-1 rounded">
               {quoteMatch[1]}
             </span>
           );
@@ -207,12 +207,12 @@ export default function ScriptViewer() {
     };
     
     return (
-      <div className="space-y-2">
+      <div className="space-y-6">
         {lines.map((line, index) => {
           // Section headers (all caps or ending with colon)
           if (line.match(/^[A-Z\s]+:$/) || line.match(/^[*#]+\s*[A-Z][^a-z]*$/)) {
             return (
-              <h3 key={index} className="text-base font-bold mt-5 mb-2 first:mt-0 text-primary border-b border-border pb-1">
+              <h3 key={index} className="text-lg font-semibold mt-8 mb-4 first:mt-0 text-foreground">
                 {line.replace(/^[*#]+\s*/, '').replace(/:$/, '')}
               </h3>
             );
@@ -221,7 +221,7 @@ export default function ScriptViewer() {
           // Stage markers (like "Stage 1:", "Phase 2:")
           if (line.match(/^(Stage|Phase|Step)\s+\d+/i)) {
             return (
-              <h4 key={index} className="text-sm font-semibold mt-3 mb-1.5 text-accent">
+              <h4 key={index} className="text-base font-medium mt-6 mb-3 text-foreground/80">
                 {line}
               </h4>
             );
@@ -230,7 +230,7 @@ export default function ScriptViewer() {
           // Sub-headers (lines starting with ** or ending with :)
           if (line.match(/^\*\*[^*]+\*\*/) || (line.endsWith(':') && line.length < 60 && !line.includes('.'))) {
             return (
-              <h5 key={index} className="font-semibold text-sm mt-2.5 mb-0.5 text-foreground">
+              <h5 key={index} className="font-medium text-sm mt-4 mb-2 text-foreground">
                 {line.replace(/^\*\*/, '').replace(/\*\*$/, '').replace(/:$/, '')}
               </h5>
             );
@@ -238,12 +238,12 @@ export default function ScriptViewer() {
           
           // Empty lines
           if (!line.trim()) {
-            return <div key={index} className="h-1" />;
+            return <div key={index} className="h-3" />;
           }
           
           // Regular content with formatting
           return (
-            <p key={index} className="text-sm leading-relaxed text-foreground/90">
+            <p key={index} className="text-[15px] leading-7 text-foreground/70">
               {formatLine(line)}
             </p>
           );
@@ -253,30 +253,30 @@ export default function ScriptViewer() {
   };
 
   return (
-    <div className="min-h-screen bg-background p-8">
-      <div className="max-w-5xl mx-auto">
-        <Button variant="ghost" className="mb-6" onClick={() => navigate(`/client/${client.id}`)}>
+    <div className="min-h-screen bg-background">
+      <div className="max-w-4xl mx-auto px-6 py-12">
+        <Button variant="ghost" className="mb-8 -ml-3" onClick={() => navigate(`/client/${client.id}`)}>
           <ArrowLeft className="mr-2 h-4 w-4" />
           Back to Scripts
         </Button>
 
         {/* Client Header */}
-        <div className="mb-6">
-          <div className="flex items-start justify-between mb-6">
+        <div className="mb-8">
+          <div className="flex items-start justify-between mb-8">
             <div className="flex-1">
-              <h1 className="text-4xl font-bold mb-2 bg-gradient-to-r from-primary to-accent bg-clip-text text-transparent">
+              <h1 className="text-3xl font-semibold mb-2 text-foreground">
                 {client.name}
               </h1>
-              <p className="text-lg text-muted-foreground capitalize">
+              <p className="text-base text-muted-foreground capitalize">
                 {(script as any)?.service_name || client.service_type} {client.city && `• ${client.city}`}
               </p>
             </div>
-            <div className="flex gap-2">
-              <Button variant="outline" onClick={handleCopy}>
+            <div className="flex gap-3">
+              <Button variant="outline" onClick={handleCopy} className="h-9">
                 <Copy className="mr-2 h-4 w-4" />
-                Copy Script
+                Copy
               </Button>
-              <Button variant="outline" onClick={handleDownload}>
+              <Button variant="outline" onClick={handleDownload} className="h-9">
                 <Download className="mr-2 h-4 w-4" />
                 Download
               </Button>
@@ -284,16 +284,16 @@ export default function ScriptViewer() {
           </div>
 
           {/* Client Information Section */}
-          <Card className="mb-6 shadow-lg border-2">
-            <CardContent className="pt-6">
-              <h2 className="text-2xl font-bold mb-4 text-primary">Client Information</h2>
+          <Card className="mb-8 border border-border shadow-sm">
+            <CardContent className="p-8">
+              <h2 className="text-lg font-semibold mb-6 text-foreground">Client Information</h2>
               
               {/* Key Details Grid */}
-              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4 mb-6">
+              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 mb-6">
                 {getDetailValue("sales_rep_name") !== "N/A" && (
-                  <div className="space-y-1">
-                    <div className="text-sm font-medium text-muted-foreground">Sales Representative</div>
-                    <div className="text-base font-semibold">{getDetailValue("sales_rep_name")}</div>
+                  <div className="space-y-1.5">
+                    <div className="text-xs font-medium text-muted-foreground uppercase tracking-wide">Sales Representative</div>
+                    <div className="text-sm font-medium text-foreground">{getDetailValue("sales_rep_name")}</div>
                     {getDetailValue("sales_rep_phone") !== "N/A" && (
                       <div className="text-sm text-muted-foreground">{getDetailValue("sales_rep_phone")}</div>
                     )}
@@ -301,64 +301,64 @@ export default function ScriptViewer() {
                 )}
                 
                 {getDetailValue("starting_price") !== "N/A" && (
-                  <div className="space-y-1">
-                    <div className="text-sm font-medium text-muted-foreground">Starting Price</div>
-                    <div className="text-base font-semibold">{getDetailValue("starting_price")}</div>
+                  <div className="space-y-1.5">
+                    <div className="text-xs font-medium text-muted-foreground uppercase tracking-wide">Starting Price</div>
+                    <div className="text-sm font-medium text-foreground">{getDetailValue("starting_price")}</div>
                   </div>
                 )}
                 
                 {getDetailValue("minimum_size") !== "N/A" && (
-                  <div className="space-y-1">
-                    <div className="text-sm font-medium text-muted-foreground">Minimum Size</div>
-                    <div className="text-base font-semibold">{getDetailValue("minimum_size")}</div>
+                  <div className="space-y-1.5">
+                    <div className="text-xs font-medium text-muted-foreground uppercase tracking-wide">Minimum Size</div>
+                    <div className="text-sm font-medium text-foreground">{getDetailValue("minimum_size")}</div>
                   </div>
                 )}
                 
                 {getDetailValue("warranty") !== "N/A" && (
-                  <div className="space-y-1">
-                    <div className="text-sm font-medium text-muted-foreground">Warranty</div>
-                    <div className="text-base font-semibold">{getDetailValue("warranty")}</div>
+                  <div className="space-y-1.5">
+                    <div className="text-xs font-medium text-muted-foreground uppercase tracking-wide">Warranty</div>
+                    <div className="text-sm font-medium text-foreground">{getDetailValue("warranty")}</div>
                   </div>
                 )}
                 
                 {getDetailValue("guarantee") !== "N/A" && (
-                  <div className="space-y-1">
-                    <div className="text-sm font-medium text-muted-foreground">Guarantee</div>
-                    <div className="text-base font-semibold">{getDetailValue("guarantee")}</div>
+                  <div className="space-y-1.5">
+                    <div className="text-xs font-medium text-muted-foreground uppercase tracking-wide">Guarantee</div>
+                    <div className="text-sm font-medium text-foreground">{getDetailValue("guarantee")}</div>
                   </div>
                 )}
                 
                 {getDetailValue("years_in_business") !== "N/A" && (
-                  <div className="space-y-1">
-                    <div className="text-sm font-medium text-muted-foreground">Years in Business</div>
-                    <div className="text-base font-semibold">{getDetailValue("years_in_business")}</div>
+                  <div className="space-y-1.5">
+                    <div className="text-xs font-medium text-muted-foreground uppercase tracking-wide">Years in Business</div>
+                    <div className="text-sm font-medium text-foreground">{getDetailValue("years_in_business")}</div>
                   </div>
                 )}
               </div>
 
               {/* Contact & Location */}
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-6">
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-6 mb-6">
                 {getDetailValue("address") !== "N/A" && (
-                  <div className="space-y-1">
-                    <div className="text-sm font-medium text-muted-foreground">Address</div>
-                    <div className="text-base">{getDetailValue("address")}</div>
+                  <div className="space-y-1.5">
+                    <div className="text-xs font-medium text-muted-foreground uppercase tracking-wide">Address</div>
+                    <div className="text-sm text-foreground">{getDetailValue("address")}</div>
                   </div>
                 )}
                 
                 {getDetailValue("service_area") !== "N/A" && (
-                  <div className="space-y-1">
-                    <div className="text-sm font-medium text-muted-foreground">Service Area</div>
-                    <div className="text-base">{getDetailValue("service_area")}</div>
+                  <div className="space-y-1.5">
+                    <div className="text-xs font-medium text-muted-foreground uppercase tracking-wide">Service Area</div>
+                    <div className="text-sm text-foreground">{getDetailValue("service_area")}</div>
                   </div>
                 )}
               </div>
 
               {/* Offer Details */}
               {(getDetailValue("offer_name") !== "N/A" || getDetailValue("offer_description") !== "N/A") && (
-                <div className="border-t pt-4 mb-6">
-                  <h3 className="text-lg font-semibold mb-3 text-accent">Current Offer</h3>
+                <div className="border-t border-border pt-6 mb-6">
+                  <h3 className="text-sm font-semibold mb-3 text-foreground">Current Offer</h3>
                   {getDetailValue("offer_name") !== "N/A" && (
-                    <div className="text-base font-semibold mb-2">{getDetailValue("offer_name")}</div>
+                    <div className="text-sm font-medium mb-2 text-foreground">{getDetailValue("offer_name")}</div>
                   )}
                   {getDetailValue("offer_description") !== "N/A" && (
                     <div className="text-sm text-muted-foreground">{getDetailValue("offer_description")}</div>
@@ -367,36 +367,36 @@ export default function ScriptViewer() {
               )}
 
               {/* Additional Details */}
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                 {getDetailValue("business_hours") !== "N/A" && (
-                  <div className="space-y-1">
-                    <div className="text-sm font-medium text-muted-foreground">Business Hours</div>
-                    <div className="text-sm">{getDetailValue("business_hours")}</div>
+                  <div className="space-y-1.5">
+                    <div className="text-xs font-medium text-muted-foreground uppercase tracking-wide">Business Hours</div>
+                    <div className="text-sm text-foreground">{getDetailValue("business_hours")}</div>
                   </div>
                 )}
                 
                 {getDetailValue("financing_options") !== "N/A" && (
-                  <div className="space-y-1">
-                    <div className="text-sm font-medium text-muted-foreground">Financing</div>
-                    <div className="text-sm">{getDetailValue("financing_options")}</div>
+                  <div className="space-y-1.5">
+                    <div className="text-xs font-medium text-muted-foreground uppercase tracking-wide">Financing</div>
+                    <div className="text-sm text-foreground">{getDetailValue("financing_options")}</div>
                   </div>
                 )}
                 
                 {getDetailValue("appointment_link") !== "N/A" && (
-                  <div className="space-y-1">
-                    <div className="text-sm font-medium text-muted-foreground">Appointment Link</div>
+                  <div className="space-y-1.5">
+                    <div className="text-xs font-medium text-muted-foreground uppercase tracking-wide">Appointment Link</div>
                     <a href={getDetailValue("appointment_link")} target="_blank" rel="noopener noreferrer" 
-                       className="text-sm text-primary hover:underline break-all">
+                       className="text-sm text-primary hover:text-primary/80 break-all transition-colors">
                       {getDetailValue("appointment_link")}
                     </a>
                   </div>
                 )}
                 
                 {getDetailValue("calendar_link") !== "N/A" && (
-                  <div className="space-y-1">
-                    <div className="text-sm font-medium text-muted-foreground">Calendar Link</div>
+                  <div className="space-y-1.5">
+                    <div className="text-xs font-medium text-muted-foreground uppercase tracking-wide">Calendar Link</div>
                     <a href={getDetailValue("calendar_link")} target="_blank" rel="noopener noreferrer"
-                       className="text-sm text-primary hover:underline break-all">
+                       className="text-sm text-primary hover:text-primary/80 break-all transition-colors">
                       {getDetailValue("calendar_link")}
                     </a>
                   </div>
@@ -404,7 +404,7 @@ export default function ScriptViewer() {
               </div>
 
               {/* Script Version */}
-              <div className="mt-6 pt-4 border-t text-sm text-muted-foreground">
+              <div className="mt-6 pt-6 border-t border-border text-xs text-muted-foreground">
                 Script Version: v{script.version}
               </div>
             </CardContent>
@@ -412,10 +412,10 @@ export default function ScriptViewer() {
         </div>
 
         {/* Call Script */}
-        <Card className="shadow-lg border-2">
-          <CardContent className="pt-6">
-            <h2 className="text-2xl font-bold mb-4 text-primary">Call Script</h2>
-            <div className="prose prose-lg max-w-none">
+        <Card className="border border-border shadow-sm">
+          <CardContent className="p-8">
+            <h2 className="text-lg font-semibold mb-6 text-foreground">Call Script</h2>
+            <div className="max-w-none">
               <FormattedScript content={script.script_content} />
             </div>
           </CardContent>
