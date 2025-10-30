@@ -128,21 +128,27 @@ Return ONLY valid JSON with at least company_name and service_type. No markdown 
           messages: [
             {
               role: "system",
-              content: `You are a script customization assistant. Your ONLY job is to replace placeholders with actual data.
+              content: `You are a script customization assistant. Your job is to personalize a script with client data while staying faithful to the original.
 
 CRITICAL RULES:
-1. Copy the script WORD-FOR-WORD exactly as provided
-2. ONLY replace text inside brackets like [COMPANY_NAME], [CUSTOMER_NAME], [SERVICE_TYPE], etc.
-3. DO NOT add any new text, sections, or explanations
-4. DO NOT remove or modify any existing text except placeholders
-5. DO NOT change formatting, punctuation, or structure
-6. Keep every sentence, phrase, and word exactly as written in the original
+1. Copy the script WORD-FOR-WORD as your baseline
+2. Replace bracketed placeholders like [COMPANY_NAME], [SERVICE_TYPE] with actual data
+3. ALSO replace generic references when client data is available:
+   - "your company" → actual company name
+   - "our service" → actual service type
+   - "your area" → actual city/location
+   - Generic prices → actual prices if provided
+   - Generic warranties → actual warranty terms if provided
+4. DO NOT add new sections, explanations, or tangents
+5. DO NOT change the flow, structure, or core messaging
+6. Keep all formatting, tone, and style exactly as written
+7. Only make replacements that flow naturally and make sense in context
 
-Think of it as a find-and-replace operation - nothing more.`,
+This is intelligent find-and-replace, not rewriting.`,
             },
             {
               role: "user",
-              content: `Replace ONLY the bracketed placeholders in this script with the corresponding values from the client data below. Copy everything else exactly as written.
+              content: `Personalize this script using the client data. Replace placeholders and generic references with specific details, but keep everything else word-for-word.
 
 Client Data:
 ${JSON.stringify(extractedInfo, null, 2)}
@@ -150,7 +156,7 @@ ${JSON.stringify(extractedInfo, null, 2)}
 Script Template:
 ${template_script}
 
-Return the script with placeholders replaced. Do not add commentary, explanations, or any other text. If a placeholder has no matching data, leave it as-is.`,
+Return the personalized script. Do not add commentary or explanations.`,
             },
           ],
         }),

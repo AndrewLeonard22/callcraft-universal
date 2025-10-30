@@ -207,12 +207,12 @@ export default function ScriptViewer() {
     };
     
     return (
-      <div className="space-y-4">
+      <div className="space-y-2">
         {lines.map((line, index) => {
           // Section headers (all caps or ending with colon)
           if (line.match(/^[A-Z\s]+:$/) || line.match(/^[*#]+\s*[A-Z][^a-z]*$/)) {
             return (
-              <h3 key={index} className="text-xl font-bold mt-6 mb-3 text-primary border-b-2 border-primary/20 pb-2">
+              <h3 key={index} className="text-base font-bold mt-5 mb-2 first:mt-0 text-primary border-b border-border pb-1">
                 {line.replace(/^[*#]+\s*/, '').replace(/:$/, '')}
               </h3>
             );
@@ -221,7 +221,7 @@ export default function ScriptViewer() {
           // Stage markers (like "Stage 1:", "Phase 2:")
           if (line.match(/^(Stage|Phase|Step)\s+\d+/i)) {
             return (
-              <h4 key={index} className="text-lg font-semibold mt-4 mb-2 text-accent">
+              <h4 key={index} className="text-sm font-semibold mt-3 mb-1.5 text-accent">
                 {line}
               </h4>
             );
@@ -230,7 +230,7 @@ export default function ScriptViewer() {
           // Sub-headers (lines starting with ** or ending with :)
           if (line.match(/^\*\*[^*]+\*\*/) || (line.endsWith(':') && line.length < 60 && !line.includes('.'))) {
             return (
-              <h5 key={index} className="font-bold text-base mt-3 mb-1 text-foreground">
+              <h5 key={index} className="font-semibold text-sm mt-2.5 mb-0.5 text-foreground">
                 {line.replace(/^\*\*/, '').replace(/\*\*$/, '').replace(/:$/, '')}
               </h5>
             );
@@ -238,12 +238,12 @@ export default function ScriptViewer() {
           
           // Empty lines
           if (!line.trim()) {
-            return <div key={index} className="h-2" />;
+            return <div key={index} className="h-1" />;
           }
           
           // Regular content with formatting
           return (
-            <p key={index} className="text-base leading-relaxed">
+            <p key={index} className="text-sm leading-relaxed text-foreground/90">
               {formatLine(line)}
             </p>
           );
