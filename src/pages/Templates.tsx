@@ -192,6 +192,10 @@ export default function Templates() {
   const [faqServiceTypeId, setFaqServiceTypeId] = useState("");
   const [faqQuestion, setFaqQuestion] = useState("");
   const [faqAnswer, setFaqAnswer] = useState("");
+  const [faqTextSize, setFaqTextSize] = useState("medium");
+  const [faqTextColor, setFaqTextColor] = useState("default");
+  const [objectionTextSize, setObjectionTextSize] = useState("medium");
+  const [objectionTextColor, setObjectionTextColor] = useState("default");
   const [saving, setSaving] = useState(false);
   const [templateImageFile, setTemplateImageFile] = useState<File | null>(null);
 
@@ -366,6 +370,8 @@ export default function Templates() {
     setEditingObjection(template);
     setObjectionServiceName(template.service_name);
     setObjectionContent(template.content);
+    setObjectionTextSize("medium");
+    setObjectionTextColor("default");
     setShowObjectionForm(true);
   };
 
@@ -402,6 +408,8 @@ export default function Templates() {
 
       setObjectionServiceName("");
       setObjectionContent("");
+      setObjectionTextSize("medium");
+      setObjectionTextColor("default");
       setShowObjectionForm(false);
       setEditingObjection(null);
       loadObjectionTemplates();
@@ -435,6 +443,8 @@ export default function Templates() {
     setFaqServiceTypeId(faq.service_type_id || "");
     setFaqQuestion(faq.question);
     setFaqAnswer(faq.answer);
+    setFaqTextSize("medium");
+    setFaqTextColor("default");
     setShowFaqForm(true);
   };
 
@@ -474,6 +484,8 @@ export default function Templates() {
       setFaqServiceTypeId("");
       setFaqQuestion("");
       setFaqAnswer("");
+      setFaqTextSize("medium");
+      setFaqTextColor("default");
       setShowFaqForm(false);
       setEditingFaq(null);
       loadFaqs();
@@ -721,12 +733,48 @@ export default function Templates() {
                   </div>
                   <div>
                     <Label htmlFor="objection-content">Objection Handling Content</Label>
+                    <div className="mb-2 flex gap-2 items-center flex-wrap">
+                      <span className="text-xs text-muted-foreground">Text formatting:</span>
+                      <Select
+                        value={objectionTextSize}
+                        onValueChange={setObjectionTextSize}
+                      >
+                        <SelectTrigger className="w-[120px] h-8 text-xs">
+                          <SelectValue placeholder="Text size" />
+                        </SelectTrigger>
+                        <SelectContent>
+                          <SelectItem value="small">Small</SelectItem>
+                          <SelectItem value="medium">Medium</SelectItem>
+                          <SelectItem value="large">Large</SelectItem>
+                        </SelectContent>
+                      </Select>
+                      <Select
+                        value={objectionTextColor}
+                        onValueChange={setObjectionTextColor}
+                      >
+                        <SelectTrigger className="w-[120px] h-8 text-xs">
+                          <SelectValue placeholder="Text color" />
+                        </SelectTrigger>
+                        <SelectContent>
+                          <SelectItem value="default">Default</SelectItem>
+                          <SelectItem value="primary">Primary</SelectItem>
+                          <SelectItem value="accent">Accent</SelectItem>
+                          <SelectItem value="muted">Muted</SelectItem>
+                        </SelectContent>
+                      </Select>
+                    </div>
                     <Textarea
                       id="objection-content"
                       placeholder="Enter objection handling responses..."
                       className="min-h-[300px] font-mono text-sm"
                       value={objectionContent}
                       onChange={(e) => setObjectionContent(e.target.value)}
+                      style={{
+                        fontSize: objectionTextSize === 'small' ? '0.875rem' : objectionTextSize === 'large' ? '1.125rem' : '1rem',
+                        color: objectionTextColor === 'primary' ? 'hsl(var(--primary))' : 
+                               objectionTextColor === 'accent' ? 'hsl(var(--accent))' : 
+                               objectionTextColor === 'muted' ? 'hsl(var(--muted-foreground))' : 'inherit'
+                      }}
                     />
                   </div>
                   <div className="flex gap-3">
@@ -738,6 +786,8 @@ export default function Templates() {
                       setEditingObjection(null);
                       setObjectionServiceName("");
                       setObjectionContent("");
+                      setObjectionTextSize("medium");
+                      setObjectionTextColor("default");
                     }}>
                       Cancel
                     </Button>
@@ -875,12 +925,48 @@ export default function Templates() {
                   </div>
                   <div>
                     <Label htmlFor="faq-answer">Answer</Label>
+                    <div className="mb-2 flex gap-2 items-center flex-wrap">
+                      <span className="text-xs text-muted-foreground">Text formatting:</span>
+                      <Select
+                        value={faqTextSize}
+                        onValueChange={setFaqTextSize}
+                      >
+                        <SelectTrigger className="w-[120px] h-8 text-xs">
+                          <SelectValue placeholder="Text size" />
+                        </SelectTrigger>
+                        <SelectContent>
+                          <SelectItem value="small">Small</SelectItem>
+                          <SelectItem value="medium">Medium</SelectItem>
+                          <SelectItem value="large">Large</SelectItem>
+                        </SelectContent>
+                      </Select>
+                      <Select
+                        value={faqTextColor}
+                        onValueChange={setFaqTextColor}
+                      >
+                        <SelectTrigger className="w-[120px] h-8 text-xs">
+                          <SelectValue placeholder="Text color" />
+                        </SelectTrigger>
+                        <SelectContent>
+                          <SelectItem value="default">Default</SelectItem>
+                          <SelectItem value="primary">Primary</SelectItem>
+                          <SelectItem value="accent">Accent</SelectItem>
+                          <SelectItem value="muted">Muted</SelectItem>
+                        </SelectContent>
+                      </Select>
+                    </div>
                     <Textarea
                       id="faq-answer"
                       placeholder="Enter the answer..."
                       className="min-h-[150px]"
                       value={faqAnswer}
                       onChange={(e) => setFaqAnswer(e.target.value)}
+                      style={{
+                        fontSize: faqTextSize === 'small' ? '0.875rem' : faqTextSize === 'large' ? '1.125rem' : '1rem',
+                        color: faqTextColor === 'primary' ? 'hsl(var(--primary))' : 
+                               faqTextColor === 'accent' ? 'hsl(var(--accent))' : 
+                               faqTextColor === 'muted' ? 'hsl(var(--muted-foreground))' : 'inherit'
+                      }}
                     />
                   </div>
                   <div className="flex gap-3">
@@ -893,6 +979,8 @@ export default function Templates() {
                       setFaqServiceTypeId("");
                       setFaqQuestion("");
                       setFaqAnswer("");
+                      setFaqTextSize("medium");
+                      setFaqTextColor("default");
                     }}>
                       Cancel
                     </Button>
