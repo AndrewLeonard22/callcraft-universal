@@ -230,14 +230,19 @@ export default function CreateClient() {
                       </div>
                     ) : (
                       <div className="relative">
-                        <Input
-                          id="logo"
-                          type="file"
-                          accept="image/*"
-                          onChange={handleLogoChange}
-                          className="h-11 bg-background shadow-sm border-border/50 focus:border-primary/50 transition-colors cursor-pointer file:mr-4 file:py-2 file:px-4 file:rounded-md file:border-0 file:text-sm file:font-medium file:bg-primary file:text-primary-foreground hover:file:bg-primary/90"
-                        />
-                        <p className="text-xs text-muted-foreground mt-1">
+                        <div className="flex items-center gap-3 p-4 border-2 border-dashed border-border/50 rounded-lg bg-muted/20 hover:bg-muted/30 transition-colors">
+                          <Upload className="h-5 w-5 text-muted-foreground flex-shrink-0" />
+                          <div className="flex-1 min-w-0">
+                            <Input
+                              id="logo"
+                              type="file"
+                              accept="image/*"
+                              onChange={handleLogoChange}
+                              className="h-auto py-0 border-0 bg-transparent shadow-none cursor-pointer file:mr-4 file:py-2 file:px-4 file:rounded-md file:border-0 file:text-sm file:font-medium file:bg-primary file:text-primary-foreground hover:file:bg-primary/90 file:cursor-pointer"
+                            />
+                          </div>
+                        </div>
+                        <p className="text-xs text-muted-foreground mt-2">
                           PNG, JPG, or WEBP (max 5MB)
                         </p>
                       </div>
