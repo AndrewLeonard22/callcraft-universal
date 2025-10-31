@@ -1,6 +1,6 @@
 import { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
-import { Plus, Trash2, Upload, Settings } from "lucide-react";
+import { Plus, Trash2, Upload, Settings, Pencil } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
@@ -35,6 +35,7 @@ export default function ServiceTypes() {
   const [iconFile, setIconFile] = useState<File | null>(null);
   const [iconPreview, setIconPreview] = useState<string | null>(null);
   const [saving, setSaving] = useState(false);
+  const [editingService, setEditingService] = useState<ServiceType | null>(null);
 
   useEffect(() => {
     loadServiceTypes();
@@ -120,6 +121,61 @@ export default function ServiceTypes() {
     }
   };
 
+  const handleEdit = (serviceType: ServiceType) => {
+    setEditingService(serviceType);
+    setServiceName(serviceType.name);
+    setIconPreview(serviceType.icon_url || null);
+    setShowCreateForm(true);
+  };
+
+  const handleUpdate = async () => {
+    if (!serviceName.trim() || !editingService) {
+      toast.error("Please enter a service name");
+      return;
+    }
+
+    setSaving(true);
+    try {
+      let iconUrl = editingService.icon_url;
+
+      if (iconFile) {
+        const fileExt = iconFile.name.split('.').pop();
+        const fileName = `${Date.now()}-${serviceName.replace(/\s+/g, '-')}.${fileExt}`;
+        const { error: uploadError } = await supabase.storage
+          .from('client-logos')
+          .upload(fileName, iconFile);
+
+        if (uploadError) throw uploadError;
+
+        const { data: { publicUrl } } = supabase.storage
+          .from('client-logos')
+          .getPublicUrl(fileName);
+        
+        iconUrl = publicUrl;
+      }
+
+      const { error } = await supabase.from("service_types").update({
+        name: serviceName,
+        icon_url: iconUrl,
+      }).eq("id", editingService.id);
+
+      if (error) throw error;
+
+      toast.success("Service type updated successfully!");
+      setServiceName("");
+      setIconFile(null);
+      setIconPreview(null);
+      setShowCreateForm(false);
+      setEditingService(null);
+      loadServiceTypes();
+    } catch (error: any) {
+      console.error("Error updating service type:", error);
+      toast.error(error.message || "Failed to update service type");
+    } finally {
+      setSaving(false);
+    }
+  };
+
   const handleDelete = async (serviceTypeId: string) => {
     try {
       const { error } = await supabase
@@ -137,6 +193,14 @@ export default function ServiceTypes() {
     }
   };
 
+  const handleCancel = () => {
+    setShowCreateForm(false);
+    setEditingService(null);
+    setServiceName("");
+    setIconFile(null);
+    setIconPreview(null);
+  };
+
   return (
     <div className="min-h-screen bg-background">
       <div className="container mx-auto px-6 py-8 max-w-5xl">
@@ -151,7 +215,13 @@ export default function ServiceTypes() {
             <Button variant="outline" onClick={() => navigate("/")}>
               Back to Dashboard
             </Button>
-            <Button onClick={() => setShowCreateForm(!showCreateForm)}>
+            <Button onClick={() => {
+              setEditingService(null);
+              setServiceName("");
+              setIconFile(null);
+              setIconPreview(null);
+              setShowCreateForm(!showCreateForm);
+            }}>
               <Plus className="mr-2 h-4 w-4" />
               New Service Type
             </Button>
@@ -161,9 +231,9 @@ export default function ServiceTypes() {
         {showCreateForm && (
           <Card className="mb-6">
             <CardHeader>
-              <CardTitle>Create New Service Type</CardTitle>
+              <CardTitle>{editingService ? "Edit Service Type" : "Create New Service Type"}</CardTitle>
               <CardDescription>
-                Add a new service type with an optional icon
+                {editingService ? "Update the service type and icon" : "Add a new service type with an optional icon"}
               </CardDescription>
             </CardHeader>
             <CardContent className="space-y-4">
@@ -203,10 +273,10 @@ export default function ServiceTypes() {
                 </div>
               </div>
               <div className="flex gap-3">
-                <Button onClick={handleCreate} disabled={saving}>
-                  {saving ? "Creating..." : "Create Service Type"}
+                <Button onClick={editingService ? handleUpdate : handleCreate} disabled={saving}>
+                  {saving ? (editingService ? "Updating..." : "Creating...") : (editingService ? "Update Service Type" : "Create Service Type")}
                 </Button>
-                <Button variant="outline" onClick={() => setShowCreateForm(false)}>
+                <Button variant="outline" onClick={handleCancel}>
                   Cancel
                 </Button>
               </div>
@@ -261,31 +331,41 @@ export default function ServiceTypes() {
                       )}
                       <CardTitle className="text-base truncate">{serviceType.name}</CardTitle>
                     </div>
-                    <AlertDialog>
-                      <AlertDialogTrigger asChild>
-                        <Button variant="ghost" size="icon" className="text-destructive flex-shrink-0 h-8 w-8">
-                          <Trash2 className="h-4 w-4" />
-                        </Button>
-                      </AlertDialogTrigger>
-                      <AlertDialogContent>
-                        <AlertDialogHeader>
-                          <AlertDialogTitle>Delete Service Type?</AlertDialogTitle>
-                          <AlertDialogDescription>
-                            This will permanently delete the "{serviceType.name}" service type.
-                            This action cannot be undone.
-                          </AlertDialogDescription>
-                        </AlertDialogHeader>
-                        <AlertDialogFooter>
-                          <AlertDialogCancel>Cancel</AlertDialogCancel>
-                          <AlertDialogAction
-                            onClick={() => handleDelete(serviceType.id)}
-                            className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
-                          >
-                            Delete
-                          </AlertDialogAction>
-                        </AlertDialogFooter>
-                      </AlertDialogContent>
-                    </AlertDialog>
+                    <div className="flex gap-1 flex-shrink-0">
+                      <Button 
+                        variant="ghost" 
+                        size="icon" 
+                        className="h-8 w-8"
+                        onClick={() => handleEdit(serviceType)}
+                      >
+                        <Pencil className="h-4 w-4" />
+                      </Button>
+                      <AlertDialog>
+                        <AlertDialogTrigger asChild>
+                          <Button variant="ghost" size="icon" className="text-destructive h-8 w-8">
+                            <Trash2 className="h-4 w-4" />
+                          </Button>
+                        </AlertDialogTrigger>
+                        <AlertDialogContent>
+                          <AlertDialogHeader>
+                            <AlertDialogTitle>Delete Service Type?</AlertDialogTitle>
+                            <AlertDialogDescription>
+                              This will permanently delete the "{serviceType.name}" service type.
+                              This action cannot be undone.
+                            </AlertDialogDescription>
+                          </AlertDialogHeader>
+                          <AlertDialogFooter>
+                            <AlertDialogCancel>Cancel</AlertDialogCancel>
+                            <AlertDialogAction
+                              onClick={() => handleDelete(serviceType.id)}
+                              className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
+                            >
+                              Delete
+                            </AlertDialogAction>
+                          </AlertDialogFooter>
+                        </AlertDialogContent>
+                      </AlertDialog>
+                    </div>
                   </div>
                 </CardHeader>
               </Card>
