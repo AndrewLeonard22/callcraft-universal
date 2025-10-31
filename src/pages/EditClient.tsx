@@ -26,6 +26,7 @@ export default function EditClient() {
   // Business Info
   const [businessName, setBusinessName] = useState("");
   const [ownersName, setOwnersName] = useState("");
+  const [salesRepName, setSalesRepName] = useState("");
   const [salesRepPhone, setSalesRepPhone] = useState("");
   const [address, setAddress] = useState("");
   const [otherKeyInfo, setOtherKeyInfo] = useState("");
@@ -69,6 +70,8 @@ export default function EditClient() {
             setBusinessName(detail.field_value || "");
           } else if (detail.field_name === "owners_name") {
             setOwnersName(detail.field_value || "");
+          } else if (detail.field_name === "sales_rep_name") {
+            setSalesRepName(detail.field_value || "");
           } else if (detail.field_name === "sales_rep_phone") {
             setSalesRepPhone(detail.field_value || "");
           } else if (detail.field_name === "address") {
@@ -177,6 +180,7 @@ export default function EditClient() {
         "logo_url",
         "business_name",
         "owners_name",
+        "sales_rep_name",
         "sales_rep_phone",
         "address",
         "other_key_info",
@@ -200,6 +204,7 @@ export default function EditClient() {
       const businessFields = [
         { name: "business_name", value: businessName },
         { name: "owners_name", value: ownersName },
+        { name: "sales_rep_name", value: salesRepName },
         { name: "sales_rep_phone", value: salesRepPhone },
         { name: "address", value: address },
         { name: "other_key_info", value: otherKeyInfo },
@@ -417,7 +422,16 @@ export default function EditClient() {
                       />
                     </div>
                     <div>
-                      <Label htmlFor="sales-rep">Sales Rep #</Label>
+                      <Label htmlFor="sales-rep-name">Sales Rep Name</Label>
+                      <Input
+                        id="sales-rep-name"
+                        placeholder="Jane Doe"
+                        value={salesRepName}
+                        onChange={(e) => setSalesRepName(e.target.value)}
+                      />
+                    </div>
+                    <div>
+                      <Label htmlFor="sales-rep">Sales Rep Phone</Label>
                       <Input
                         id="sales-rep"
                         type="tel"
