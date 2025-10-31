@@ -32,6 +32,7 @@ import logoPergola from "@/assets/logo-pergola.png";
 import logoHvac from "@/assets/logo-hvac.png";
 import logoSolar from "@/assets/logo-solar.png";
 import logoLandscaping from "@/assets/logo-landscaping.png";
+import socialWorksLogo from "@/assets/social-works-logo.png";
 
 interface ServiceType {
   id: string;
@@ -266,10 +267,13 @@ export default function Dashboard() {
       <div className="border-b border-border/50 bg-card/30 backdrop-blur-xl sticky top-0 z-50">
         <div className="container mx-auto px-6 py-6 max-w-7xl">
           <div className="flex items-center justify-between">
-            <div className="flex items-center gap-3">
-              <div className="h-10 w-10 rounded-xl bg-gradient-to-br from-primary to-accent flex items-center justify-center">
-                <Sparkles className="h-5 w-5 text-white" />
-              </div>
+            <div className="flex items-center gap-4">
+              <img 
+                src={socialWorksLogo} 
+                alt="Social Works" 
+                className="h-10 w-auto"
+              />
+              <div className="h-8 w-px bg-border/50" />
               <div>
                 <h1 className="text-2xl font-semibold tracking-tight">Companies</h1>
                 <p className="text-sm text-muted-foreground">
