@@ -278,17 +278,17 @@ export default function Dashboard() {
                     <div className="flex flex-wrap gap-1.5">
                       {client.scripts.map((script: ScriptWithType) => (
                         <Link key={script.id} to={`/script/${script.id}`}>
-                          <Button variant="outline" size="sm" className="h-7 text-xs px-2 gap-1.5">
+                          <Button variant="outline" size="sm" className="h-8 text-xs px-2.5 gap-2">
                             {script.service_type?.icon_url ? (
-                              <div className="h-3.5 w-3.5 rounded overflow-hidden flex-shrink-0">
+                              <div className="h-4 w-4 rounded overflow-hidden flex-shrink-0 bg-muted">
                                 <img 
                                   src={script.service_type.icon_url} 
                                   alt=""
-                                  className="h-full w-full object-cover"
+                                  className="h-full w-full object-contain"
                                 />
                               </div>
                             ) : (
-                              <FileText className="h-3 w-3 flex-shrink-0" />
+                              <FileText className="h-3.5 w-3.5 flex-shrink-0" />
                             )}
                             <span className="truncate">{script.service_name}</span>
                           </Button>
