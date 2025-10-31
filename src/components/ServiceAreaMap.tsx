@@ -131,7 +131,7 @@ export default function ServiceAreaMap({ city, serviceArea, address, radiusMiles
         
         map.current = new mapboxgl.Map({
           container: mapContainer.current!,
-          style: 'mapbox://styles/mapbox/satellite-streets-v12',
+          style: 'mapbox://styles/mapbox/streets-v12',
           center: coordinates,
           zoom: zoom,
         });
@@ -241,7 +241,13 @@ export default function ServiceAreaMap({ city, serviceArea, address, radiusMiles
       if (data.features && data.features.length > 0) {
         const searchCoords = data.features[0].center as [number, number];
         
-        // Calculate distance between center and searched address
+        // Get driving distance using Mapbox Directions API
+        const directionsResponse = await fetch(
+          `https://api.mapbox.com/directions/v5/mapbox/driving/${centerCoordinates[0]},${centerCoordinates[1]};${searchCoords[0]},${searchCoords[1]}?access_token=${mapboxToken}`
+        );
+        const directionsData = await directionsResponse.json();
+        
+        // Calculate straight-line distance as fallback
         const R = 3959; // Earth's radius in miles
         const lat1 = centerCoordinates[1] * Math.PI / 180;
         const lat2 = searchCoords[1] * Math.PI / 180;
@@ -252,9 +258,17 @@ export default function ServiceAreaMap({ city, serviceArea, address, radiusMiles
                   Math.cos(lat1) * Math.cos(lat2) *
                   Math.sin(dLon/2) * Math.sin(dLon/2);
         const c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1-a));
-        const distance = R * c;
+        const straightLineDistance = R * c;
         
-        const isWithinRadius = distance <= serviceRadius;
+        // Use driving distance if available, otherwise fall back to straight-line
+        const drivingDistanceMiles = directionsData.routes?.[0]?.distance 
+          ? (directionsData.routes[0].distance * 0.000621371) // meters to miles
+          : straightLineDistance;
+        const drivingDuration = directionsData.routes?.[0]?.duration 
+          ? Math.round(directionsData.routes[0].duration / 60) // seconds to minutes
+          : Math.round(straightLineDistance * 1.5); // estimate 1.5 minutes per mile
+        
+        const isWithinRadius = drivingDistanceMiles <= serviceRadius;
         
         // Remove previous search marker if exists
         searchMarkerRef.current?.remove();
@@ -267,8 +281,9 @@ export default function ServiceAreaMap({ city, serviceArea, address, radiusMiles
             new mapboxgl.Popup().setHTML(
               `<div class="p-2">
                 <p class="font-semibold">${data.features[0].place_name}</p>
-                <p class="text-sm mt-1">${distance.toFixed(1)} miles from center</p>
-                <p class="text-sm font-semibold ${isWithinRadius ? 'text-green-600' : 'text-red-600'}">
+                <p class="text-sm mt-1"><strong>Driving distance:</strong> ${drivingDistanceMiles.toFixed(1)} miles (~${drivingDuration} min)</p>
+                <p class="text-sm"><strong>Straight-line:</strong> ${straightLineDistance.toFixed(1)} miles</p>
+                <p class="text-sm font-semibold mt-1 ${isWithinRadius ? 'text-green-600' : 'text-red-600'}">
                   ${isWithinRadius ? '✓ Within service area' : '✗ Outside service area'}
                 </p>
               </div>`
@@ -288,8 +303,8 @@ export default function ServiceAreaMap({ city, serviceArea, address, radiusMiles
         
         toast.success(
           isWithinRadius 
-            ? `Address is within service area (${distance.toFixed(1)} miles)`
-            : `Address is outside service area (${distance.toFixed(1)} miles from center)`
+            ? `Address is within service area (${drivingDistanceMiles.toFixed(1)} miles driving distance, ~${drivingDuration} min)`
+            : `Address is outside service area (${drivingDistanceMiles.toFixed(1)} miles from center)`
         );
       } else {
         toast.error('Address not found');

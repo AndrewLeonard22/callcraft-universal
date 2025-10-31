@@ -233,7 +233,17 @@ CRITICAL RULES:
 1. Copy the script WORD-FOR-WORD as your baseline
 2. PRESERVE ALL FORMATTING - if headings are bold and capitalized in the template, keep them bold and capitalized
 3. PRESERVE ALL STRUCTURE - maintain section numbering (1., 2., 3.), bullet points, and spacing
-4. Replace bracketed placeholders like [COMPANY_NAME], [SERVICE_TYPE] with actual data
+4. Replace bracketed placeholders with actual data from client info:
+   - [COMPANY_NAME] → company name
+   - [LOCATION_NAME] → company name (location name means the company name)
+   - [BUSINESS_NAME] → company name
+   - [SERVICE_TYPE] → service type
+   - [CITY] → city/location
+   - [CUSTOMER_NAME] → keep as placeholder for the caller to fill in
+   - [YOUR_NAME] → keep as placeholder for the caller to fill in
+   - [STARTING_PRICE] → actual starting price if provided
+   - [WARRANTY] → actual warranty terms if provided
+   - [YEARS_IN_BUSINESS] → actual years if provided
 5. ALSO replace generic references when client data is available:
    - "your company" → actual company name
    - "our service" → actual service type
