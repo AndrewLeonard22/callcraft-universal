@@ -146,13 +146,13 @@ export default function Dashboard() {
   });
 
   return (
-    <div className="min-h-screen bg-background">
-      <div className="container mx-auto px-6 py-8 max-w-7xl">
-        <div className="mb-8">
-          <div className="flex items-center justify-between mb-6">
+    <div className="min-h-screen bg-gradient-to-br from-background via-background to-secondary/20">
+      <div className="container mx-auto px-6 py-10 max-w-7xl">
+        <div className="mb-10">
+          <div className="flex items-center justify-between mb-8">
             <div>
-              <h1 className="text-3xl font-bold mb-1">All Scripts</h1>
-              <p className="text-sm text-muted-foreground">
+              <h1 className="text-4xl font-bold mb-2 bg-gradient-to-r from-foreground to-foreground/70 bg-clip-text text-transparent">All Scripts</h1>
+              <p className="text-muted-foreground">
                 View and manage all client scripts
               </p>
             </div>
@@ -242,9 +242,9 @@ export default function Dashboard() {
             </CardContent>
           </Card>
         ) : (
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
             {filteredClients.map((client) => (
-              <Card key={client.id} className="group hover:border-primary/50 transition-all h-full flex flex-col">
+              <Card key={client.id} className="group hover:border-primary/30 hover:shadow-lg transition-all h-full flex flex-col backdrop-blur-sm bg-card/50">
                 <CardHeader className="pb-3">
                   <div className="flex items-start gap-3">
                     <Link to={`/client/${client.id}`} className="h-12 w-12 rounded-lg overflow-hidden bg-muted flex-shrink-0 border border-border hover:border-primary/50 transition-colors">
