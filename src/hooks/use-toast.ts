@@ -1,6 +1,13 @@
-import { useState, useEffect, type ReactNode } from "react";
+import { useState, useEffect, type ReactNode, type ReactElement } from "react";
 
-import type { ToastActionElement, ToastProps } from "@/components/ui/toast";
+// Local minimal types to avoid circular import with UI Toast
+export type ToastActionElement = ReactElement;
+export type ToastProps = {
+  open?: boolean;
+  onOpenChange?: (open: boolean) => void;
+  duration?: number;
+  variant?: "default" | "destructive";
+};
 
 const TOAST_LIMIT = 1;
 const TOAST_REMOVE_DELAY = 1000000;
@@ -174,7 +181,7 @@ function useToast() {
         listeners.splice(index, 1);
       }
     };
-  }, [state]);
+  }, []);
 
   return {
     ...state,
