@@ -1,11 +1,12 @@
 import { useEffect, useState } from "react";
 import { Link } from "react-router-dom";
-import { Plus, FileText, Calendar, Search, Settings } from "lucide-react";
+import { Plus, FileText, Calendar, Search, Settings, Trash2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { supabase } from "@/integrations/supabase/client";
 import { format } from "date-fns";
+import { useToast } from "@/hooks/use-toast";
 import logoDefault from "@/assets/logo-default.png";
 import logoPergola from "@/assets/logo-pergola.png";
 import logoHvac from "@/assets/logo-hvac.png";
@@ -56,6 +57,7 @@ export default function Dashboard() {
   const [clients, setClients] = useState<ClientWithScripts[]>([]);
   const [loading, setLoading] = useState(true);
   const [searchQuery, setSearchQuery] = useState("");
+  const { toast } = useToast();
 
   useEffect(() => {
     loadClients();
@@ -155,6 +157,36 @@ export default function Dashboard() {
     }
   };
 
+  const handleDeleteClient = async (clientId: string, clientName: string) => {
+    if (!confirm(`Are you sure you want to delete ${clientName}? This will also delete all associated scripts.`)) {
+      return;
+    }
+
+    try {
+      // Delete client (cascading will handle scripts and details)
+      const { error } = await supabase
+        .from("clients")
+        .delete()
+        .eq("id", clientId);
+
+      if (error) throw error;
+
+      toast({
+        title: "Company deleted",
+        description: `${clientName} has been deleted successfully.`,
+      });
+
+      loadClients();
+    } catch (error) {
+      console.error("Error deleting client:", error);
+      toast({
+        title: "Error",
+        description: "Failed to delete company. Please try again.",
+        variant: "destructive",
+      });
+    }
+  };
+
   // Filter clients based on search query
   const filteredClients = clients.filter((client) => {
     const query = searchQuery.toLowerCase();
@@ -172,9 +204,9 @@ export default function Dashboard() {
         <div className="mb-10">
           <div className="flex items-center justify-between mb-8">
             <div>
-              <h1 className="text-4xl font-bold mb-2 bg-gradient-to-r from-foreground to-foreground/70 bg-clip-text text-transparent">All Scripts</h1>
+              <h1 className="text-4xl font-bold mb-2 bg-gradient-to-r from-foreground to-foreground/70 bg-clip-text text-transparent">Companies</h1>
               <p className="text-muted-foreground">
-                View and manage all client scripts
+                View and manage all companies
               </p>
             </div>
             <div className="flex gap-3">
@@ -289,6 +321,17 @@ export default function Dashboard() {
                         </span>
                       </CardDescription>
                     </div>
+                    <Button
+                      variant="ghost"
+                      size="icon"
+                      className="h-8 w-8 opacity-0 group-hover:opacity-100 transition-opacity"
+                      onClick={(e) => {
+                        e.preventDefault();
+                        handleDeleteClient(client.id, client.business_name || client.name);
+                      }}
+                    >
+                      <Trash2 className="h-4 w-4 text-destructive" />
+                    </Button>
                   </div>
                 </CardHeader>
                 <CardContent className="pt-0 flex-1 flex flex-col">

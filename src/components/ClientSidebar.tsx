@@ -11,6 +11,7 @@ interface Client {
   name: string;
   service_type: string;
   city: string;
+  business_name?: string;
 }
 
 export function ClientSidebar() {
@@ -34,12 +35,28 @@ export function ClientSidebar() {
       return;
     }
 
-    setClients(data || []);
+    // Get business names for all clients
+    const { data: businessNamesData } = await supabase
+      .from("client_details")
+      .select("client_id, field_value")
+      .eq("field_name", "business_name");
+
+    const businessNamesMap = new Map(
+      (businessNamesData || []).map(detail => [detail.client_id, detail.field_value])
+    );
+
+    const clientsWithBusinessNames = (data || []).map(client => ({
+      ...client,
+      business_name: businessNamesMap.get(client.id),
+    }));
+
+    setClients(clientsWithBusinessNames);
   };
 
   const filteredClients = clients.filter(
     (client) =>
       client.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
+      client.business_name?.toLowerCase().includes(searchQuery.toLowerCase()) ||
       client.service_type.toLowerCase().includes(searchQuery.toLowerCase()) ||
       client.city?.toLowerCase().includes(searchQuery.toLowerCase())
   );
@@ -89,7 +106,7 @@ export function ClientSidebar() {
                 <div className="flex items-start gap-2">
                   <FileText className="h-4 w-4 mt-0.5 flex-shrink-0" />
                   <div className="flex-1 min-w-0">
-                    <div className="font-medium truncate">{client.name}</div>
+                    <div className="font-medium truncate">{client.business_name || client.name}</div>
                     <div className="text-xs opacity-80 truncate">
                       {client.service_type} {client.city && `• ${client.city}`}
                     </div>
