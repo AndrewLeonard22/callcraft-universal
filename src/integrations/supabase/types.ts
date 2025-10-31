@@ -316,6 +316,47 @@ export type Database = {
           },
         ]
       }
+      team_invitations: {
+        Row: {
+          created_at: string
+          email: string
+          expires_at: string
+          id: string
+          invited_by: string
+          organization_id: string
+          role: string
+          status: string
+        }
+        Insert: {
+          created_at?: string
+          email: string
+          expires_at?: string
+          id?: string
+          invited_by: string
+          organization_id: string
+          role: string
+          status?: string
+        }
+        Update: {
+          created_at?: string
+          email?: string
+          expires_at?: string
+          id?: string
+          invited_by?: string
+          organization_id?: string
+          role?: string
+          status?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "team_invitations_organization_id_fkey"
+            columns: ["organization_id"]
+            isOneToOne: false
+            referencedRelation: "organizations"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
     }
     Views: {
       [_ in never]: never
@@ -325,6 +366,7 @@ export type Database = {
         Args: { _org_id: string; _user_id: string }
         Returns: boolean
       }
+      expire_old_invitations: { Args: never; Returns: undefined }
       has_organization_role: {
         Args: {
           _org_id: string
