@@ -1,6 +1,6 @@
 import { useEffect, useState } from "react";
 import { Link } from "react-router-dom";
-import { Plus, FileText, Calendar, Search, Settings, Trash2 } from "lucide-react";
+import { Plus, FileText, Calendar, Search, Settings, Trash2, Sparkles } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
@@ -39,7 +39,6 @@ interface ClientWithScripts {
   scripts: ScriptWithType[];
 }
 
-// Helper to get logo based on service type
 const getClientLogo = (serviceType: string, customLogoUrl?: string): string => {
   if (customLogoUrl) return customLogoUrl;
   
@@ -65,7 +64,6 @@ export default function Dashboard() {
 
   const loadClients = async () => {
     try {
-      // Get all clients
       const { data: clientsData, error: clientsError } = await supabase
         .from("clients")
         .select("*")
@@ -74,7 +72,6 @@ export default function Dashboard() {
 
       if (clientsError) throw clientsError;
 
-      // Get all non-template scripts with service_type_id
       const { data: scriptsData, error: scriptsError } = await supabase
         .from("scripts")
         .select("id, service_name, created_at, client_id, service_type_id")
@@ -83,7 +80,6 @@ export default function Dashboard() {
 
       if (scriptsError) throw scriptsError;
 
-      // Get all service types
       const { data: serviceTypesData, error: serviceTypesError } = await supabase
         .from("service_types")
         .select("*");
@@ -94,7 +90,6 @@ export default function Dashboard() {
         (serviceTypesData || []).map(st => [st.id, st])
       );
 
-      // Get logo URLs for all clients
       const { data: logosData } = await supabase
         .from("client_details")
         .select("client_id, field_value")
@@ -104,7 +99,6 @@ export default function Dashboard() {
         (logosData || []).map(l => [l.client_id, l.field_value])
       );
 
-      // Get business names and owner names
       const { data: businessNamesData } = await supabase
         .from("client_details")
         .select("client_id, field_name, field_value")
@@ -121,7 +115,6 @@ export default function Dashboard() {
         }
       });
 
-      // Group scripts by client
       const clientsWithScripts: ClientWithScripts[] = (clientsData || [])
         .map((client) => {
           const clientScripts: ScriptWithType[] = (scriptsData || [])
@@ -162,7 +155,6 @@ export default function Dashboard() {
     }
 
     try {
-      // Delete client (cascading will handle scripts and details)
       const { error } = await supabase
         .from("clients")
         .delete()
@@ -186,11 +178,11 @@ export default function Dashboard() {
     }
   };
 
-  // Filter clients based on search query
   const filteredClients = clients.filter((client) => {
     const query = searchQuery.toLowerCase();
     return (
       client.name.toLowerCase().includes(query) ||
+      (client.business_name && client.business_name.toLowerCase().includes(query)) ||
       client.service_type.toLowerCase().includes(query) ||
       (client.city && client.city.toLowerCase().includes(query)) ||
       client.scripts.some(s => s.service_name.toLowerCase().includes(query))
@@ -198,97 +190,122 @@ export default function Dashboard() {
   });
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-background via-background to-secondary/20">
-      <div className="container mx-auto px-6 py-10 max-w-7xl">
-        <div className="mb-10">
-          <div className="flex items-center justify-between mb-8">
-            <div>
-              <h1 className="text-4xl font-bold mb-2 bg-gradient-to-r from-foreground to-foreground/70 bg-clip-text text-transparent">Companies</h1>
-              <p className="text-muted-foreground">
-                View and manage all companies
-              </p>
+    <div className="min-h-screen bg-background">
+      {/* Premium Header */}
+      <div className="border-b border-border/50 bg-card/30 backdrop-blur-xl sticky top-0 z-10">
+        <div className="container mx-auto px-6 py-6 max-w-7xl">
+          <div className="flex items-center justify-between">
+            <div className="flex items-center gap-3">
+              <div className="h-10 w-10 rounded-xl bg-gradient-to-br from-primary to-accent flex items-center justify-center">
+                <Sparkles className="h-5 w-5 text-white" />
+              </div>
+              <div>
+                <h1 className="text-2xl font-semibold tracking-tight">Companies</h1>
+                <p className="text-sm text-muted-foreground">
+                  {clients.length} {clients.length === 1 ? 'company' : 'companies'} total
+                </p>
+              </div>
             </div>
-            <div className="flex gap-3">
+            
+            <div className="flex items-center gap-2">
               <Link to="/service-types">
-                <Button variant="outline">
-                  <Settings className="mr-2 h-4 w-4" />
+                <Button variant="outline" size="default" className="gap-2 shadow-sm hover:shadow transition-shadow">
+                  <Settings className="h-4 w-4" />
                   Services
                 </Button>
               </Link>
               <Link to="/templates">
-                <Button variant="outline">
-                  <FileText className="mr-2 h-4 w-4" />
+                <Button variant="outline" size="default" className="gap-2 shadow-sm hover:shadow transition-shadow">
+                  <FileText className="h-4 w-4" />
                   Templates
                 </Button>
               </Link>
               <Link to="/create">
-                <Button>
-                  <Plus className="mr-2 h-4 w-4" />
-                  New Client
+                <Button size="default" className="gap-2 shadow-md hover:shadow-lg transition-all bg-gradient-to-r from-primary to-primary/90">
+                  <Plus className="h-4 w-4" />
+                  New Company
                 </Button>
               </Link>
             </div>
           </div>
-          
-          {!loading && clients.length > 0 && (
+        </div>
+      </div>
+
+      <div className="container mx-auto px-6 py-8 max-w-7xl">
+        {/* Search Bar */}
+        {!loading && clients.length > 0 && (
+          <div className="mb-8">
             <div className="relative max-w-md">
-              <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+              <Search className="absolute left-4 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
               <Input
                 type="text"
-                placeholder="Search by client, service, or city..."
+                placeholder="Search companies, services, locations..."
                 value={searchQuery}
                 onChange={(e) => setSearchQuery(e.target.value)}
-                className="pl-9"
+                className="pl-11 h-12 bg-card shadow-sm border-border/50 focus:border-primary/50 transition-colors"
               />
-              {searchQuery && (
-                <p className="text-xs text-muted-foreground mt-2">
-                  {filteredClients.length} {filteredClients.length === 1 ? 'client' : 'clients'} found
-                </p>
-              )}
             </div>
-          )}
-        </div>
+            {searchQuery && (
+              <p className="text-sm text-muted-foreground mt-3">
+                Found {filteredClients.length} {filteredClients.length === 1 ? 'result' : 'results'}
+              </p>
+            )}
+          </div>
+        )}
 
+        {/* Loading State */}
         {loading ? (
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
             {[1, 2, 3, 4, 5, 6].map((i) => (
-              <Card key={i} className="animate-pulse">
-                <CardHeader className="pb-3">
-                  <div className="h-5 bg-muted rounded w-3/4 mb-2" />
-                  <div className="h-3 bg-muted rounded w-1/2" />
+              <Card key={i} className="animate-pulse border-border/50 shadow-sm">
+                <CardHeader className="pb-4">
+                  <div className="flex items-start gap-4">
+                    <div className="h-14 w-14 bg-muted rounded-xl" />
+                    <div className="flex-1 space-y-2">
+                      <div className="h-5 bg-muted rounded w-3/4" />
+                      <div className="h-4 bg-muted rounded w-1/2" />
+                    </div>
+                  </div>
                 </CardHeader>
-                <CardContent className="pt-0">
-                  <div className="h-3 bg-muted rounded w-full mb-3" />
-                  <div className="h-8 bg-muted rounded w-full" />
+                <CardContent>
+                  <div className="h-4 bg-muted rounded w-full mb-4" />
+                  <div className="flex gap-2">
+                    <div className="h-9 bg-muted rounded flex-1" />
+                    <div className="h-9 bg-muted rounded flex-1" />
+                  </div>
                 </CardContent>
               </Card>
             ))}
           </div>
         ) : clients.length === 0 ? (
-          <Card>
-            <CardContent className="flex flex-col items-center justify-center py-12">
-              <FileText className="h-12 w-12 text-muted-foreground/50 mb-3" />
-              <h3 className="text-lg font-semibold mb-1">No companies yet</h3>
-              <p className="text-sm text-muted-foreground mb-4 text-center max-w-sm">
-                Create your first company to get started
+          <Card className="border-border/50 shadow-sm">
+            <CardContent className="flex flex-col items-center justify-center py-16">
+              <div className="h-16 w-16 rounded-2xl bg-muted flex items-center justify-center mb-4">
+                <FileText className="h-8 w-8 text-muted-foreground" />
+              </div>
+              <h3 className="text-lg font-semibold mb-2">No companies yet</h3>
+              <p className="text-sm text-muted-foreground mb-6 text-center max-w-sm">
+                Get started by creating your first company profile
               </p>
               <Link to="/create">
-                <Button>
-                  <Plus className="mr-2 h-4 w-4" />
-                  Create Client
+                <Button className="gap-2 shadow-md">
+                  <Plus className="h-4 w-4" />
+                  Create Company
                 </Button>
               </Link>
             </CardContent>
           </Card>
         ) : filteredClients.length === 0 ? (
-          <Card>
-            <CardContent className="flex flex-col items-center justify-center py-12">
-              <Search className="h-12 w-12 text-muted-foreground/50 mb-3" />
-              <h3 className="text-lg font-semibold mb-1">No clients found</h3>
-              <p className="text-sm text-muted-foreground mb-4 text-center max-w-sm">
-                Try adjusting your search query
+          <Card className="border-border/50 shadow-sm">
+            <CardContent className="flex flex-col items-center justify-center py-16">
+              <div className="h-16 w-16 rounded-2xl bg-muted flex items-center justify-center mb-4">
+                <Search className="h-8 w-8 text-muted-foreground" />
+              </div>
+              <h3 className="text-lg font-semibold mb-2">No results found</h3>
+              <p className="text-sm text-muted-foreground mb-6 text-center max-w-sm">
+                Try adjusting your search terms
               </p>
-              <Button variant="outline" onClick={() => setSearchQuery("")}>
+              <Button variant="outline" onClick={() => setSearchQuery("")} className="shadow-sm">
                 Clear Search
               </Button>
             </CardContent>
@@ -296,74 +313,107 @@ export default function Dashboard() {
         ) : (
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
             {filteredClients.map((client) => (
-              <Card key={client.id} className="group hover:border-primary/30 hover:shadow-lg transition-all h-full flex flex-col backdrop-blur-sm bg-card/50">
-                <CardHeader className="pb-3">
-                  <div className="flex items-start gap-3">
-                    <Link to={`/client/${client.id}`} className="h-12 w-12 rounded-lg overflow-hidden bg-muted flex-shrink-0 border border-border hover:border-primary/50 transition-colors">
-                      <img 
-                        src={getClientLogo(client.service_type, client.logo_url)} 
-                        alt={`${client.name} logo`}
-                        className="h-full w-full object-cover"
-                      />
+              <Card 
+                key={client.id} 
+                className="group relative overflow-hidden border-border/50 bg-card shadow-sm hover:shadow-md transition-all duration-300 hover:border-primary/20"
+              >
+                {/* Subtle gradient overlay on hover */}
+                <div className="absolute inset-0 bg-gradient-to-br from-primary/5 to-accent/5 opacity-0 group-hover:opacity-100 transition-opacity duration-300" />
+                
+                <CardHeader className="pb-4 relative z-10">
+                  <div className="flex items-start gap-4">
+                    <Link to={`/client/${client.id}`} className="relative">
+                      <div className="h-14 w-14 rounded-xl overflow-hidden bg-muted ring-2 ring-border/50 group-hover:ring-primary/30 transition-all duration-300 shadow-sm">
+                        <img 
+                          src={getClientLogo(client.service_type, client.logo_url)} 
+                          alt={`${client.name} logo`}
+                          className="h-full w-full object-cover"
+                        />
+                      </div>
                     </Link>
+                    
                     <div className="flex-1 min-w-0">
-                      <CardTitle className="text-base line-clamp-1 mb-1">
+                      <CardTitle className="text-base font-semibold line-clamp-1 mb-1">
                         {client.business_name || client.name}
                       </CardTitle>
-                      <CardDescription className="text-xs">
+                      <CardDescription className="text-sm">
                         {client.owners_name && (
-                          <span className="block mb-0.5">{client.owners_name}</span>
+                          <span className="block mb-1 font-medium">{client.owners_name}</span>
                         )}
-                        <span className="capitalize">
-                          {client.service_type && client.service_type.toLowerCase() !== "general services" && client.service_type}
-                          {client.city && `${client.service_type && client.service_type.toLowerCase() !== "general services" ? " • " : ""}${client.city}`}
+                        <span className="text-xs flex items-center gap-2">
+                          {client.service_type && client.service_type.toLowerCase() !== "general services" && (
+                            <span className="inline-flex items-center px-2 py-0.5 rounded-full bg-primary/10 text-primary text-xs font-medium">
+                              {client.service_type}
+                            </span>
+                          )}
+                          {client.city && (
+                            <span className="text-muted-foreground">{client.city}</span>
+                          )}
                         </span>
                       </CardDescription>
                     </div>
+                    
                     <Button
                       variant="ghost"
                       size="icon"
-                      className="h-8 w-8 opacity-0 group-hover:opacity-100 transition-opacity"
+                      className="h-8 w-8 opacity-0 group-hover:opacity-100 transition-opacity duration-200 hover:bg-destructive/10 hover:text-destructive"
                       onClick={(e) => {
                         e.preventDefault();
                         handleDeleteClient(client.id, client.business_name || client.name);
                       }}
                     >
-                      <Trash2 className="h-4 w-4 text-destructive" />
+                      <Trash2 className="h-4 w-4" />
                     </Button>
                   </div>
                 </CardHeader>
-                <CardContent className="pt-0 flex-1 flex flex-col">
-                  <div className="flex items-center gap-1.5 text-xs text-muted-foreground mb-4">
-                    <Calendar className="h-3 w-3" />
+                
+                <CardContent className="pt-0 relative z-10">
+                  <div className="flex items-center gap-2 text-xs text-muted-foreground mb-4 pb-4 border-b border-border/50">
+                    <Calendar className="h-3.5 w-3.5" />
                     <span>{format(new Date(client.created_at), "MMM d, yyyy")}</span>
                   </div>
                   
-                  <div className="space-y-2 mt-auto">
-                    <div className="text-xs font-medium text-muted-foreground mb-2">
-                      Scripts ({client.scripts.length})
+                  {client.scripts.length > 0 ? (
+                    <div>
+                      <div className="text-xs font-medium text-muted-foreground mb-3 uppercase tracking-wide">
+                        Scripts ({client.scripts.length})
+                      </div>
+                      <div className="flex flex-wrap gap-2">
+                        {client.scripts.map((script: ScriptWithType) => (
+                          <Link key={script.id} to={`/script/${script.id}`}>
+                            <Button 
+                              variant="outline" 
+                              size="sm" 
+                              className="h-9 text-xs px-3 gap-2 hover:bg-primary/5 hover:border-primary/30 transition-colors shadow-sm"
+                            >
+                              {script.service_type?.icon_url ? (
+                                <div className="h-4 w-4 rounded overflow-hidden flex-shrink-0 bg-muted">
+                                  <img 
+                                    src={script.service_type.icon_url} 
+                                    alt=""
+                                    className="h-full w-full object-contain"
+                                  />
+                                </div>
+                              ) : (
+                                <FileText className="h-3.5 w-3.5 flex-shrink-0" />
+                              )}
+                              <span className="truncate max-w-[120px]">{script.service_name}</span>
+                            </Button>
+                          </Link>
+                        ))}
+                      </div>
                     </div>
-                    <div className="flex flex-wrap gap-1.5">
-                      {client.scripts.map((script: ScriptWithType) => (
-                        <Link key={script.id} to={`/script/${script.id}`}>
-                          <Button variant="outline" size="sm" className="h-8 text-xs px-2.5 gap-2">
-                            {script.service_type?.icon_url ? (
-                              <div className="h-4 w-4 rounded overflow-hidden flex-shrink-0 bg-muted">
-                                <img 
-                                  src={script.service_type.icon_url} 
-                                  alt=""
-                                  className="h-full w-full object-contain"
-                                />
-                              </div>
-                            ) : (
-                              <FileText className="h-3.5 w-3.5 flex-shrink-0" />
-                            )}
-                            <span className="truncate">{script.service_name}</span>
-                          </Button>
-                        </Link>
-                      ))}
+                  ) : (
+                    <div className="text-center py-4">
+                      <p className="text-sm text-muted-foreground">No scripts yet</p>
+                      <Link to={`/client/${client.id}/create-script`}>
+                        <Button variant="ghost" size="sm" className="mt-2 gap-2 text-xs">
+                          <Plus className="h-3 w-3" />
+                          Add Script
+                        </Button>
+                      </Link>
                     </div>
-                  </div>
+                  )}
                 </CardContent>
               </Card>
             ))}
