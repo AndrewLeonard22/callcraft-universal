@@ -16,26 +16,18 @@ export default function EditClient() {
   const navigate = useNavigate();
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
-  const [isScriptDragging, setIsScriptDragging] = useState(false);
   
   // Client basic info
   const [clientName, setClientName] = useState("");
   const [serviceType, setServiceType] = useState("");
   const [city, setCity] = useState("");
   
-  // Client details as JSON string for easy editing
-  const [clientDetailsJson, setClientDetailsJson] = useState("");
-  
-  // Original data inputs
-  const [transcript, setTranscript] = useState("");
-  const [scriptTemplate, setScriptTemplate] = useState("");
   
   // Business Info
   const [businessName, setBusinessName] = useState("");
   const [ownersName, setOwnersName] = useState("");
   const [salesRepPhone, setSalesRepPhone] = useState("");
   const [address, setAddress] = useState("");
-  const [googleMapLink, setGoogleMapLink] = useState("");
   const [otherKeyInfo, setOtherKeyInfo] = useState("");
   
   // Links
@@ -58,10 +50,9 @@ export default function EditClient() {
 
   const loadClientData = async () => {
     try {
-      const [clientResult, detailsResult, scriptResult] = await Promise.all([
+      const [clientResult, detailsResult] = await Promise.all([
         supabase.from("clients").select("*").eq("id", clientId).single(),
         supabase.from("client_details").select("*").eq("client_id", clientId),
-        supabase.from("scripts").select("script_content").eq("client_id", clientId).order("created_at", { ascending: false }).limit(1).maybeSingle(),
       ]);
 
       if (clientResult.error) throw clientResult.error;
@@ -70,15 +61,10 @@ export default function EditClient() {
       setServiceType(clientResult.data.service_type);
       setCity(clientResult.data.city || "");
 
-      // Convert client details to a readable JSON format and extract sources/links/business info
+      // Extract business info and links from client details
       if (detailsResult.data) {
-        const detailsObj: Record<string, string> = {};
-        let originalTranscript = "";
-        
         detailsResult.data.forEach((detail) => {
-          if (detail.field_name === "_original_transcript") {
-            originalTranscript = detail.field_value || "";
-          } else if (detail.field_name === "logo_url") {
+          if (detail.field_name === "logo_url") {
             setLogoUrl(detail.field_value || "");
           } else if (detail.field_name === "business_name") {
             setBusinessName(detail.field_value || "");
@@ -88,8 +74,6 @@ export default function EditClient() {
             setSalesRepPhone(detail.field_value || "");
           } else if (detail.field_name === "address") {
             setAddress(detail.field_value || "");
-          } else if (detail.field_name === "google_map_link") {
-            setGoogleMapLink(detail.field_value || "");
           } else if (detail.field_name === "other_key_info") {
             setOtherKeyInfo(detail.field_value || "");
           } else if (detail.field_name === "website") {
@@ -104,18 +88,8 @@ export default function EditClient() {
             setAppointmentCalendar(detail.field_value || "");
           } else if (detail.field_name === "reschedule_calendar") {
             setRescheduleCalendar(detail.field_value || "");
-          } else {
-            detailsObj[detail.field_name] = detail.field_value || "";
           }
         });
-        
-        setClientDetailsJson(JSON.stringify(detailsObj, null, 2));
-        setTranscript(originalTranscript);
-      }
-
-      // Load script template from the most recent script
-      if (scriptResult.data) {
-        setScriptTemplate(scriptResult.data.script_content);
       }
     } catch (error) {
       console.error("Error loading client data:", error);
@@ -125,19 +99,6 @@ export default function EditClient() {
     }
   };
 
-  const handleFileUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
-    const file = e.target.files?.[0];
-    if (!file) return;
-
-    try {
-      const text = await file.text();
-      setScriptTemplate(text);
-      toast.success("Script uploaded successfully");
-    } catch (error) {
-      console.error("Error reading file:", error);
-      toast.error("Failed to read file");
-    }
-  };
 
   const handleLogoUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
@@ -187,40 +148,6 @@ export default function EditClient() {
     }
   };
 
-  const handleScriptUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
-    const file = e.target.files?.[0];
-    if (!file) return;
-
-    try {
-      const text = await file.text();
-      setScriptTemplate(text);
-      toast.success("Script uploaded successfully");
-    } catch (error) {
-      console.error("Error reading file:", error);
-      toast.error("Failed to read file");
-    }
-  };
-
-  const handleScriptDrop = async (e: React.DragEvent) => {
-    e.preventDefault();
-    setIsScriptDragging(false);
-    
-    const file = e.dataTransfer.files[0];
-    if (!file) return;
-
-    try {
-      const text = await file.text();
-      setScriptTemplate(text);
-      toast.success("Script uploaded successfully");
-    } catch (error) {
-      console.error("Error reading file:", error);
-      toast.error("Failed to read file");
-    }
-  };
-
-  const handleDragOver = (e: React.DragEvent) => {
-    e.preventDefault();
-  };
 
   const handleSave = async () => {
     if (!clientName.trim()) {
@@ -243,100 +170,70 @@ export default function EditClient() {
 
       if (clientError) throw clientError;
 
-      // Update client details from JSON
-      if (clientDetailsJson.trim()) {
-        try {
-          const detailsObj = JSON.parse(clientDetailsJson);
-          
-          // Keep original source data
-          const { data: originalData } = await supabase
-            .from("client_details")
-            .select("*")
-            .eq("client_id", clientId)
-            .in("field_name", ["_original_onboarding_form", "_original_transcript"]);
-          
-          // Delete existing details except original source data, links, business info, and logo
-          await supabase
-            .from("client_details")
-            .delete()
-            .eq("client_id", clientId)
-            .not("field_name", "in", '("_original_transcript","website","facebook_page","instagram","crm_account_link","appointment_calendar","reschedule_calendar","business_name","owners_name","sales_rep_phone","address","google_map_link","other_key_info","logo_url")');
-          
-          // Insert updated details
-          const detailsArray = Object.entries(detailsObj).map(([key, value]) => ({
+      // Update client details
+      // Delete existing details except original source data
+      await supabase
+        .from("client_details")
+        .delete()
+        .eq("client_id", clientId)
+        .not("field_name", "in", '("_original_onboarding_form","_original_transcript")');
+      
+      const detailsArray = [];
+
+      // Add business info
+      const businessFields = [
+        { name: "business_name", value: businessName },
+        { name: "owners_name", value: ownersName },
+        { name: "sales_rep_phone", value: salesRepPhone },
+        { name: "address", value: address },
+        { name: "other_key_info", value: otherKeyInfo },
+      ];
+
+      businessFields.forEach(({ name, value }) => {
+        if (value) {
+          detailsArray.push({
             client_id: clientId,
-            field_name: key,
-            field_value: value as string,
-          }));
-
-          // Re-add original data
-          if (originalData && originalData.length > 0) {
-            detailsArray.push(...originalData.map(d => ({
-              client_id: clientId,
-              field_name: d.field_name,
-              field_value: d.field_value || "",
-            })));
-          }
-
-          // Add business info
-          const businessFields = [
-            { name: "business_name", value: businessName },
-            { name: "owners_name", value: ownersName },
-            { name: "sales_rep_phone", value: salesRepPhone },
-            { name: "address", value: address },
-            { name: "google_map_link", value: googleMapLink },
-            { name: "other_key_info", value: otherKeyInfo },
-          ];
-
-          businessFields.forEach(({ name, value }) => {
-            if (value) {
-              detailsArray.push({
-                client_id: clientId,
-                field_name: name,
-                field_value: value,
-              });
-            }
+            field_name: name,
+            field_value: value,
           });
-
-          // Add links
-          const linkFields = [
-            { name: "website", value: website },
-            { name: "facebook_page", value: facebookPage },
-            { name: "instagram", value: instagram },
-            { name: "crm_account_link", value: crmAccountLink },
-            { name: "appointment_calendar", value: appointmentCalendar },
-            { name: "reschedule_calendar", value: rescheduleCalendar },
-          ];
-
-          linkFields.forEach(({ name, value }) => {
-            if (value) {
-              detailsArray.push({
-                client_id: clientId,
-                field_name: name,
-                field_value: value,
-              });
-            }
-          });
-
-          // Add logo URL
-          if (logoUrl) {
-            detailsArray.push({
-              client_id: clientId,
-              field_name: "logo_url",
-              field_value: logoUrl,
-            });
-          }
-
-          const { error: detailsError } = await supabase
-            .from("client_details")
-            .insert(detailsArray);
-
-          if (detailsError) throw detailsError;
-        } catch (parseError) {
-          toast.error("Invalid JSON format in client details");
-          setSaving(false);
-          return;
         }
+      });
+
+      // Add links
+      const linkFields = [
+        { name: "website", value: website },
+        { name: "facebook_page", value: facebookPage },
+        { name: "instagram", value: instagram },
+        { name: "crm_account_link", value: crmAccountLink },
+        { name: "appointment_calendar", value: appointmentCalendar },
+        { name: "reschedule_calendar", value: rescheduleCalendar },
+      ];
+
+      linkFields.forEach(({ name, value }) => {
+        if (value) {
+          detailsArray.push({
+            client_id: clientId,
+            field_name: name,
+            field_value: value,
+          });
+        }
+      });
+
+      // Add logo URL
+      if (logoUrl) {
+        detailsArray.push({
+          client_id: clientId,
+          field_name: "logo_url",
+          field_value: logoUrl,
+        });
+      }
+
+      if (detailsArray.length > 0) {
+        const { error: detailsError } = await supabase
+          .from("client_details")
+          .insert(detailsArray);
+
+        if (detailsError) throw detailsError;
       }
 
       toast.success("Client information updated successfully!");
@@ -349,56 +246,6 @@ export default function EditClient() {
     }
   };
 
-  const handleRegenerate = async () => {
-    if (!scriptTemplate.trim()) {
-      toast.error("Please provide a script template");
-      return;
-    }
-
-    if (!transcript.trim()) {
-      toast.error("Please provide transcript data to regenerate");
-      return;
-    }
-
-    setSaving(true);
-    try {
-      const { data, error } = await supabase.functions.invoke("extract-client-data", {
-        body: { 
-          transcript: transcript,
-          use_template: true,
-          template_script: scriptTemplate,
-          client_id: clientId,
-          regenerate: true,
-          business_info: {
-            business_name: businessName,
-            owners_name: ownersName,
-            sales_rep_phone: salesRepPhone,
-            address,
-            google_map_link: googleMapLink,
-            other_key_info: otherKeyInfo,
-          },
-          links: {
-            website,
-            facebook_page: facebookPage,
-            instagram,
-            crm_account_link: crmAccountLink,
-            appointment_calendar: appointmentCalendar,
-            reschedule_calendar: rescheduleCalendar,
-          }
-        },
-      });
-
-      if (error) throw error;
-
-      toast.success("Script regenerated successfully!");
-      navigate(`/client/${clientId}`);
-    } catch (error: any) {
-      console.error("Error regenerating script:", error);
-      toast.error(error.message || "Failed to regenerate script");
-    } finally {
-      setSaving(false);
-    }
-  };
 
   if (loading) {
     return (
@@ -421,7 +268,7 @@ export default function EditClient() {
         <div className="mb-8">
           <h1 className="text-3xl font-bold mb-2">Edit Client Information</h1>
           <p className="text-muted-foreground">
-            Update client details, data sources, and regenerate scripts
+            Update client business information and links
           </p>
         </div>
 
@@ -499,78 +346,6 @@ export default function EditClient() {
 
           <Card>
             <CardHeader>
-              <CardTitle>Client Details (JSON)</CardTitle>
-              <CardDescription>
-                Edit client details in JSON format for full control
-              </CardDescription>
-            </CardHeader>
-            <CardContent>
-              <Textarea
-                placeholder='{"sales_rep_name": "John Doe", "starting_price": "$5,000"}'
-                className="min-h-[300px] font-mono text-sm"
-                value={clientDetailsJson}
-                onChange={(e) => setClientDetailsJson(e.target.value)}
-              />
-              <p className="text-xs text-muted-foreground mt-2">
-                Edit the JSON above to update client details. Make sure the JSON is valid.
-              </p>
-            </CardContent>
-          </Card>
-
-          <Card>
-            <CardHeader>
-              <CardTitle>Script Template</CardTitle>
-              <CardDescription>
-                Update the base script template for this client
-              </CardDescription>
-            </CardHeader>
-            <CardContent className="space-y-4">
-                  <div className="flex items-center gap-4">
-                <Label htmlFor="script-upload" className="cursor-pointer">
-                  <div className="flex items-center gap-2 px-4 py-2 border border-input rounded-lg hover:bg-accent transition-colors">
-                    <Upload className="h-4 w-4" />
-                    <span className="text-sm font-medium">Upload Script File</span>
-                  </div>
-                  <input
-                    id="script-upload"
-                    type="file"
-                    accept=".txt,.md"
-                    onChange={handleScriptUpload}
-                    className="hidden"
-                  />
-                </Label>
-                {scriptTemplate && (
-                  <span className="text-sm text-muted-foreground">
-                    ✓ Script loaded ({scriptTemplate.length} characters)
-                  </span>
-                )}
-              </div>
-              
-              <div 
-                className={`relative border-2 border-dashed rounded-lg transition-colors ${
-                  isScriptDragging ? "border-primary bg-primary/5" : "border-muted-foreground/25"
-                }`}
-                onDrop={handleScriptDrop}
-                onDragOver={handleDragOver}
-                onDragEnter={() => setIsScriptDragging(true)}
-                onDragLeave={() => setIsScriptDragging(false)}
-              >
-                <Label htmlFor="script-template" className="text-sm font-medium">
-                  Or paste/drag your script here
-                </Label>
-                <Textarea
-                  id="script-template"
-                  placeholder="Paste your script template here or drag a file..."
-                  className="min-h-[200px] font-mono text-sm mt-2 border-0 focus-visible:ring-0"
-                  value={scriptTemplate}
-                  onChange={(e) => setScriptTemplate(e.target.value)}
-                />
-              </div>
-            </CardContent>
-          </Card>
-
-          <Card>
-            <CardHeader>
               <CardTitle>Service Area Map</CardTitle>
               <CardDescription>
                 View and validate addresses within the service area
@@ -583,16 +358,15 @@ export default function EditClient() {
 
           <Card>
             <CardHeader>
-              <CardTitle>Source Data</CardTitle>
+              <CardTitle>Client Information</CardTitle>
               <CardDescription>
-                View and edit the business info, transcript, and links
+                Edit the business info and links
               </CardDescription>
             </CardHeader>
             <CardContent>
               <Tabs defaultValue="business" className="w-full">
-                <TabsList className="grid w-full grid-cols-3 mb-4">
+                <TabsList className="grid w-full grid-cols-2 mb-4">
                   <TabsTrigger value="business">Business Info</TabsTrigger>
-                  <TabsTrigger value="transcript">Call Transcript</TabsTrigger>
                   <TabsTrigger value="links">Links</TabsTrigger>
                 </TabsList>
                 
@@ -636,16 +410,6 @@ export default function EditClient() {
                       />
                     </div>
                     <div>
-                      <Label htmlFor="google-map-link">Google Map Link</Label>
-                      <Input
-                        id="google-map-link"
-                        type="url"
-                        placeholder="https://goo.gl/maps/..."
-                        value={googleMapLink}
-                        onChange={(e) => setGoogleMapLink(e.target.value)}
-                      />
-                    </div>
-                    <div>
                       <Label htmlFor="other-info">Other Key Information</Label>
                       <Textarea
                         id="other-info"
@@ -656,15 +420,6 @@ export default function EditClient() {
                       />
                     </div>
                   </div>
-                </TabsContent>
-                
-                <TabsContent value="transcript">
-                  <Textarea
-                    placeholder="Paste call transcript here..."
-                    className="min-h-[200px] font-mono text-sm"
-                    value={transcript}
-                    onChange={(e) => setTranscript(e.target.value)}
-                  />
                 </TabsContent>
 
                 <TabsContent value="links">
@@ -735,26 +490,14 @@ export default function EditClient() {
             </CardContent>
           </Card>
 
-          <div className="flex gap-4">
-            <Button
-              onClick={handleSave}
-              disabled={saving}
-              className="flex-1"
-              size="lg"
-            >
-              {saving ? "Saving..." : "Save Changes"}
-            </Button>
-            
-            <Button
-              onClick={handleRegenerate}
-              disabled={saving}
-              variant="outline"
-              className="flex-1"
-              size="lg"
-            >
-              {saving ? "Regenerating..." : "Regenerate Script with New Data"}
-            </Button>
-          </div>
+          <Button
+            onClick={handleSave}
+            disabled={saving}
+            className="w-full"
+            size="lg"
+          >
+            {saving ? "Saving..." : "Save Changes"}
+          </Button>
         </div>
       </div>
     </div>

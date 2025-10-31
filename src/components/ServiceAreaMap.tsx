@@ -119,6 +119,12 @@ export default function ServiceAreaMap({ city, serviceArea, address }: ServiceAr
           if (map.current) {
             const circleGeoJSON = createCircleGeoJSON(coordinates as [number, number], radius);
             
+            // Get the primary color from CSS variables
+            const primaryColor = getComputedStyle(document.documentElement)
+              .getPropertyValue('--primary')
+              .trim();
+            const mapboxColor = primaryColor ? `hsl(${primaryColor})` : '#3b82f6';
+            
             map.current.addSource('service-area', {
               type: 'geojson',
               data: circleGeoJSON,
@@ -130,7 +136,7 @@ export default function ServiceAreaMap({ city, serviceArea, address }: ServiceAr
               type: 'fill',
               source: 'service-area',
               paint: {
-                'fill-color': 'hsl(var(--primary))',
+                'fill-color': mapboxColor,
                 'fill-opacity': 0.15,
               },
             });
@@ -141,7 +147,7 @@ export default function ServiceAreaMap({ city, serviceArea, address }: ServiceAr
               type: 'line',
               source: 'service-area',
               paint: {
-                'line-color': 'hsl(var(--primary))',
+                'line-color': mapboxColor,
                 'line-width': 2,
                 'line-opacity': 0.6,
               },
