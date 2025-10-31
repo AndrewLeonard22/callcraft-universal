@@ -3,6 +3,8 @@ import { useParams, useNavigate } from "react-router-dom";
 import { ArrowLeft, Edit2, Download, Copy, CheckCircle } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
 import ServiceAreaMap from "@/components/ServiceAreaMap";
@@ -52,6 +54,7 @@ export default function ScriptViewer() {
   const [details, setDetails] = useState<ClientDetail[]>([]);
   const [script, setScript] = useState<Script | null>(null);
   const [loading, setLoading] = useState(true);
+  const [desiredSqFt, setDesiredSqFt] = useState("");
 
   useEffect(() => {
     if (scriptId) {
@@ -146,6 +149,53 @@ export default function ScriptViewer() {
     // Fall back to general client details
     return details.find((d) => d.field_name === fieldName)?.field_value || "N/A";
   };
+
+  // Calculator logic
+  const calculatedPricePerSqFt = () => {
+    const minPrice = getDetailValue("project_min_price");
+    const minSize = getDetailValue("project_min_size");
+    
+    if (minPrice === "N/A" || minSize === "N/A") return null;
+    
+    const priceNum = parseFloat(minPrice.replace(/[^0-9.]/g, ''));
+    const sizeNum = parseFloat(minSize.replace(/[^0-9.]/g, ''));
+    
+    if (isNaN(priceNum) || isNaN(sizeNum) || sizeNum === 0) return null;
+    
+    return priceNum / sizeNum;
+  };
+  
+  const calculateEstimate = () => {
+    if (!desiredSqFt) return null;
+    
+    const sqFt = parseFloat(desiredSqFt);
+    if (isNaN(sqFt) || sqFt === 0) return null;
+    
+    let pricePerSqFtNum: number | null = null;
+    const pricePerSqFtValue = getDetailValue("price_per_sq_ft");
+    
+    if (pricePerSqFtValue !== "N/A") {
+      const match = pricePerSqFtValue.match(/\d+/);
+      if (match) {
+        pricePerSqFtNum = parseFloat(match[0]);
+      }
+    }
+    
+    if (!pricePerSqFtNum) {
+      pricePerSqFtNum = calculatedPricePerSqFt();
+    }
+    
+    if (!pricePerSqFtNum) return null;
+    
+    const estimate = sqFt * pricePerSqFtNum;
+    const lowEstimate = estimate * 0.9;
+    const highEstimate = estimate * 1.1;
+    
+    return { low: lowEstimate, mid: estimate, high: highEstimate };
+  };
+  
+  const estimate = calculateEstimate();
+  const autoCalcPrice = calculatedPricePerSqFt();
 
   const FormattedScript = ({ content }: { content: string }) => {
     const lines = content.split('\n');
@@ -621,6 +671,72 @@ export default function ScriptViewer() {
                         <div className="space-y-1">
                           <div className="text-xs font-medium text-muted-foreground uppercase tracking-wide">Average Install Time After Booking</div>
                           <div className="text-sm font-medium text-foreground">{getDetailValue("avg_install_time")}</div>
+                        </div>
+                      )}
+                    </div>
+                  </CardContent>
+                </Card>
+              )}
+
+              {/* Estimate Calculator */}
+              {(getDetailValue("project_min_price") !== "N/A" || getDetailValue("price_per_sq_ft") !== "N/A") && (
+                <Card className="border border-border shadow-sm">
+                  <CardContent className="p-6">
+                    <h2 className="text-base font-semibold mb-4 text-foreground">Estimate Calculator</h2>
+                    
+                    {autoCalcPrice && (
+                      <div className="p-3 bg-accent/10 rounded-lg border border-border mb-4">
+                        <p className="text-xs text-muted-foreground mb-1">Auto-calculated Price Per Sq Ft</p>
+                        <p className="text-xl font-bold text-foreground">
+                          ${autoCalcPrice.toFixed(2)}/sq ft
+                        </p>
+                        <p className="text-xs text-muted-foreground mt-1">
+                          Based on minimum price and size
+                        </p>
+                      </div>
+                    )}
+                    
+                    <div className="space-y-3">
+                      <div>
+                        <Label htmlFor="calc-sqft" className="text-sm font-medium">
+                          Customer's Desired Square Footage
+                        </Label>
+                        <Input
+                          id="calc-sqft"
+                          type="number"
+                          placeholder="e.g., 750"
+                          value={desiredSqFt}
+                          onChange={(e) => setDesiredSqFt(e.target.value)}
+                          className="mt-1.5"
+                        />
+                      </div>
+                      
+                      {estimate && (
+                        <div className="space-y-3 pt-3 border-t border-border">
+                          <p className="text-sm font-semibold text-foreground">Estimated Price Range</p>
+                          <div className="grid grid-cols-3 gap-2">
+                            <div className="p-3 bg-muted rounded-lg text-center">
+                              <p className="text-xs text-muted-foreground mb-1">Low</p>
+                              <p className="text-base font-semibold text-foreground">
+                                ${estimate.low.toLocaleString('en-US', { minimumFractionDigits: 0, maximumFractionDigits: 0 })}
+                              </p>
+                            </div>
+                            <div className="p-3 bg-primary/10 rounded-lg text-center border-2 border-primary">
+                              <p className="text-xs text-muted-foreground mb-1">Mid</p>
+                              <p className="text-base font-semibold text-primary">
+                                ${estimate.mid.toLocaleString('en-US', { minimumFractionDigits: 0, maximumFractionDigits: 0 })}
+                              </p>
+                            </div>
+                            <div className="p-3 bg-muted rounded-lg text-center">
+                              <p className="text-xs text-muted-foreground mb-1">High</p>
+                              <p className="text-base font-semibold text-foreground">
+                                ${estimate.high.toLocaleString('en-US', { minimumFractionDigits: 0, maximumFractionDigits: 0 })}
+                              </p>
+                            </div>
+                          </div>
+                          <p className="text-xs text-muted-foreground text-center">
+                            ±10% variation • {desiredSqFt} sq ft × ${(estimate.mid / parseFloat(desiredSqFt)).toFixed(2)}/sq ft
+                          </p>
                         </div>
                       )}
                     </div>

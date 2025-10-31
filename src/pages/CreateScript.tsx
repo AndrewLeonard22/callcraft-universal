@@ -51,56 +51,6 @@ export default function CreateScript() {
   const [avgInstallTime, setAvgInstallTime] = useState("");
   const [appointmentCalendar, setAppointmentCalendar] = useState("");
   const [rescheduleCalendar, setRescheduleCalendar] = useState("");
-  
-  // Calculator state
-  const [desiredSqFt, setDesiredSqFt] = useState("");
-  
-  // Calculate price per sq ft from minimum price and size
-  const calculatedPricePerSqFt = () => {
-    if (!projectMinPrice || !projectMinSize) return null;
-    
-    // Extract numbers from strings like "$5,000" and "500 sq ft"
-    const priceNum = parseFloat(projectMinPrice.replace(/[^0-9.]/g, ''));
-    const sizeNum = parseFloat(projectMinSize.replace(/[^0-9.]/g, ''));
-    
-    if (isNaN(priceNum) || isNaN(sizeNum) || sizeNum === 0) return null;
-    
-    return priceNum / sizeNum;
-  };
-  
-  // Calculate estimate based on desired square footage
-  const calculateEstimate = () => {
-    if (!desiredSqFt) return null;
-    
-    const sqFt = parseFloat(desiredSqFt);
-    if (isNaN(sqFt) || sqFt === 0) return null;
-    
-    // Use manual price per sq ft if available, otherwise use calculated
-    let pricePerSqFtNum: number | null = null;
-    
-    if (pricePerSqFt) {
-      // Extract first number from strings like "$15-25/sq ft" or "$20"
-      const match = pricePerSqFt.match(/\d+/);
-      if (match) {
-        pricePerSqFtNum = parseFloat(match[0]);
-      }
-    }
-    
-    if (!pricePerSqFtNum) {
-      pricePerSqFtNum = calculatedPricePerSqFt();
-    }
-    
-    if (!pricePerSqFtNum) return null;
-    
-    const estimate = sqFt * pricePerSqFtNum;
-    const lowEstimate = estimate * 0.9; // 10% below
-    const highEstimate = estimate * 1.1; // 10% above
-    
-    return { low: lowEstimate, mid: estimate, high: highEstimate };
-  };
-  
-  const estimate = calculateEstimate();
-  const autoCalcPrice = calculatedPricePerSqFt();
 
   useEffect(() => {
     loadClient();
@@ -464,68 +414,6 @@ export default function CreateScript() {
                   onChange={(e) => setRescheduleCalendar(e.target.value)}
                 />
               </div>
-            </CardContent>
-          </Card>
-
-          <Card>
-            <CardHeader>
-              <CardTitle>Estimate Calculator</CardTitle>
-              <CardDescription>
-                Calculate price estimates for your customers
-              </CardDescription>
-            </CardHeader>
-            <CardContent className="space-y-4">
-              {autoCalcPrice && (
-                <div className="p-4 bg-accent/10 rounded-lg border border-border">
-                  <p className="text-sm text-muted-foreground mb-1">Auto-calculated Price Per Sq Ft</p>
-                  <p className="text-2xl font-bold text-foreground">
-                    ${autoCalcPrice.toFixed(2)}/sq ft
-                  </p>
-                  <p className="text-xs text-muted-foreground mt-1">
-                    Based on minimum price and size
-                  </p>
-                </div>
-              )}
-              
-              <div>
-                <Label htmlFor="desired-sqft">Customer's Desired Square Footage</Label>
-                <Input
-                  id="desired-sqft"
-                  type="number"
-                  placeholder="e.g., 750"
-                  value={desiredSqFt}
-                  onChange={(e) => setDesiredSqFt(e.target.value)}
-                />
-              </div>
-              
-              {estimate && (
-                <div className="space-y-3 pt-4 border-t border-border">
-                  <p className="text-sm font-medium text-foreground">Estimated Price Range</p>
-                  <div className="grid grid-cols-3 gap-3">
-                    <div className="p-3 bg-muted rounded-lg text-center">
-                      <p className="text-xs text-muted-foreground mb-1">Low</p>
-                      <p className="text-lg font-semibold text-foreground">
-                        ${estimate.low.toLocaleString('en-US', { minimumFractionDigits: 0, maximumFractionDigits: 0 })}
-                      </p>
-                    </div>
-                    <div className="p-3 bg-primary/10 rounded-lg text-center border-2 border-primary">
-                      <p className="text-xs text-muted-foreground mb-1">Mid</p>
-                      <p className="text-lg font-semibold text-primary">
-                        ${estimate.mid.toLocaleString('en-US', { minimumFractionDigits: 0, maximumFractionDigits: 0 })}
-                      </p>
-                    </div>
-                    <div className="p-3 bg-muted rounded-lg text-center">
-                      <p className="text-xs text-muted-foreground mb-1">High</p>
-                      <p className="text-lg font-semibold text-foreground">
-                        ${estimate.high.toLocaleString('en-US', { minimumFractionDigits: 0, maximumFractionDigits: 0 })}
-                      </p>
-                    </div>
-                  </div>
-                  <p className="text-xs text-muted-foreground text-center">
-                    Range includes ±10% variation • {desiredSqFt} sq ft × ${(estimate.mid / parseFloat(desiredSqFt)).toFixed(2)}/sq ft
-                  </p>
-                </div>
-              )}
             </CardContent>
           </Card>
 
