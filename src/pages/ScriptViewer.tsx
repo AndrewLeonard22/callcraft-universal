@@ -339,7 +339,7 @@ export default function ScriptViewer() {
           <div className="lg:col-span-1">
             <div className="sticky top-6 space-y-6 max-h-[calc(100vh-3rem)] overflow-y-auto pr-2">
               {/* Service Area Map */}
-              {(client.city || getDetailValue("service_area") !== "N/A") && (
+              {(client.city || getDetailValue("service_area") !== "N/A" || getDetailValue("address") !== "N/A") && (
                 <Card className="border border-border shadow-sm">
                   <CardContent className="p-6">
                     <h2 className="text-base font-semibold mb-4 text-foreground">Service Area</h2>

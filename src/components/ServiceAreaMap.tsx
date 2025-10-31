@@ -108,6 +108,12 @@ export default function ServiceAreaMap({ city, serviceArea, address, radiusMiles
   useEffect(() => {
     if (!mapContainer.current || !mapboxToken) return;
 
+    // Ensure previous map instance is cleaned up before re-initializing
+    if (map.current) {
+      try { map.current.remove(); } catch {}
+      map.current = null;
+    }
+
     mapboxgl.accessToken = mapboxToken;
 
     const searchLocation = address || city || serviceArea || 'United States';
