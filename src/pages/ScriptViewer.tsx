@@ -350,10 +350,26 @@ export default function ScriptViewer() {
                   
                   {/* Key Details */}
                   <div className="space-y-4">
-                    {getDetailValue("sales_rep_name") !== "N/A" && (
+                    {getDetailValue("business_name") !== "N/A" && (
+                      <div className="space-y-1">
+                        <div className="text-xs font-medium text-muted-foreground uppercase tracking-wide">Business Name</div>
+                        <div className="text-sm font-medium text-foreground">{getDetailValue("business_name")}</div>
+                      </div>
+                    )}
+
+                    {getDetailValue("owners_name") !== "N/A" && (
+                      <div className="space-y-1">
+                        <div className="text-xs font-medium text-muted-foreground uppercase tracking-wide">Owner's Name</div>
+                        <div className="text-sm font-medium text-foreground">{getDetailValue("owners_name")}</div>
+                      </div>
+                    )}
+
+                    {(getDetailValue("sales_rep_name") !== "N/A" || getDetailValue("sales_rep_phone") !== "N/A") && (
                       <div className="space-y-1">
                         <div className="text-xs font-medium text-muted-foreground uppercase tracking-wide">Sales Rep</div>
-                        <div className="text-sm font-medium text-foreground">{getDetailValue("sales_rep_name")}</div>
+                        {getDetailValue("sales_rep_name") !== "N/A" && (
+                          <div className="text-sm font-medium text-foreground">{getDetailValue("sales_rep_name")}</div>
+                        )}
                         {getDetailValue("sales_rep_phone") !== "N/A" && (
                           <div className="text-xs text-muted-foreground">{getDetailValue("sales_rep_phone")}</div>
                         )}
@@ -416,16 +432,97 @@ export default function ScriptViewer() {
                       </div>
                     )}
                     
-                    {getDetailValue("appointment_link") !== "N/A" && (
+                    {getDetailValue("other_key_info") !== "N/A" && (
                       <div className="space-y-1">
-                        <div className="text-xs font-medium text-muted-foreground uppercase tracking-wide">Appointment</div>
-                        <a href={getDetailValue("appointment_link")} target="_blank" rel="noopener noreferrer" 
-                           className="text-xs text-primary hover:text-primary/80 break-all transition-colors block">
-                          Schedule
-                        </a>
+                        <div className="text-xs font-medium text-muted-foreground uppercase tracking-wide">Additional Info</div>
+                        <div className="text-sm text-foreground whitespace-pre-wrap">{getDetailValue("other_key_info")}</div>
                       </div>
                     )}
                   </div>
+
+                  {/* Links Section */}
+                  {(getDetailValue("website") !== "N/A" || 
+                    getDetailValue("facebook_page") !== "N/A" || 
+                    getDetailValue("instagram") !== "N/A" || 
+                    getDetailValue("crm_account_link") !== "N/A" || 
+                    getDetailValue("appointment_calendar") !== "N/A" || 
+                    getDetailValue("reschedule_calendar") !== "N/A" ||
+                    getDetailValue("appointment_link") !== "N/A") && (
+                    <div className="border-t border-border pt-4 mt-4">
+                      <h3 className="text-xs font-semibold mb-3 text-foreground uppercase tracking-wide">Links</h3>
+                      <div className="space-y-3">
+                        {getDetailValue("website") !== "N/A" && (
+                          <div className="space-y-1">
+                            <div className="text-xs font-medium text-muted-foreground">Website</div>
+                            <a href={getDetailValue("website")} target="_blank" rel="noopener noreferrer" 
+                               className="text-xs text-primary hover:text-primary/80 break-all transition-colors block">
+                              {getDetailValue("website")}
+                            </a>
+                          </div>
+                        )}
+
+                        {getDetailValue("facebook_page") !== "N/A" && (
+                          <div className="space-y-1">
+                            <div className="text-xs font-medium text-muted-foreground">Facebook</div>
+                            <a href={getDetailValue("facebook_page")} target="_blank" rel="noopener noreferrer" 
+                               className="text-xs text-primary hover:text-primary/80 break-all transition-colors block">
+                              View Page
+                            </a>
+                          </div>
+                        )}
+
+                        {getDetailValue("instagram") !== "N/A" && (
+                          <div className="space-y-1">
+                            <div className="text-xs font-medium text-muted-foreground">Instagram</div>
+                            <a href={getDetailValue("instagram")} target="_blank" rel="noopener noreferrer" 
+                               className="text-xs text-primary hover:text-primary/80 break-all transition-colors block">
+                              View Profile
+                            </a>
+                          </div>
+                        )}
+
+                        {getDetailValue("crm_account_link") !== "N/A" && (
+                          <div className="space-y-1">
+                            <div className="text-xs font-medium text-muted-foreground">CRM Account</div>
+                            <a href={getDetailValue("crm_account_link")} target="_blank" rel="noopener noreferrer" 
+                               className="text-xs text-primary hover:text-primary/80 break-all transition-colors block">
+                              Open CRM
+                            </a>
+                          </div>
+                        )}
+
+                        {getDetailValue("appointment_calendar") !== "N/A" && (
+                          <div className="space-y-1">
+                            <div className="text-xs font-medium text-muted-foreground">Appointment Calendar</div>
+                            <a href={getDetailValue("appointment_calendar")} target="_blank" rel="noopener noreferrer" 
+                               className="text-xs text-primary hover:text-primary/80 break-all transition-colors block">
+                              Schedule
+                            </a>
+                          </div>
+                        )}
+
+                        {getDetailValue("reschedule_calendar") !== "N/A" && (
+                          <div className="space-y-1">
+                            <div className="text-xs font-medium text-muted-foreground">Reschedule Calendar</div>
+                            <a href={getDetailValue("reschedule_calendar")} target="_blank" rel="noopener noreferrer" 
+                               className="text-xs text-primary hover:text-primary/80 break-all transition-colors block">
+                              Reschedule
+                            </a>
+                          </div>
+                        )}
+
+                        {getDetailValue("appointment_link") !== "N/A" && (
+                          <div className="space-y-1">
+                            <div className="text-xs font-medium text-muted-foreground">Appointment Link</div>
+                            <a href={getDetailValue("appointment_link")} target="_blank" rel="noopener noreferrer" 
+                               className="text-xs text-primary hover:text-primary/80 break-all transition-colors block">
+                              Book Now
+                            </a>
+                          </div>
+                        )}
+                      </div>
+                    </div>
+                  )}
 
                   {/* Offer Details */}
                   {(getDetailValue("offer_name") !== "N/A" || getDetailValue("offer_description") !== "N/A") && (
