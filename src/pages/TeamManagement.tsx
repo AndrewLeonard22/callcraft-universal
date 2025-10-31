@@ -121,19 +121,29 @@ export default function TeamManagement() {
       // Load team members
       const { data: membersData, error: membersError } = await supabase
         .from("organization_members")
-        .select(`
-          id,
-          user_id,
-          role,
-          created_at,
-          profiles(display_name, username, avatar_url)
-        `)
+        .select("id, user_id, role, created_at")
         .eq("organization_id", org.id)
         .order("created_at", { ascending: true });
 
       if (membersError) throw membersError;
+
+      // Load profiles separately for each member
+      const membersWithProfiles = await Promise.all(
+        (membersData || []).map(async (member) => {
+          const { data: profileData } = await supabase
+            .from("profiles")
+            .select("display_name, username, avatar_url")
+            .eq("id", member.user_id)
+            .single();
+
+          return {
+            ...member,
+            profiles: profileData,
+          };
+        })
+      );
       
-      setMembers(membersData || []);
+      setMembers(membersWithProfiles as OrganizationMember[]);
     } catch (error) {
       console.error("Error loading data:", error);
       toast({
@@ -419,7 +429,7 @@ export default function TeamManagement() {
                     <TableCell className="text-right">
                       {member.role !== "owner" && member.user_id !== user?.id && (
                         <div className="flex justify-end gap-2">
-                          {userRole === "owner" && member.role !== "owner" && (
+                          {userRole === "owner" && (
                             <Select
                               value={member.role}
                               onValueChange={(value: "admin" | "member") =>
