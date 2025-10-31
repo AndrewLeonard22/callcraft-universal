@@ -109,7 +109,7 @@ export default function ServiceAreaMap({ city, serviceArea, address }: ServiceAr
         );
 
         // Add a marker for the center location
-        new mapboxgl.Marker({ color: 'hsl(var(--primary))' })
+        new mapboxgl.Marker({ color: '#ef4444' })
           .setLngLat(coordinates)
           .setPopup(new mapboxgl.Popup().setHTML('<div class="font-semibold">Service Center</div>'))
           .addTo(map.current);
@@ -137,7 +137,7 @@ export default function ServiceAreaMap({ city, serviceArea, address }: ServiceAr
               source: 'service-area',
               paint: {
                 'fill-color': mapboxColor,
-                'fill-opacity': 0.15,
+                'fill-opacity': 0.2,
               },
             });
 
@@ -149,9 +149,34 @@ export default function ServiceAreaMap({ city, serviceArea, address }: ServiceAr
               paint: {
                 'line-color': mapboxColor,
                 'line-width': 3,
-                'line-opacity': 0.8,
+                'line-opacity': 0.9,
               },
             });
+            
+            // Add radius label at the top of the circle
+            const labelY = radius / 69;
+            const labelCoords: [number, number] = [coordinates[0], coordinates[1] + labelY];
+            
+            const labelEl = document.createElement('div');
+            labelEl.style.cssText = `
+              background: white;
+              color: #1f2937;
+              padding: 8px 16px;
+              border-radius: 20px;
+              font-size: 13px;
+              font-weight: 700;
+              box-shadow: 0 4px 12px rgba(0,0,0,0.2);
+              white-space: nowrap;
+              border: 2px solid ${mapboxColor};
+            `;
+            labelEl.innerHTML = `<div style="text-align: center;"><div style="font-size: 15px; margin-bottom: 2px;">${radius} Miles</div><div style="font-size: 11px; color: #6b7280;">~${Math.round(radius * 1.5)} min drive</div></div>`;
+            
+            new mapboxgl.Marker({ 
+              element: labelEl,
+              anchor: 'bottom'
+            })
+              .setLngLat(labelCoords)
+              .addTo(map.current!);
           }
         });
       });
