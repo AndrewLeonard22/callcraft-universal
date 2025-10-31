@@ -212,17 +212,17 @@ export default function CreateClient() {
                       Company Logo
                     </Label>
                     {logoPreview ? (
-                      <div className="relative w-full h-32 border border-border/50 rounded-lg overflow-hidden bg-muted/20">
+                      <div className="relative w-40 h-40 border-2 border-border/50 rounded-lg overflow-hidden bg-muted/20 mx-auto">
                         <img
                           src={logoPreview}
                           alt="Logo preview"
-                          className="w-full h-full object-contain p-2"
+                          className="w-full h-full object-contain p-3"
                         />
                         <Button
                           type="button"
                           variant="destructive"
                           size="icon"
-                          className="absolute top-2 right-2 h-8 w-8"
+                          className="absolute -top-2 -right-2 h-7 w-7 rounded-full shadow-md"
                           onClick={handleRemoveLogo}
                         >
                           <X className="h-4 w-4" />
