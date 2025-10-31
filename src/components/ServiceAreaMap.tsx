@@ -98,6 +98,15 @@ export default function ServiceAreaMap({ city, serviceArea, address }: ServiceAr
         });
 
         map.current.addControl(new mapboxgl.NavigationControl(), 'top-right');
+        
+        // Add scale control to show distance
+        map.current.addControl(
+          new mapboxgl.ScaleControl({
+            maxWidth: 100,
+            unit: 'imperial'
+          }),
+          'bottom-right'
+        );
 
         // Add a marker for the center location
         new mapboxgl.Marker({ color: 'hsl(var(--primary))' })
@@ -138,18 +147,22 @@ export default function ServiceAreaMap({ city, serviceArea, address }: ServiceAr
               },
             });
 
-            // Add distance markers at cardinal directions
+            // Add distance markers at cardinal directions and diagonals for better visibility
             const distanceX = radius / (69 * Math.cos((coordinates[1] * Math.PI) / 180));
             const distanceY = radius / 69;
             
             const directions = [
-              { angle: 0, label: 'E' },      // East
-              { angle: Math.PI / 2, label: 'N' },  // North
-              { angle: Math.PI, label: 'W' },      // West
-              { angle: 3 * Math.PI / 2, label: 'S' } // South
+              { angle: 0, label: `${radius} mi E`, offset: [10, 0] },
+              { angle: Math.PI / 4, label: `${radius} mi NE`, offset: [8, -8] },
+              { angle: Math.PI / 2, label: `${radius} mi N`, offset: [0, -10] },
+              { angle: 3 * Math.PI / 4, label: `${radius} mi NW`, offset: [-8, -8] },
+              { angle: Math.PI, label: `${radius} mi W`, offset: [-10, 0] },
+              { angle: 5 * Math.PI / 4, label: `${radius} mi SW`, offset: [-8, 8] },
+              { angle: 3 * Math.PI / 2, label: `${radius} mi S`, offset: [0, 10] },
+              { angle: 7 * Math.PI / 4, label: `${radius} mi SE`, offset: [8, 8] }
             ];
 
-            directions.forEach(({ angle, label }) => {
+            directions.forEach(({ angle, label, offset }) => {
               const x = distanceX * Math.cos(angle);
               const y = distanceY * Math.sin(angle);
               const markerCoords: [number, number] = [coordinates[0] + x, coordinates[1] + y];
@@ -158,18 +171,23 @@ export default function ServiceAreaMap({ city, serviceArea, address }: ServiceAr
               const el = document.createElement('div');
               el.className = 'distance-marker';
               el.style.cssText = `
-                background: hsl(var(--primary));
+                background: rgba(0, 0, 0, 0.75);
                 color: white;
-                padding: 4px 8px;
-                border-radius: 4px;
-                font-size: 11px;
-                font-weight: 600;
-                box-shadow: 0 2px 4px rgba(0,0,0,0.2);
+                padding: 6px 10px;
+                border-radius: 6px;
+                font-size: 12px;
+                font-weight: 700;
+                box-shadow: 0 2px 8px rgba(0,0,0,0.3);
                 white-space: nowrap;
+                border: 2px solid white;
+                pointer-events: none;
               `;
-              el.textContent = `${radius} mi ${label}`;
+              el.textContent = label;
               
-              new mapboxgl.Marker({ element: el })
+              new mapboxgl.Marker({ 
+                element: el,
+                anchor: 'center'
+              })
                 .setLngLat(markerCoords)
                 .addTo(map.current!);
             });
