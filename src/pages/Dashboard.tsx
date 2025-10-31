@@ -1,6 +1,6 @@
 import { useEffect, useState } from "react";
 import { Link, useNavigate } from "react-router-dom";
-import { Plus, FileText, Calendar, Search, Settings, Trash2, Sparkles, LogOut, User as UserIcon } from "lucide-react";
+import { Plus, FileText, Calendar, Search, Settings, Trash2, Sparkles, LogOut, User as UserIcon, Users } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
@@ -279,6 +279,12 @@ export default function Dashboard() {
             </div>
             
             <div className="flex items-center gap-2">
+              <Link to="/team">
+                <Button variant="outline" size="default" className="gap-2 shadow-sm hover:shadow transition-shadow">
+                  <Users className="h-4 w-4" />
+                  Team
+                </Button>
+              </Link>
               <Link to="/service-types">
                 <Button variant="outline" size="default" className="gap-2 shadow-sm hover:shadow transition-shadow">
                   <Settings className="h-4 w-4" />
@@ -320,6 +326,10 @@ export default function Dashboard() {
                     </div>
                   </DropdownMenuLabel>
                   <DropdownMenuSeparator />
+                  <DropdownMenuItem onClick={() => navigate("/team")}>
+                    <Users className="mr-2 h-4 w-4" />
+                    <span>Team Management</span>
+                  </DropdownMenuItem>
                   <DropdownMenuItem onClick={handleLogout}>
                     <LogOut className="mr-2 h-4 w-4" />
                     <span>Log out</span>
