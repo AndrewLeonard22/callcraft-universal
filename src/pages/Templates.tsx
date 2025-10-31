@@ -783,9 +783,9 @@ export default function Templates() {
                           </div>
                           <div className="flex-1 min-w-0">
                             <CardTitle className="text-lg">{template.service_name}</CardTitle>
-                            <CardDescription className="mt-1 line-clamp-3">
+                            <div className="text-sm text-muted-foreground mt-1 line-clamp-3">
                               <FormattedContent content={template.content} />
-                            </CardDescription>
+                            </div>
                           </div>
                         </div>
                         <div className="flex gap-2 flex-shrink-0">
