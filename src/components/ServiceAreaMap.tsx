@@ -13,6 +13,21 @@ interface ServiceAreaMapProps {
   address?: string;
 }
 
+// Convert "221 83% 53%" to hex like #3b82f6 for Mapbox compatibility
+const hslTripletToHex = (triplet: string): string => {
+  const match = triplet.match(/(\d+(?:\.\d+)?)\s+(\d+(?:\.\d+)?)%\s+(\d+(?:\.\d+)?)%/);
+  if (!match) return '#3b82f6';
+  let [_, h, s, l] = match;
+  const hh = parseFloat(h), ss = parseFloat(s) / 100, ll = parseFloat(l) / 100;
+  const a = ss * Math.min(ll, 1 - ll);
+  const f = (n: number) => {
+    const k = (n + hh / 30) % 12;
+    const c = ll - a * Math.max(-1, Math.min(k - 3, Math.min(9 - k, 1)));
+    return Math.round(255 * c).toString(16).padStart(2, '0');
+  };
+  return `#${f(0)}${f(8)}${f(4)}`;
+};
+
 // Helper to create a circle polygon
 const createCircleGeoJSON = (center: [number, number], radiusMiles: number) => {
   const points = 64;
@@ -119,37 +134,37 @@ export default function ServiceAreaMap({ city, serviceArea, address }: ServiceAr
           if (map.current) {
             const circleGeoJSON = createCircleGeoJSON(coordinates as [number, number], radius);
             
-            // Get the primary color from CSS variables
-            const primaryColor = getComputedStyle(document.documentElement)
+            // Get primary color and convert to hex for Mapbox
+            const primaryTriplet = getComputedStyle(document.documentElement)
               .getPropertyValue('--primary')
               .trim();
-            const mapboxColor = primaryColor ? `hsl(${primaryColor})` : '#3b82f6';
+            const mapboxColor = primaryTriplet ? hslTripletToHex(primaryTriplet) : '#3b82f6';
             
             map.current.addSource('service-area', {
               type: 'geojson',
               data: circleGeoJSON,
             });
 
-            // Fill layer with themed colors
+            // Fill layer with themed colors (more visible)
             map.current.addLayer({
               id: 'service-area-fill',
               type: 'fill',
               source: 'service-area',
               paint: {
                 'fill-color': mapboxColor,
-                'fill-opacity': 0.2,
+                'fill-opacity': 0.3,
               },
             });
 
-            // Border layer with glow effect
+            // Border layer (stronger outline)
             map.current.addLayer({
               id: 'service-area-outline',
               type: 'line',
               source: 'service-area',
               paint: {
                 'line-color': mapboxColor,
-                'line-width': 3,
-                'line-opacity': 0.9,
+                'line-width': 4,
+                'line-opacity': 0.95,
               },
             });
             
