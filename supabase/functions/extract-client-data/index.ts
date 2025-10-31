@@ -6,6 +6,85 @@ const corsHeaders = {
   "Access-Control-Allow-Headers": "authorization, x-client-info, apikey, content-type",
 };
 
+// Helper function to process service details
+function processServiceDetails(service_details: any, client_id: string): Array<{ client_id: string; field_name: string; field_value: string }> {
+  if (!service_details) return [];
+  
+  const serviceFields = [
+    { name: "project_min_price", value: service_details.project_min_price },
+    { name: "project_min_size", value: service_details.project_min_size },
+    { name: "price_per_sq_ft", value: service_details.price_per_sq_ft },
+    { name: "warranties", value: service_details.warranties },
+    { name: "financing_options", value: service_details.financing_options },
+    { name: "video_of_service", value: service_details.video_of_service },
+    { name: "avg_install_time", value: service_details.avg_install_time },
+    { name: "appointment_calendar", value: service_details.appointment_calendar },
+    { name: "reschedule_calendar", value: service_details.reschedule_calendar },
+  ];
+
+  const details: Array<{ client_id: string; field_name: string; field_value: string }> = [];
+  serviceFields.forEach(({ name, value }) => {
+    if (value) {
+      details.push({
+        client_id,
+        field_name: name,
+        field_value: value,
+      });
+    }
+  });
+  return details;
+}
+
+// Helper function to process links
+function processLinks(links: any, client_id: string): Array<{ client_id: string; field_name: string; field_value: string }> {
+  if (!links) return [];
+  
+  const linkFields = [
+    { name: "website", value: links.website },
+    { name: "facebook_page", value: links.facebook_page },
+    { name: "instagram", value: links.instagram },
+    { name: "crm_account_link", value: links.crm_account_link },
+  ];
+
+  const details: Array<{ client_id: string; field_name: string; field_value: string }> = [];
+  linkFields.forEach(({ name, value }) => {
+    if (value) {
+      details.push({
+        client_id,
+        field_name: name,
+        field_value: value,
+      });
+    }
+  });
+  return details;
+}
+
+// Helper function to process business info
+function processBusinessInfo(business_info: any, client_id: string): Array<{ client_id: string; field_name: string; field_value: string }> {
+  if (!business_info) return [];
+  
+  const businessFields = [
+    { name: "business_name", value: business_info.business_name },
+    { name: "owners_name", value: business_info.owners_name },
+    { name: "sales_rep_phone", value: business_info.sales_rep_phone },
+    { name: "address", value: business_info.address },
+    { name: "service_area", value: business_info.service_area },
+    { name: "other_key_info", value: business_info.other_key_info },
+  ];
+
+  const details: Array<{ client_id: string; field_name: string; field_value: string }> = [];
+  businessFields.forEach(({ name, value }) => {
+    if (value) {
+      details.push({
+        client_id,
+        field_name: name,
+        field_value: value,
+      });
+    }
+  });
+  return details;
+}
+
 serve(async (req) => {
   if (req.method === "OPTIONS") {
     return new Response(null, { headers: corsHeaders });
@@ -35,7 +114,7 @@ serve(async (req) => {
         .from("clients")
         .insert({
           name: business_info.business_name || "New Client",
-          service_type: "General Services",
+          service_type: "",
           city: "",
         })
         .select()
@@ -43,48 +122,11 @@ serve(async (req) => {
 
       if (clientError) throw clientError;
 
-      // Insert business info and links as client details
-      const detailsToInsert: Array<{ client_id: string; field_name: string; field_value: string }> = [];
-
-      if (business_info) {
-        const businessFields = [
-          { name: "business_name", value: business_info.business_name },
-          { name: "owners_name", value: business_info.owners_name },
-          { name: "sales_rep_phone", value: business_info.sales_rep_phone },
-          { name: "address", value: business_info.address },
-          { name: "service_area", value: business_info.service_area },
-          { name: "other_key_info", value: business_info.other_key_info },
-        ];
-
-        businessFields.forEach(({ name, value }) => {
-          if (value) {
-            detailsToInsert.push({
-              client_id: newClient.id,
-              field_name: name,
-              field_value: value,
-            });
-          }
-        });
-      }
-
-      if (links) {
-        const linkFields = [
-          { name: "website", value: links.website },
-          { name: "facebook_page", value: links.facebook_page },
-          { name: "instagram", value: links.instagram },
-          { name: "crm_account_link", value: links.crm_account_link },
-        ];
-
-        linkFields.forEach(({ name, value }) => {
-          if (value) {
-            detailsToInsert.push({
-              client_id: newClient.id,
-              field_name: name,
-              field_value: value,
-            });
-          }
-        });
-      }
+      // Insert business info and links as client details using helpers
+      const detailsToInsert: Array<{ client_id: string; field_name: string; field_value: string }> = [
+        ...processBusinessInfo(business_info, newClient.id),
+        ...processLinks(links, newClient.id),
+      ];
 
       if (detailsToInsert.length > 0) {
         const { error: detailsError } = await supabase
@@ -411,72 +453,10 @@ Make it natural, conversational, and specific to their business. Include specifi
           });
         }
 
-        // Add service details if provided
-        if (service_details) {
-          const serviceFields = [
-            { name: "project_min_price", value: service_details.project_min_price },
-            { name: "project_min_size", value: service_details.project_min_size },
-            { name: "price_per_sq_ft", value: service_details.price_per_sq_ft },
-            { name: "warranties", value: service_details.warranties },
-            { name: "financing_options", value: service_details.financing_options },
-            { name: "video_of_service", value: service_details.video_of_service },
-            { name: "avg_install_time", value: service_details.avg_install_time },
-            { name: "appointment_calendar", value: service_details.appointment_calendar },
-            { name: "reschedule_calendar", value: service_details.reschedule_calendar },
-          ];
-
-          serviceFields.forEach(({ name, value }) => {
-            if (value) {
-              detailsToInsert.push({
-                client_id: client_id,
-                field_name: name,
-                field_value: value,
-              });
-            }
-          });
-        }
-
-        // Add links if provided
-        if (links) {
-          const linkFields = [
-            { name: "website", value: links.website },
-            { name: "facebook_page", value: links.facebook_page },
-            { name: "instagram", value: links.instagram },
-            { name: "crm_account_link", value: links.crm_account_link },
-          ];
-
-          linkFields.forEach(({ name, value }) => {
-            if (value) {
-              detailsToInsert.push({
-                client_id: client_id,
-                field_name: name,
-                field_value: value,
-              });
-            }
-          });
-        }
-
-        // Add business info if provided
-        if (business_info) {
-          const businessFields = [
-            { name: "business_name", value: business_info.business_name },
-            { name: "owners_name", value: business_info.owners_name },
-            { name: "sales_rep_phone", value: business_info.sales_rep_phone },
-            { name: "address", value: business_info.address },
-            { name: "service_area", value: business_info.service_area },
-            { name: "other_key_info", value: business_info.other_key_info },
-          ];
-
-          businessFields.forEach(({ name, value }) => {
-            if (value) {
-              detailsToInsert.push({
-                client_id: client_id,
-                field_name: name,
-                field_value: value,
-              });
-            }
-          });
-        }
+        // Add service details, links, and business info using helpers
+        detailsToInsert.push(...processServiceDetails(service_details, client_id));
+        detailsToInsert.push(...processLinks(links, client_id));
+        detailsToInsert.push(...processBusinessInfo(business_info, client_id));
 
         if (detailsToInsert.length > 0) {
           const { error: detailsError } = await supabase
@@ -526,72 +506,10 @@ Make it natural, conversational, and specific to their business. Include specifi
         });
       }
 
-      // Add service details if provided
-      if (service_details) {
-        const serviceFields = [
-          { name: "project_min_price", value: service_details.project_min_price },
-          { name: "project_min_size", value: service_details.project_min_size },
-          { name: "price_per_sq_ft", value: service_details.price_per_sq_ft },
-          { name: "warranties", value: service_details.warranties },
-          { name: "financing_options", value: service_details.financing_options },
-          { name: "video_of_service", value: service_details.video_of_service },
-          { name: "avg_install_time", value: service_details.avg_install_time },
-          { name: "appointment_calendar", value: service_details.appointment_calendar },
-          { name: "reschedule_calendar", value: service_details.reschedule_calendar },
-        ];
-
-        serviceFields.forEach(({ name, value }) => {
-          if (value) {
-            detailsToInsert.push({
-              client_id: clientData.id,
-              field_name: name,
-              field_value: value,
-            });
-          }
-        });
-      }
-
-      // Add links if provided
-      if (links) {
-        const linkFields = [
-          { name: "website", value: links.website },
-          { name: "facebook_page", value: links.facebook_page },
-          { name: "instagram", value: links.instagram },
-          { name: "crm_account_link", value: links.crm_account_link },
-        ];
-
-        linkFields.forEach(({ name, value }) => {
-          if (value) {
-            detailsToInsert.push({
-              client_id: clientData.id,
-              field_name: name,
-              field_value: value,
-            });
-          }
-        });
-      }
-
-      // Add business info if provided
-      if (business_info) {
-        const businessFields = [
-          { name: "business_name", value: business_info.business_name },
-          { name: "owners_name", value: business_info.owners_name },
-          { name: "sales_rep_phone", value: business_info.sales_rep_phone },
-          { name: "address", value: business_info.address },
-          { name: "service_area", value: business_info.service_area },
-          { name: "other_key_info", value: business_info.other_key_info },
-        ];
-
-        businessFields.forEach(({ name, value }) => {
-          if (value) {
-            detailsToInsert.push({
-              client_id: clientData.id,
-              field_name: name,
-              field_value: value,
-            });
-          }
-        });
-      }
+      // Add service details, links, and business info using helpers
+      detailsToInsert.push(...processServiceDetails(service_details, clientData.id));
+      detailsToInsert.push(...processLinks(links, clientData.id));
+      detailsToInsert.push(...processBusinessInfo(business_info, clientData.id));
 
       if (detailsToInsert.length > 0) {
         const { error: detailsError } = await supabase
@@ -602,11 +520,15 @@ Make it natural, conversational, and specific to their business. Include specifi
       }
     }
 
-    // Insert script with service name
+    // Insert script with service name (no fallback to "General Service")
+    if (!service_name && !extractedInfo.service_type) {
+      throw new Error("Service name is required to create a script");
+    }
+
     const { error: scriptError } = await supabase.from("scripts").insert({
       client_id: clientData.id,
       script_content: scriptContent,
-      service_name: service_name || extractedInfo.service_type || "General Service",
+      service_name: service_name || extractedInfo.service_type,
       version: 1,
       is_template: false,
       service_type_id: service_type_id || null,
