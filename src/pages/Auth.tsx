@@ -7,9 +7,10 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/com
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
-import { Sparkles, Loader2 } from "lucide-react";
+import { Loader2 } from "lucide-react";
 import { z } from "zod";
 import { FcGoogle } from "react-icons/fc";
+import logo from "@/assets/social-works-logo.png";
 
 const loginSchema = z.object({
   email: z.string().trim().email({ message: "Invalid email address" }),
@@ -242,23 +243,26 @@ export default function Auth() {
   return (
     <div className="min-h-screen bg-background flex items-center justify-center p-4">
       <div className="w-full max-w-md">
-        <div className="flex items-center justify-center gap-3 mb-8">
-          <div className="h-12 w-12 rounded-xl bg-gradient-to-br from-primary to-accent flex items-center justify-center">
-            <Sparkles className="h-6 w-6 text-white" />
-          </div>
-          <h1 className="text-3xl font-bold">Script Manager</h1>
+        <div className="flex flex-col items-center justify-center mb-8 space-y-4">
+          <img 
+            src={logo} 
+            alt="Social Works Logo" 
+            className="h-24 w-24 object-contain"
+          />
+          <h1 className="text-4xl font-bold text-foreground tracking-tight">SOCIAL WORKS</h1>
+          <p className="text-muted-foreground text-sm">Data-driven growth platform</p>
         </div>
 
         <Tabs defaultValue="login" className="w-full">
-          <TabsList className="grid w-full grid-cols-2">
-            <TabsTrigger value="login">Login</TabsTrigger>
-            <TabsTrigger value="signup">Sign Up</TabsTrigger>
+          <TabsList className="grid w-full grid-cols-2 bg-muted">
+            <TabsTrigger value="login" className="data-[state=active]:bg-background data-[state=active]:shadow-sm">Login</TabsTrigger>
+            <TabsTrigger value="signup" className="data-[state=active]:bg-background data-[state=active]:shadow-sm">Sign Up</TabsTrigger>
           </TabsList>
 
           <TabsContent value="login">
-            <Card>
+            <Card className="border-border shadow-medium">
               <CardHeader>
-                <CardTitle>Welcome back</CardTitle>
+                <CardTitle className="text-2xl font-bold">Welcome back</CardTitle>
                 <CardDescription>
                   Enter your credentials to access your account
                 </CardDescription>
@@ -268,7 +272,7 @@ export default function Auth() {
                   <Button
                     type="button"
                     variant="outline"
-                    className="w-full"
+                    className="w-full transition-all duration-300 hover:shadow-md hover:scale-[1.02]"
                     onClick={handleGoogleSignIn}
                     disabled={loading}
                   >
@@ -315,7 +319,7 @@ export default function Auth() {
                       <p className="text-sm text-destructive">{loginErrors.password}</p>
                     )}
                   </div>
-                  <Button type="submit" className="w-full" disabled={loading}>
+                  <Button type="submit" className="w-full transition-all duration-300 hover:shadow-md hover:scale-[1.02]" disabled={loading}>
                     {loading ? (
                       <>
                         <Loader2 className="mr-2 h-4 w-4 animate-spin" />
@@ -331,9 +335,9 @@ export default function Auth() {
           </TabsContent>
 
           <TabsContent value="signup">
-            <Card>
+            <Card className="border-border shadow-medium">
               <CardHeader>
-                <CardTitle>Create an account</CardTitle>
+                <CardTitle className="text-2xl font-bold">Create an account</CardTitle>
                 <CardDescription>
                   Enter your information to get started
                 </CardDescription>
@@ -343,7 +347,7 @@ export default function Auth() {
                   <Button
                     type="button"
                     variant="outline"
-                    className="w-full"
+                    className="w-full transition-all duration-300 hover:shadow-md hover:scale-[1.02]"
                     onClick={handleGoogleSignIn}
                     disabled={loading}
                   >
@@ -418,7 +422,7 @@ export default function Auth() {
                       <p className="text-sm text-destructive">{signupErrors.password}</p>
                     )}
                   </div>
-                  <Button type="submit" className="w-full" disabled={loading}>
+                  <Button type="submit" className="w-full transition-all duration-300 hover:shadow-md hover:scale-[1.02]" disabled={loading}>
                     {loading ? (
                       <>
                         <Loader2 className="mr-2 h-4 w-4 animate-spin" />
