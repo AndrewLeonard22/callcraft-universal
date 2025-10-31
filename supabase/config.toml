@@ -2,3 +2,6 @@ project_id = "gveybpenbvfqqviyzylj"
 
 [functions.extract-client-data]
 verify_jwt = false
+
+[functions.get-mapbox-token]
+verify_jwt = false
