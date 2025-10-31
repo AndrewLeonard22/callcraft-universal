@@ -25,6 +25,7 @@ interface ScriptWithType {
   created_at: string;
   service_type_id?: string;
   service_type?: ServiceType;
+  image_url?: string;
 }
 
 interface ClientWithScripts {
@@ -74,9 +75,9 @@ export default function Dashboard() {
 
       const { data: scriptsData, error: scriptsError } = await supabase
         .from("scripts")
-        .select("id, service_name, created_at, client_id, service_type_id")
+        .select("id, service_name, created_at, client_id, service_type_id, image_url")
         .eq("is_template", false)
-        .order("created_at", { ascending: false });
+        .order("created_at", { ascending: false});
 
       if (scriptsError) throw scriptsError;
 
@@ -125,6 +126,7 @@ export default function Dashboard() {
               created_at: s.created_at,
               service_type_id: s.service_type_id,
               service_type: s.service_type_id ? serviceTypesMap.get(s.service_type_id) : undefined,
+              image_url: s.image_url,
             }));
 
           return {
@@ -192,7 +194,7 @@ export default function Dashboard() {
   return (
     <div className="min-h-screen bg-background">
       {/* Premium Header */}
-      <div className="border-b border-border/50 bg-card/30 backdrop-blur-xl sticky top-0 z-10">
+      <div className="border-b border-border/50 bg-card/30 backdrop-blur-xl sticky top-0 z-50">
         <div className="container mx-auto px-6 py-6 max-w-7xl">
           <div className="flex items-center justify-between">
             <div className="flex items-center gap-3">
@@ -384,10 +386,18 @@ export default function Dashboard() {
                             <Button 
                               variant="outline" 
                               size="sm" 
-                              className="h-9 text-xs px-3 gap-2 hover:bg-primary/5 hover:border-primary/30 transition-colors shadow-sm"
+                              className="h-9 text-xs px-3 gap-2 hover:bg-primary/5 hover:border-primary/30 transition-colors shadow-sm group/script"
                             >
-                              {script.service_type?.icon_url ? (
-                                <div className="h-4 w-4 rounded overflow-hidden flex-shrink-0 bg-muted">
+                              {script.image_url ? (
+                                <div className="h-5 w-5 rounded overflow-hidden flex-shrink-0 bg-muted ring-1 ring-border/50">
+                                  <img 
+                                    src={script.image_url} 
+                                    alt=""
+                                    className="h-full w-full object-cover"
+                                  />
+                                </div>
+                              ) : script.service_type?.icon_url ? (
+                                <div className="h-5 w-5 rounded overflow-hidden flex-shrink-0 bg-muted ring-1 ring-border/50">
                                   <img 
                                     src={script.service_type.icon_url} 
                                     alt=""
