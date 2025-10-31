@@ -272,7 +272,7 @@ export default function ScriptViewer() {
 
   return (
     <div className="min-h-screen bg-background">
-      <div className="max-w-4xl mx-auto px-6 py-12">
+      <div className="max-w-7xl mx-auto px-6 py-12">
         <Button variant="ghost" className="mb-8 -ml-3" onClick={() => navigate(`/client/${client.id}`)}>
           <ArrowLeft className="mr-2 h-4 w-4" />
           Back to Scripts
@@ -313,162 +313,150 @@ export default function ScriptViewer() {
               </Button>
             </div>
           </div>
-
-          {/* Service Area Map */}
-          {(client.city || getDetailValue("service_area") !== "N/A") && (
-            <Card className="mb-8 border border-border shadow-sm">
-              <CardContent className="p-8">
-                <h2 className="text-lg font-semibold mb-4 text-foreground">Service Coverage Area</h2>
-                <ServiceAreaMap 
-                  city={client.city} 
-                  serviceArea={getDetailValue("service_area")} 
-                />
-                {getDetailValue("service_area") !== "N/A" && (
-                  <p className="text-sm text-muted-foreground mt-3">
-                    Coverage: {getDetailValue("service_area")}
-                  </p>
-                )}
-              </CardContent>
-            </Card>
-          )}
-
-          {/* Client Information Section */}
-          <Card className="mb-8 border border-border shadow-sm">
-            <CardContent className="p-8">
-              <h2 className="text-lg font-semibold mb-6 text-foreground">Client Information</h2>
-              
-              {/* Key Details Grid */}
-              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 mb-6">
-                {getDetailValue("sales_rep_name") !== "N/A" && (
-                  <div className="space-y-1.5">
-                    <div className="text-xs font-medium text-muted-foreground uppercase tracking-wide">Sales Representative</div>
-                    <div className="text-sm font-medium text-foreground">{getDetailValue("sales_rep_name")}</div>
-                    {getDetailValue("sales_rep_phone") !== "N/A" && (
-                      <div className="text-sm text-muted-foreground">{getDetailValue("sales_rep_phone")}</div>
-                    )}
-                  </div>
-                )}
-                
-                {getDetailValue("starting_price") !== "N/A" && (
-                  <div className="space-y-1.5">
-                    <div className="text-xs font-medium text-muted-foreground uppercase tracking-wide">Starting Price</div>
-                    <div className="text-sm font-medium text-foreground">{getDetailValue("starting_price")}</div>
-                  </div>
-                )}
-                
-                {getDetailValue("minimum_size") !== "N/A" && (
-                  <div className="space-y-1.5">
-                    <div className="text-xs font-medium text-muted-foreground uppercase tracking-wide">Minimum Size</div>
-                    <div className="text-sm font-medium text-foreground">{getDetailValue("minimum_size")}</div>
-                  </div>
-                )}
-                
-                {getDetailValue("warranty") !== "N/A" && (
-                  <div className="space-y-1.5">
-                    <div className="text-xs font-medium text-muted-foreground uppercase tracking-wide">Warranty</div>
-                    <div className="text-sm font-medium text-foreground">{getDetailValue("warranty")}</div>
-                  </div>
-                )}
-                
-                {getDetailValue("guarantee") !== "N/A" && (
-                  <div className="space-y-1.5">
-                    <div className="text-xs font-medium text-muted-foreground uppercase tracking-wide">Guarantee</div>
-                    <div className="text-sm font-medium text-foreground">{getDetailValue("guarantee")}</div>
-                  </div>
-                )}
-                
-                {getDetailValue("years_in_business") !== "N/A" && (
-                  <div className="space-y-1.5">
-                    <div className="text-xs font-medium text-muted-foreground uppercase tracking-wide">Years in Business</div>
-                    <div className="text-sm font-medium text-foreground">{getDetailValue("years_in_business")}</div>
-                  </div>
-                )}
-              </div>
-
-              {/* Contact & Location */}
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-6 mb-6">
-                {getDetailValue("address") !== "N/A" && (
-                  <div className="space-y-1.5">
-                    <div className="text-xs font-medium text-muted-foreground uppercase tracking-wide">Address</div>
-                    <div className="text-sm text-foreground">{getDetailValue("address")}</div>
-                  </div>
-                )}
-                
-                {getDetailValue("service_area") !== "N/A" && (
-                  <div className="space-y-1.5">
-                    <div className="text-xs font-medium text-muted-foreground uppercase tracking-wide">Service Area</div>
-                    <div className="text-sm text-foreground">{getDetailValue("service_area")}</div>
-                  </div>
-                )}
-              </div>
-
-              {/* Offer Details */}
-              {(getDetailValue("offer_name") !== "N/A" || getDetailValue("offer_description") !== "N/A") && (
-                <div className="border-t border-border pt-6 mb-6">
-                  <h3 className="text-sm font-semibold mb-3 text-foreground">Current Offer</h3>
-                  {getDetailValue("offer_name") !== "N/A" && (
-                    <div className="text-sm font-medium mb-2 text-foreground">{getDetailValue("offer_name")}</div>
-                  )}
-                  {getDetailValue("offer_description") !== "N/A" && (
-                    <div className="text-sm text-muted-foreground">{getDetailValue("offer_description")}</div>
-                  )}
-                </div>
-              )}
-
-              {/* Additional Details */}
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                {getDetailValue("business_hours") !== "N/A" && (
-                  <div className="space-y-1.5">
-                    <div className="text-xs font-medium text-muted-foreground uppercase tracking-wide">Business Hours</div>
-                    <div className="text-sm text-foreground">{getDetailValue("business_hours")}</div>
-                  </div>
-                )}
-                
-                {getDetailValue("financing_options") !== "N/A" && (
-                  <div className="space-y-1.5">
-                    <div className="text-xs font-medium text-muted-foreground uppercase tracking-wide">Financing</div>
-                    <div className="text-sm text-foreground">{getDetailValue("financing_options")}</div>
-                  </div>
-                )}
-                
-                {getDetailValue("appointment_link") !== "N/A" && (
-                  <div className="space-y-1.5">
-                    <div className="text-xs font-medium text-muted-foreground uppercase tracking-wide">Appointment Link</div>
-                    <a href={getDetailValue("appointment_link")} target="_blank" rel="noopener noreferrer" 
-                       className="text-sm text-primary hover:text-primary/80 break-all transition-colors">
-                      {getDetailValue("appointment_link")}
-                    </a>
-                  </div>
-                )}
-                
-                {getDetailValue("calendar_link") !== "N/A" && (
-                  <div className="space-y-1.5">
-                    <div className="text-xs font-medium text-muted-foreground uppercase tracking-wide">Calendar Link</div>
-                    <a href={getDetailValue("calendar_link")} target="_blank" rel="noopener noreferrer"
-                       className="text-sm text-primary hover:text-primary/80 break-all transition-colors">
-                      {getDetailValue("calendar_link")}
-                    </a>
-                  </div>
-                )}
-              </div>
-
-              {/* Script Version */}
-              <div className="mt-6 pt-6 border-t border-border text-xs text-muted-foreground">
-                Script Version: v{script.version}
-              </div>
-            </CardContent>
-          </Card>
         </div>
 
-        {/* Call Script */}
-        <Card className="border border-border shadow-sm">
-          <CardContent className="p-8">
-            <h2 className="text-lg font-semibold mb-6 text-foreground">Call Script</h2>
-            <div className="max-w-none">
-              <FormattedScript content={script.script_content} />
+        {/* Two Column Layout: Sticky Sidebar + Scrollable Content */}
+        <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+          {/* Sticky Sidebar - Client Information */}
+          <div className="lg:col-span-1">
+            <div className="sticky top-6 space-y-6">
+              {/* Service Area Map */}
+              {(client.city || getDetailValue("service_area") !== "N/A") && (
+                <Card className="border border-border shadow-sm">
+                  <CardContent className="p-6">
+                    <h2 className="text-base font-semibold mb-4 text-foreground">Service Area</h2>
+                    <ServiceAreaMap 
+                      city={client.city} 
+                      serviceArea={getDetailValue("service_area")}
+                      address={getDetailValue("address")}
+                    />
+                    {getDetailValue("service_area") !== "N/A" && (
+                      <p className="text-xs text-muted-foreground mt-3">
+                        Coverage: {getDetailValue("service_area")}
+                      </p>
+                    )}
+                  </CardContent>
+                </Card>
+              )}
+
+              {/* Client Information Section */}
+              <Card className="border border-border shadow-sm">
+                <CardContent className="p-6">
+                  <h2 className="text-base font-semibold mb-4 text-foreground">Client Information</h2>
+                  
+                  {/* Key Details */}
+                  <div className="space-y-4">
+                    {getDetailValue("sales_rep_name") !== "N/A" && (
+                      <div className="space-y-1">
+                        <div className="text-xs font-medium text-muted-foreground uppercase tracking-wide">Sales Rep</div>
+                        <div className="text-sm font-medium text-foreground">{getDetailValue("sales_rep_name")}</div>
+                        {getDetailValue("sales_rep_phone") !== "N/A" && (
+                          <div className="text-xs text-muted-foreground">{getDetailValue("sales_rep_phone")}</div>
+                        )}
+                      </div>
+                    )}
+                    
+                    {getDetailValue("starting_price") !== "N/A" && (
+                      <div className="space-y-1">
+                        <div className="text-xs font-medium text-muted-foreground uppercase tracking-wide">Starting Price</div>
+                        <div className="text-sm font-medium text-foreground">{getDetailValue("starting_price")}</div>
+                      </div>
+                    )}
+                    
+                    {getDetailValue("minimum_size") !== "N/A" && (
+                      <div className="space-y-1">
+                        <div className="text-xs font-medium text-muted-foreground uppercase tracking-wide">Minimum Size</div>
+                        <div className="text-sm font-medium text-foreground">{getDetailValue("minimum_size")}</div>
+                      </div>
+                    )}
+                    
+                    {getDetailValue("warranty") !== "N/A" && (
+                      <div className="space-y-1">
+                        <div className="text-xs font-medium text-muted-foreground uppercase tracking-wide">Warranty</div>
+                        <div className="text-sm font-medium text-foreground">{getDetailValue("warranty")}</div>
+                      </div>
+                    )}
+                    
+                    {getDetailValue("guarantee") !== "N/A" && (
+                      <div className="space-y-1">
+                        <div className="text-xs font-medium text-muted-foreground uppercase tracking-wide">Guarantee</div>
+                        <div className="text-sm font-medium text-foreground">{getDetailValue("guarantee")}</div>
+                      </div>
+                    )}
+                    
+                    {getDetailValue("years_in_business") !== "N/A" && (
+                      <div className="space-y-1">
+                        <div className="text-xs font-medium text-muted-foreground uppercase tracking-wide">Years in Business</div>
+                        <div className="text-sm font-medium text-foreground">{getDetailValue("years_in_business")}</div>
+                      </div>
+                    )}
+
+                    {getDetailValue("address") !== "N/A" && (
+                      <div className="space-y-1">
+                        <div className="text-xs font-medium text-muted-foreground uppercase tracking-wide">Address</div>
+                        <div className="text-sm text-foreground">{getDetailValue("address")}</div>
+                      </div>
+                    )}
+                    
+                    {getDetailValue("business_hours") !== "N/A" && (
+                      <div className="space-y-1">
+                        <div className="text-xs font-medium text-muted-foreground uppercase tracking-wide">Hours</div>
+                        <div className="text-sm text-foreground">{getDetailValue("business_hours")}</div>
+                      </div>
+                    )}
+                    
+                    {getDetailValue("financing_options") !== "N/A" && (
+                      <div className="space-y-1">
+                        <div className="text-xs font-medium text-muted-foreground uppercase tracking-wide">Financing</div>
+                        <div className="text-sm text-foreground">{getDetailValue("financing_options")}</div>
+                      </div>
+                    )}
+                    
+                    {getDetailValue("appointment_link") !== "N/A" && (
+                      <div className="space-y-1">
+                        <div className="text-xs font-medium text-muted-foreground uppercase tracking-wide">Appointment</div>
+                        <a href={getDetailValue("appointment_link")} target="_blank" rel="noopener noreferrer" 
+                           className="text-xs text-primary hover:text-primary/80 break-all transition-colors block">
+                          Schedule
+                        </a>
+                      </div>
+                    )}
+                  </div>
+
+                  {/* Offer Details */}
+                  {(getDetailValue("offer_name") !== "N/A" || getDetailValue("offer_description") !== "N/A") && (
+                    <div className="border-t border-border pt-4 mt-4">
+                      <h3 className="text-xs font-semibold mb-2 text-foreground uppercase tracking-wide">Current Offer</h3>
+                      {getDetailValue("offer_name") !== "N/A" && (
+                        <div className="text-sm font-medium mb-1 text-foreground">{getDetailValue("offer_name")}</div>
+                      )}
+                      {getDetailValue("offer_description") !== "N/A" && (
+                        <div className="text-xs text-muted-foreground">{getDetailValue("offer_description")}</div>
+                      )}
+                    </div>
+                  )}
+
+                  {/* Script Version */}
+                  <div className="mt-4 pt-4 border-t border-border text-xs text-muted-foreground">
+                    Script Version: v{script.version}
+                  </div>
+                </CardContent>
+              </Card>
             </div>
-          </CardContent>
-        </Card>
+          </div>
+
+          {/* Main Content - Call Script */}
+          <div className="lg:col-span-2">
+            <Card className="border border-border shadow-sm">
+              <CardContent className="p-8">
+                <h2 className="text-lg font-semibold mb-6 text-foreground">Call Script</h2>
+                <div className="max-w-none">
+                  <FormattedScript content={script.script_content} />
+                </div>
+              </CardContent>
+            </Card>
+          </div>
+        </div>
       </div>
     </div>
   );
