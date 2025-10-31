@@ -70,7 +70,7 @@ const handler = async (req: Request): Promise<Response> => {
     const invitationLink = `${Deno.env.get("SUPABASE_URL")?.replace("/v1", "")}/auth?invitation=${organizationId}`;
 
     const emailResponse = await resend.emails.send({
-      from: "Social Works <noreply@socialworkspro.com>",
+      from: "Social Works <noreply@invite.socialworkspro.com>",
       to: [email],
       subject: `You've been invited to join ${organizationName}`,
       html: `
