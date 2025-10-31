@@ -8,6 +8,7 @@ import CreateClient from "./pages/CreateClient";
 import EditClient from "./pages/EditClient";
 import ClientScripts from "./pages/ClientScripts";
 import CreateScript from "./pages/CreateScript";
+import EditScript from "./pages/EditScript";
 import ScriptViewer from "./pages/ScriptViewer";
 import Templates from "./pages/Templates";
 import ServiceTypes from "./pages/ServiceTypes";
@@ -27,6 +28,7 @@ const App = () => (
           <Route path="/edit/:clientId" element={<EditClient />} />
           <Route path="/client/:clientId" element={<ClientScripts />} />
           <Route path="/create-script/:clientId" element={<CreateScript />} />
+          <Route path="/edit-script/:scriptId" element={<EditScript />} />
           <Route path="/script/:scriptId" element={<ScriptViewer />} />
           <Route path="/templates" element={<Templates />} />
           <Route path="/service-types" element={<ServiceTypes />} />

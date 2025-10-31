@@ -312,7 +312,7 @@ export default function ScriptViewer() {
               </div>
             </div>
             <div className="flex gap-3">
-              <Button variant="outline" onClick={() => navigate(`/edit/${client.id}`)} className="h-9">
+              <Button variant="outline" onClick={() => navigate(`/edit-script/${scriptId}`)} className="h-9">
                 <Edit2 className="mr-2 h-4 w-4" />
                 Edit
               </Button>
