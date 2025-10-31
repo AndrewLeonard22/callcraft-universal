@@ -66,8 +66,11 @@ const handler = async (req: Request): Promise<Response> => {
       throw new Error("You don't have permission to invite members to this organization");
     }
 
-    // Generate invitation link (for now, just link to signup)
-    const invitationLink = `${Deno.env.get("SUPABASE_URL")?.replace("/v1", "")}/auth?invitation=${organizationId}`;
+    // Generate invitation link pointing to the app
+    const appUrl = Deno.env.get("SUPABASE_URL")?.includes("lovableproject.com") 
+      ? "https://ef07a104-dea2-4d1d-8291-3030c72a34ae.lovableproject.com"
+      : "https://callcenter.socialworkspro.com";
+    const invitationLink = `${appUrl}/auth?invitation=${organizationId}&role=${role}`;
 
     const emailResponse = await resend.emails.send({
       from: "Social Works <noreply@invite.socialworkspro.com>",

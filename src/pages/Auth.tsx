@@ -1,5 +1,5 @@
 import { useState, useEffect } from "react";
-import { useNavigate } from "react-router-dom";
+import { useNavigate, useSearchParams } from "react-router-dom";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -25,9 +25,14 @@ const signupSchema = z.object({
 
 export default function Auth() {
   const navigate = useNavigate();
+  const [searchParams] = useSearchParams();
   const { toast } = useToast();
   const [loading, setLoading] = useState(false);
   const [checkingAuth, setCheckingAuth] = useState(true);
+  
+  // Get invitation parameters from URL
+  const invitationOrgId = searchParams.get("invitation");
+  const invitationRole = searchParams.get("role") as "admin" | "member" | null;
 
   // Login form state
   const [loginEmail, setLoginEmail] = useState("");
@@ -102,6 +107,23 @@ export default function Auth() {
         title: "Welcome back!",
         description: "You've successfully logged in.",
       });
+      
+      // If user came from an invitation, add them to the organization
+      if (invitationOrgId && invitationRole) {
+        const { data: { user } } = await supabase.auth.getUser();
+        if (user) {
+          await supabase.from("organization_members").insert({
+            organization_id: invitationOrgId,
+            user_id: user.id,
+            role: invitationRole,
+          });
+          toast({
+            title: "Organization joined!",
+            description: "You've been added to the team.",
+          });
+        }
+      }
+      
       navigate("/");
     } catch (error: any) {
       toast({
@@ -193,6 +215,21 @@ export default function Auth() {
       });
 
       if (!loginError) {
+        // If user came from an invitation, add them to the organization
+        if (invitationOrgId && invitationRole) {
+          const { data: { user } } = await supabase.auth.getUser();
+          if (user) {
+            await supabase.from("organization_members").insert({
+              organization_id: invitationOrgId,
+              user_id: user.id,
+              role: invitationRole,
+            });
+            toast({
+              title: "Welcome to the team!",
+              description: "You've been added to the organization.",
+            });
+          }
+        }
         navigate("/");
       }
     } catch (error: any) {
