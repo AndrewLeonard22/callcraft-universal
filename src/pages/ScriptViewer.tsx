@@ -1,6 +1,6 @@
 import { useEffect, useState } from "react";
 import { useParams, useNavigate } from "react-router-dom";
-import { ArrowLeft, Edit2, Download, Copy, CheckCircle } from "lucide-react";
+import { ArrowLeft, Edit2, Download, Copy, MessageSquare, X } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
@@ -31,6 +31,12 @@ interface Script {
   version: number;
 }
 
+interface ObjectionTemplate {
+  id: string;
+  service_name: string;
+  content: string;
+}
+
 // Helper to get logo based on service type
 const getClientLogo = (serviceType: string, customLogoUrl?: string): string => {
   // If custom logo exists, use it
@@ -55,10 +61,13 @@ export default function ScriptViewer() {
   const [script, setScript] = useState<Script | null>(null);
   const [loading, setLoading] = useState(true);
   const [desiredSqFt, setDesiredSqFt] = useState("");
+  const [objectionTemplates, setObjectionTemplates] = useState<ObjectionTemplate[]>([]);
+  const [showObjections, setShowObjections] = useState(false);
 
   useEffect(() => {
     if (scriptId) {
       loadClientData();
+      loadObjectionTemplates();
     }
   }, [scriptId]);
 
@@ -89,6 +98,20 @@ export default function ScriptViewer() {
       toast.error("Failed to load client data");
     } finally {
       setLoading(false);
+    }
+  };
+
+  const loadObjectionTemplates = async () => {
+    try {
+      const { data, error } = await supabase
+        .from("objection_handling_templates")
+        .select("*")
+        .order("created_at", { ascending: false });
+
+      if (error) throw error;
+      setObjectionTemplates(data || []);
+    } catch (error) {
+      console.error("Error loading objection templates:", error);
     }
   };
 
@@ -757,6 +780,49 @@ export default function ScriptViewer() {
             </Card>
           </div>
         </div>
+
+        {/* Objection Handling Toggle Button */}
+        {objectionTemplates.length > 0 && (
+          <>
+            <Button
+              onClick={() => setShowObjections(!showObjections)}
+              className="fixed bottom-6 right-6 h-14 rounded-full shadow-lg z-40"
+              size="lg"
+            >
+              {showObjections ? (
+                <>
+                  <X className="mr-2 h-5 w-5" />
+                  Close
+                </>
+              ) : (
+                <>
+                  <MessageSquare className="mr-2 h-5 w-5" />
+                  Objection Handling
+                </>
+              )}
+            </Button>
+
+            {/* Objection Handling Panel */}
+            {showObjections && (
+              <div className="fixed bottom-24 right-6 w-96 max-h-[500px] bg-background border border-border rounded-lg shadow-2xl z-30 overflow-hidden flex flex-col">
+                <div className="p-4 border-b border-border bg-muted/50">
+                  <h3 className="font-semibold text-lg">Objection Handling</h3>
+                  <p className="text-xs text-muted-foreground mt-1">Quick reference for common objections</p>
+                </div>
+                <div className="overflow-y-auto flex-1 p-4 space-y-4">
+                  {objectionTemplates.map((template) => (
+                    <Card key={template.id} className="border border-border">
+                      <CardContent className="p-4">
+                        <h4 className="font-semibold text-sm mb-2">{template.service_name}</h4>
+                        <p className="text-sm text-muted-foreground whitespace-pre-wrap">{template.content}</p>
+                      </CardContent>
+                    </Card>
+                  ))}
+                </div>
+              </div>
+            )}
+          </>
+        )}
       </div>
     </div>
   );

@@ -73,6 +73,27 @@ export type Database = {
         }
         Relationships: []
       }
+      objection_handling_templates: {
+        Row: {
+          content: string
+          created_at: string
+          id: string
+          service_name: string
+        }
+        Insert: {
+          content: string
+          created_at?: string
+          id?: string
+          service_name: string
+        }
+        Update: {
+          content?: string
+          created_at?: string
+          id?: string
+          service_name?: string
+        }
+        Relationships: []
+      }
       scripts: {
         Row: {
           client_id: string
@@ -80,6 +101,7 @@ export type Database = {
           id: string
           image_url: string | null
           is_template: boolean
+          objection_handling: string | null
           script_content: string
           service_name: string
           service_type_id: string | null
@@ -91,6 +113,7 @@ export type Database = {
           id?: string
           image_url?: string | null
           is_template?: boolean
+          objection_handling?: string | null
           script_content: string
           service_name?: string
           service_type_id?: string | null
@@ -102,6 +125,7 @@ export type Database = {
           id?: string
           image_url?: string | null
           is_template?: boolean
+          objection_handling?: string | null
           script_content?: string
           service_name?: string
           service_type_id?: string | null

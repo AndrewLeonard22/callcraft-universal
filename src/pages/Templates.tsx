@@ -1,11 +1,12 @@
 import { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
-import { Plus, Trash2, FileText, Edit2 } from "lucide-react";
+import { Plus, Trash2, FileText, Edit2, MessageSquare } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Label } from "@/components/ui/label";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import {
   AlertDialog,
   AlertDialogAction,
@@ -28,18 +29,31 @@ interface Template {
   image_url?: string;
 }
 
+interface ObjectionTemplate {
+  id: string;
+  service_name: string;
+  content: string;
+  created_at: string;
+}
+
 export default function Templates() {
   const navigate = useNavigate();
   const [templates, setTemplates] = useState<Template[]>([]);
+  const [objectionTemplates, setObjectionTemplates] = useState<ObjectionTemplate[]>([]);
   const [loading, setLoading] = useState(true);
   const [showCreateForm, setShowCreateForm] = useState(false);
+  const [showObjectionForm, setShowObjectionForm] = useState(false);
   const [editingTemplate, setEditingTemplate] = useState<Template | null>(null);
+  const [editingObjection, setEditingObjection] = useState<ObjectionTemplate | null>(null);
   const [serviceName, setServiceName] = useState("");
   const [scriptContent, setScriptContent] = useState("");
+  const [objectionServiceName, setObjectionServiceName] = useState("");
+  const [objectionContent, setObjectionContent] = useState("");
   const [saving, setSaving] = useState(false);
 
   useEffect(() => {
     loadTemplates();
+    loadObjectionTemplates();
   }, []);
 
   const loadTemplates = async () => {
@@ -57,6 +71,21 @@ export default function Templates() {
       toast.error("Failed to load templates");
     } finally {
       setLoading(false);
+    }
+  };
+
+  const loadObjectionTemplates = async () => {
+    try {
+      const { data, error } = await supabase
+        .from("objection_handling_templates")
+        .select("*")
+        .order("created_at", { ascending: false });
+
+      if (error) throw error;
+      setObjectionTemplates(data || []);
+    } catch (error) {
+      console.error("Error loading objection templates:", error);
+      toast.error("Failed to load objection handling templates");
     }
   };
 
@@ -132,26 +161,108 @@ export default function Templates() {
     }
   };
 
+  const handleEditObjection = (template: ObjectionTemplate) => {
+    setEditingObjection(template);
+    setObjectionServiceName(template.service_name);
+    setObjectionContent(template.content);
+    setShowObjectionForm(true);
+  };
+
+  const handleCreateObjection = async () => {
+    if (!objectionServiceName.trim() || !objectionContent.trim()) {
+      toast.error("Please fill in all fields");
+      return;
+    }
+
+    setSaving(true);
+    try {
+      if (editingObjection) {
+        const { error } = await supabase
+          .from("objection_handling_templates")
+          .update({
+            service_name: objectionServiceName,
+            content: objectionContent,
+          })
+          .eq("id", editingObjection.id);
+
+        if (error) throw error;
+        toast.success("Objection template updated successfully!");
+      } else {
+        const { error } = await supabase
+          .from("objection_handling_templates")
+          .insert({
+            service_name: objectionServiceName,
+            content: objectionContent,
+          });
+
+        if (error) throw error;
+        toast.success("Objection template created successfully!");
+      }
+
+      setObjectionServiceName("");
+      setObjectionContent("");
+      setShowObjectionForm(false);
+      setEditingObjection(null);
+      loadObjectionTemplates();
+    } catch (error: any) {
+      console.error("Error saving objection template:", error);
+      toast.error(error.message || "Failed to save objection template");
+    } finally {
+      setSaving(false);
+    }
+  };
+
+  const handleDeleteObjection = async (templateId: string) => {
+    try {
+      const { error } = await supabase
+        .from("objection_handling_templates")
+        .delete()
+        .eq("id", templateId);
+
+      if (error) throw error;
+
+      toast.success("Objection template deleted successfully!");
+      loadObjectionTemplates();
+    } catch (error: any) {
+      console.error("Error deleting objection template:", error);
+      toast.error(error.message || "Failed to delete objection template");
+    }
+  };
+
   return (
     <div className="min-h-screen bg-background">
       <div className="container mx-auto px-6 py-8 max-w-5xl">
         <div className="flex items-center justify-between mb-8">
           <div>
-            <h1 className="text-3xl font-bold mb-1">Script Templates</h1>
+            <h1 className="text-3xl font-bold mb-1">Templates</h1>
             <p className="text-sm text-muted-foreground">
-              Manage reusable script templates for different services
+              Manage reusable script and objection handling templates
             </p>
           </div>
-          <div className="flex gap-3">
-            <Button variant="outline" onClick={() => navigate("/")}>
-              Back to Dashboard
-            </Button>
-            <Button onClick={() => setShowCreateForm(!showCreateForm)}>
-              <Plus className="mr-2 h-4 w-4" />
-              New Template
-            </Button>
-          </div>
+          <Button variant="outline" onClick={() => navigate("/")}>
+            Back to Dashboard
+          </Button>
         </div>
+
+        <Tabs defaultValue="scripts" className="w-full">
+          <TabsList className="grid w-full max-w-md grid-cols-2 mb-6">
+            <TabsTrigger value="scripts">
+              <FileText className="mr-2 h-4 w-4" />
+              Scripts
+            </TabsTrigger>
+            <TabsTrigger value="objections">
+              <MessageSquare className="mr-2 h-4 w-4" />
+              Objection Handling
+            </TabsTrigger>
+          </TabsList>
+
+          <TabsContent value="scripts" className="space-y-6">
+            <div className="flex justify-end">
+              <Button onClick={() => setShowCreateForm(!showCreateForm)}>
+                <Plus className="mr-2 h-4 w-4" />
+                New Script Template
+              </Button>
+            </div>
 
         {showCreateForm && (
           <Card className="mb-6">
@@ -285,6 +396,147 @@ export default function Templates() {
             ))}
           </div>
         )}
+          </TabsContent>
+
+          <TabsContent value="objections" className="space-y-6">
+            <div className="flex justify-end">
+              <Button onClick={() => setShowObjectionForm(!showObjectionForm)}>
+                <Plus className="mr-2 h-4 w-4" />
+                New Objection Template
+              </Button>
+            </div>
+
+            {showObjectionForm && (
+              <Card>
+                <CardHeader>
+                  <CardTitle>{editingObjection ? "Edit Objection Template" : "Create Objection Template"}</CardTitle>
+                  <CardDescription>
+                    {editingObjection 
+                      ? "Update this objection handling template"
+                      : "Create a reusable objection handling script"}
+                  </CardDescription>
+                </CardHeader>
+                <CardContent className="space-y-4">
+                  <div>
+                    <Label htmlFor="objection-name">Template Name</Label>
+                    <Input
+                      id="objection-name"
+                      placeholder="e.g., Price Objections"
+                      value={objectionServiceName}
+                      onChange={(e) => setObjectionServiceName(e.target.value)}
+                    />
+                  </div>
+                  <div>
+                    <Label htmlFor="objection-content">Objection Handling Content</Label>
+                    <Textarea
+                      id="objection-content"
+                      placeholder="Enter objection handling responses..."
+                      className="min-h-[300px] font-mono text-sm"
+                      value={objectionContent}
+                      onChange={(e) => setObjectionContent(e.target.value)}
+                    />
+                  </div>
+                  <div className="flex gap-3">
+                    <Button onClick={handleCreateObjection} disabled={saving}>
+                      {saving ? (editingObjection ? "Updating..." : "Creating...") : (editingObjection ? "Update Template" : "Create Template")}
+                    </Button>
+                    <Button variant="outline" onClick={() => {
+                      setShowObjectionForm(false);
+                      setEditingObjection(null);
+                      setObjectionServiceName("");
+                      setObjectionContent("");
+                    }}>
+                      Cancel
+                    </Button>
+                  </div>
+                </CardContent>
+              </Card>
+            )}
+
+            {loading ? (
+              <div className="space-y-4">
+                {[1, 2].map((i) => (
+                  <Card key={i} className="animate-pulse">
+                    <CardHeader>
+                      <div className="h-5 bg-muted rounded w-1/3 mb-2" />
+                      <div className="h-3 bg-muted rounded w-1/2" />
+                    </CardHeader>
+                  </Card>
+                ))}
+              </div>
+            ) : objectionTemplates.length === 0 ? (
+              <Card>
+                <CardContent className="flex flex-col items-center justify-center py-12">
+                  <MessageSquare className="h-12 w-12 text-muted-foreground/50 mb-3" />
+                  <h3 className="text-lg font-semibold mb-1">No objection templates yet</h3>
+                  <p className="text-sm text-muted-foreground mb-4 text-center max-w-sm">
+                    Create objection handling templates to help overcome common customer concerns
+                  </p>
+                  <Button onClick={() => setShowObjectionForm(true)}>
+                    <Plus className="mr-2 h-4 w-4" />
+                    Create Objection Template
+                  </Button>
+                </CardContent>
+              </Card>
+            ) : (
+              <div className="space-y-4">
+                {objectionTemplates.map((template) => (
+                  <Card key={template.id}>
+                    <CardHeader>
+                      <div className="flex items-start gap-4 justify-between">
+                        <div className="flex items-start gap-3 flex-1">
+                          <div className="h-12 w-12 rounded-lg bg-muted border border-border flex-shrink-0 flex items-center justify-center">
+                            <MessageSquare className="h-5 w-5 text-muted-foreground" />
+                          </div>
+                          <div className="flex-1 min-w-0">
+                            <CardTitle className="text-lg">{template.service_name}</CardTitle>
+                            <CardDescription className="mt-1">
+                              {template.content.substring(0, 120)}...
+                            </CardDescription>
+                          </div>
+                        </div>
+                        <div className="flex gap-2 flex-shrink-0">
+                          <Button
+                            variant="ghost"
+                            size="icon"
+                            onClick={() => handleEditObjection(template)}
+                          >
+                            <Edit2 className="h-4 w-4" />
+                          </Button>
+                          <AlertDialog>
+                            <AlertDialogTrigger asChild>
+                              <Button variant="ghost" size="icon" className="text-destructive">
+                                <Trash2 className="h-4 w-4" />
+                              </Button>
+                            </AlertDialogTrigger>
+                            <AlertDialogContent>
+                              <AlertDialogHeader>
+                                <AlertDialogTitle>Delete Objection Template?</AlertDialogTitle>
+                                <AlertDialogDescription>
+                                  This will permanently delete the "{template.service_name}" objection template.
+                                  This action cannot be undone.
+                                </AlertDialogDescription>
+                              </AlertDialogHeader>
+                              <AlertDialogFooter>
+                                <AlertDialogCancel>Cancel</AlertDialogCancel>
+                                <AlertDialogAction
+                                  onClick={() => handleDeleteObjection(template.id)}
+                                  className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
+                                >
+                                  Delete
+                                </AlertDialogAction>
+                              </AlertDialogFooter>
+                            </AlertDialogContent>
+                          </AlertDialog>
+                        </div>
+                      </div>
+                    </CardHeader>
+                  </Card>
+                ))}
+              </div>
+            )}
+          </TabsContent>
+        </Tabs>
       </div>
     </div>
   );
