@@ -9,6 +9,7 @@ import EditClient from "./pages/EditClient";
 import ClientScripts from "./pages/ClientScripts";
 import CreateScript from "./pages/CreateScript";
 import ScriptViewer from "./pages/ScriptViewer";
+import Templates from "./pages/Templates";
 import NotFound from "./pages/NotFound";
 
 const queryClient = new QueryClient();
@@ -26,6 +27,7 @@ const App = () => (
           <Route path="/client/:clientId" element={<ClientScripts />} />
           <Route path="/create-script/:clientId" element={<CreateScript />} />
           <Route path="/script/:scriptId" element={<ScriptViewer />} />
+          <Route path="/templates" element={<Templates />} />
           {/* ADD ALL CUSTOM ROUTES ABOVE THE CATCH-ALL "*" ROUTE */}
           <Route path="*" element={<NotFound />} />
         </Routes>

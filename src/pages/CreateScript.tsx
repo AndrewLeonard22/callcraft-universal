@@ -1,11 +1,12 @@
 import { useState, useEffect } from "react";
 import { useNavigate, useParams, Link } from "react-router-dom";
-import { ArrowLeft, Upload } from "lucide-react";
+import { ArrowLeft } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
 
@@ -17,12 +18,19 @@ interface Client {
   city: string;
 }
 
+interface Template {
+  id: string;
+  service_name: string;
+  script_content: string;
+}
+
 export default function CreateScript() {
   const navigate = useNavigate();
   const { clientId } = useParams();
   const [client, setClient] = useState<Client | null>(null);
+  const [templates, setTemplates] = useState<Template[]>([]);
+  const [selectedTemplateId, setSelectedTemplateId] = useState<string>("");
   const [serviceName, setServiceName] = useState("");
-  const [scriptTemplate, setScriptTemplate] = useState("");
   const [loading, setLoading] = useState(false);
   
   // Service-specific fields
@@ -38,6 +46,7 @@ export default function CreateScript() {
 
   useEffect(() => {
     loadClient();
+    loadTemplates();
   }, [clientId]);
 
   const loadClient = async () => {
@@ -56,17 +65,27 @@ export default function CreateScript() {
     }
   };
 
-  const handleFileUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
-    const file = e.target.files?.[0];
-    if (!file) return;
-
+  const loadTemplates = async () => {
     try {
-      const text = await file.text();
-      setScriptTemplate(text);
-      toast.success("Script uploaded successfully");
+      const { data, error } = await supabase
+        .from("scripts")
+        .select("*")
+        .eq("is_template", true)
+        .order("service_name", { ascending: true });
+
+      if (error) throw error;
+      setTemplates(data || []);
     } catch (error) {
-      console.error("Error reading file:", error);
-      toast.error("Failed to read file");
+      console.error("Error loading templates:", error);
+      toast.error("Failed to load templates");
+    }
+  };
+
+  const handleTemplateSelect = (templateId: string) => {
+    setSelectedTemplateId(templateId);
+    const template = templates.find(t => t.id === templateId);
+    if (template) {
+      setServiceName(template.service_name);
     }
   };
 
@@ -76,8 +95,14 @@ export default function CreateScript() {
       return;
     }
 
-    if (!scriptTemplate.trim()) {
-      toast.error("Please provide a script template");
+    if (!selectedTemplateId) {
+      toast.error("Please select a template");
+      return;
+    }
+
+    const selectedTemplate = templates.find(t => t.id === selectedTemplateId);
+    if (!selectedTemplate) {
+      toast.error("Invalid template selected");
       return;
     }
 
@@ -88,7 +113,7 @@ export default function CreateScript() {
           client_id: clientId,
           service_name: serviceName,
           use_template: true,
-          template_script: scriptTemplate,
+          template_script: selectedTemplate.script_content,
           service_details: {
             project_min_price: projectMinPrice,
             project_min_size: projectMinSize,
@@ -159,45 +184,41 @@ export default function CreateScript() {
 
           <Card>
             <CardHeader>
-              <CardTitle>Script Template</CardTitle>
-              <CardDescription>
-                Upload or paste your base script for this service
-              </CardDescription>
+              <div className="flex items-center justify-between">
+                <div>
+                  <CardTitle>Select Script Template</CardTitle>
+                  <CardDescription>
+                    Choose a template to customize for this client
+                  </CardDescription>
+                </div>
+                <Button
+                  variant="outline"
+                  size="sm"
+                  onClick={() => navigate("/templates")}
+                >
+                  Manage Templates
+                </Button>
+              </div>
             </CardHeader>
-            <CardContent className="space-y-4">
-              <div className="flex items-center gap-4">
-                <Label htmlFor="script-upload" className="cursor-pointer">
-                  <div className="flex items-center gap-2 px-4 py-2 border border-input rounded-lg hover:bg-accent transition-colors">
-                    <Upload className="h-4 w-4" />
-                    <span className="text-sm font-medium">Upload Script File</span>
-                  </div>
-                  <input
-                    id="script-upload"
-                    type="file"
-                    accept=".txt,.md"
-                    onChange={handleFileUpload}
-                    className="hidden"
-                  />
-                </Label>
-                {scriptTemplate && (
-                  <span className="text-sm text-muted-foreground">
-                    ✓ Script loaded ({scriptTemplate.length} characters)
-                  </span>
-                )}
-              </div>
-              
-              <div className="relative">
-                <Label htmlFor="script-template" className="text-sm font-medium">
-                  Or paste your script here
-                </Label>
-                <Textarea
-                  id="script-template"
-                  placeholder="Paste your script template here..."
-                  className="min-h-[200px] font-mono text-sm mt-2"
-                  value={scriptTemplate}
-                  onChange={(e) => setScriptTemplate(e.target.value)}
-                />
-              </div>
+            <CardContent>
+              <Select value={selectedTemplateId} onValueChange={handleTemplateSelect}>
+                <SelectTrigger>
+                  <SelectValue placeholder="Select a template..." />
+                </SelectTrigger>
+                <SelectContent className="bg-background z-50">
+                  {templates.length === 0 ? (
+                    <div className="p-4 text-sm text-muted-foreground text-center">
+                      No templates available. Create one first.
+                    </div>
+                  ) : (
+                    templates.map((template) => (
+                      <SelectItem key={template.id} value={template.id}>
+                        {template.service_name}
+                      </SelectItem>
+                    ))
+                  )}
+                </SelectContent>
+              </Select>
             </CardContent>
           </Card>
 
