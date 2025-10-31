@@ -92,7 +92,7 @@ serve(async (req) => {
 
   try {
     const requestBody = await req.json();
-    const { onboarding_form, transcript, client_id, service_name, service_type_id, use_template, template_script, regenerate, links, business_info, service_details, script_id } = requestBody;
+    const { onboarding_form, transcript, client_id, service_name, service_type_id, use_template, template_script, template_image_url, regenerate, links, business_info, service_details, script_id } = requestBody;
 
     const LOVABLE_API_KEY = Deno.env.get("LOVABLE_API_KEY");
     const SUPABASE_URL = Deno.env.get("SUPABASE_URL");
@@ -618,6 +618,7 @@ Make it natural, conversational, and specific to their business. Include specifi
           version: 1,
           is_template: false,
           service_type_id: service_type_id || null,
+          image_url: template_image_url || null,
         })
         .select()
         .single();

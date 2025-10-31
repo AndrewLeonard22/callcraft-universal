@@ -141,6 +141,7 @@ export default function CreateScript() {
           service_type_id: selectedServiceTypeId,
           use_template: true,
           template_script: selectedTemplate.script_content,
+          template_image_url: selectedTemplate.image_url,
           service_details: {
             project_min_price: projectMinPrice,
             project_min_size: projectMinSize,
