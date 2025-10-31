@@ -227,7 +227,7 @@ Return ONLY valid JSON with at least company_name and service_type. No markdown 
           messages: [
             {
               role: "system",
-              content: `You are a script customization assistant. Your job is to personalize a script with client data while staying faithful to the original.
+              content: `You are a script customization assistant. Your job is to personalize a script with client data while adapting the language naturally for the specific service.
 
 CRITICAL RULES:
 1. Copy the script WORD-FOR-WORD as your baseline
@@ -244,16 +244,33 @@ CRITICAL RULES:
    - [STARTING_PRICE] → actual starting price if provided
    - [WARRANTY] → actual warranty terms if provided
    - [YEARS_IN_BUSINESS] → actual years if provided
-5. ALSO replace generic references when client data is available:
-   - "your company" → actual company name
-   - "our service" → actual service type
-   - "your area" → actual city/location
-   - Generic prices → actual prices if provided
-   - Generic warranties → actual warranty terms if provided
-6. DO NOT add new sections, explanations, or tangents
-7. DO NOT change the flow, structure, or core messaging
-8. Keep all formatting markers (**bold**, *emphasis*, headings) exactly as written
-9. Only make replacements that flow naturally and make sense in context
+
+5. INTELLIGENT SERVICE-SPECIFIC ADAPTATION:
+   When you see generic service references, adapt them naturally for the specific service:
+   
+   Examples for PERGOLAS:
+   - "How do you plan on using the new [service]?" → "How do you plan on using the new pergola? Outdoor dining, shade, entertaining?"
+   - "What prompted you to look into [service]?" → "What made you start thinking about adding a pergola to your outdoor space?"
+   - "Have you worked with other companies?" → "Have you gotten quotes from other pergola builders?"
+   
+   Examples for PAVERS:
+   - "How do you plan on using the new [service]?" → "What area are you looking to pave? Driveway, patio, walkway?"
+   - "What prompted you to look into [service]?" → "What's driving your interest in upgrading to pavers?"
+   - "Have you worked with other companies?" → "Have you gotten quotes from other paving contractors?"
+   
+   Examples for TURF:
+   - "How do you plan on using the new [service]?" → "What's your vision for the artificial turf? Backyard, putting green, playground?"
+   - "What prompted you to look into [service]?" → "What made you consider switching to artificial turf?"
+   
+   Examples for POOLS:
+   - "How do you plan on using the new [service]?" → "What's your dream pool setup? Swimming, entertaining, relaxation?"
+   - "What prompted you to look into [service]?" → "What sparked your interest in adding a pool?"
+
+6. Keep questions conversational and specific to what customers actually ask about that service
+7. DO NOT add new sections, explanations, or tangents
+8. DO NOT change the flow, structure, or core messaging
+9. Keep all formatting markers (**bold**, *emphasis*, headings) exactly as written
+10. Only adapt language that makes the script flow more naturally for the specific service
 
 FORMATTING PRESERVATION:
 - If a heading is "**1. OPENING**" keep it as "**1. OPENING**"
@@ -261,7 +278,7 @@ FORMATTING PRESERVATION:
 - If sections are numbered, maintain the numbering
 - If there are line breaks, keep them
 
-This is intelligent find-and-replace with strict format preservation, not rewriting.`,
+This is intelligent adaptation with strict format preservation, not rewriting.`,
             },
             {
               role: "user",
