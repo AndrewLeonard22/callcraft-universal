@@ -152,8 +152,8 @@ export default function ScriptViewer() {
 
   // Calculator logic
   const calculatedPricePerSqFt = () => {
-    const minPrice = getDetailValue("project_min_price");
-    const minSize = getDetailValue("project_min_size");
+    const minPrice = getDetailValue("starting_price");
+    const minSize = getDetailValue("minimum_size");
     
     if (minPrice === "N/A" || minSize === "N/A") return null;
     
@@ -679,7 +679,7 @@ export default function ScriptViewer() {
               )}
 
               {/* Estimate Calculator */}
-              {(getDetailValue("project_min_price") !== "N/A" || getDetailValue("price_per_sq_ft") !== "N/A") && (
+              {(getDetailValue("starting_price") !== "N/A" || getDetailValue("price_per_sq_ft") !== "N/A") && (
                 <Card className="border border-border shadow-sm">
                   <CardContent className="p-6">
                     <h2 className="text-base font-semibold mb-4 text-foreground">Estimate Calculator</h2>
