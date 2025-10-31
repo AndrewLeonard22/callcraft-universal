@@ -201,7 +201,7 @@ export default function ServiceAreaMap({ city, serviceArea, address, radiusMiles
       searchMarkerRef.current?.remove();
       map.current?.remove();
     };
-  }, [mapboxToken, city, serviceArea, address]);
+  }, [mapboxToken, city, serviceArea, address, radiusMiles]);
 
   const handleAddressSearch = async () => {
     if (!searchAddress.trim() || !mapboxToken || !centerCoordinates) {
