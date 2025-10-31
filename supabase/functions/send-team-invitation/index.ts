@@ -70,7 +70,7 @@ const handler = async (req: Request): Promise<Response> => {
     const invitationLink = `${Deno.env.get("SUPABASE_URL")?.replace("/v1", "")}/auth?invitation=${organizationId}`;
 
     const emailResponse = await resend.emails.send({
-      from: "Social Works <onboarding@resend.dev>",
+      from: "Social Works <noreply@socialworkspro.com>",
       to: [email],
       subject: `You've been invited to join ${organizationName}`,
       html: `
@@ -198,6 +198,10 @@ const handler = async (req: Request): Promise<Response> => {
     });
 
     console.log("Email sent successfully:", emailResponse);
+
+    if (emailResponse.error) {
+      throw new Error(`Failed to send email: ${emailResponse.error.message}`);
+    }
 
     return new Response(JSON.stringify({ success: true, data: emailResponse }), {
       status: 200,
