@@ -137,6 +137,42 @@ export default function ServiceAreaMap({ city, serviceArea, address }: ServiceAr
                 'line-opacity': 0.6,
               },
             });
+
+            // Add distance markers at cardinal directions
+            const distanceX = radius / (69 * Math.cos((coordinates[1] * Math.PI) / 180));
+            const distanceY = radius / 69;
+            
+            const directions = [
+              { angle: 0, label: 'E' },      // East
+              { angle: Math.PI / 2, label: 'N' },  // North
+              { angle: Math.PI, label: 'W' },      // West
+              { angle: 3 * Math.PI / 2, label: 'S' } // South
+            ];
+
+            directions.forEach(({ angle, label }) => {
+              const x = distanceX * Math.cos(angle);
+              const y = distanceY * Math.sin(angle);
+              const markerCoords: [number, number] = [coordinates[0] + x, coordinates[1] + y];
+              
+              // Create a custom element for the distance marker
+              const el = document.createElement('div');
+              el.className = 'distance-marker';
+              el.style.cssText = `
+                background: hsl(var(--primary));
+                color: white;
+                padding: 4px 8px;
+                border-radius: 4px;
+                font-size: 11px;
+                font-weight: 600;
+                box-shadow: 0 2px 4px rgba(0,0,0,0.2);
+                white-space: nowrap;
+              `;
+              el.textContent = `${radius} mi ${label}`;
+              
+              new mapboxgl.Marker({ element: el })
+                .setLngLat(markerCoords)
+                .addTo(map.current!);
+            });
           }
         });
       });
