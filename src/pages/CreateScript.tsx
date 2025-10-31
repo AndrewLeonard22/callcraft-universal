@@ -157,6 +157,44 @@ export default function CreateScript() {
 
       if (error) throw error;
 
+      // Try to get the newly created script id
+      const { data: newScript, error: fetchErr } = await supabase
+        .from("scripts")
+        .select("id")
+        .eq("client_id", clientId)
+        .order("created_at", { ascending: false })
+        .limit(1)
+        .maybeSingle();
+
+      if (fetchErr) throw fetchErr;
+      const newScriptId = newScript?.id;
+
+      if (newScriptId) {
+        const prefix = `script_${newScriptId}_`;
+        const detailsArray = [
+          { name: `${prefix}project_min_price`, value: projectMinPrice },
+          { name: `${prefix}project_min_size`, value: projectMinSize },
+          { name: `${prefix}price_per_sq_ft`, value: pricePerSqFt },
+          { name: `${prefix}warranties`, value: warranties },
+          { name: `${prefix}financing_options`, value: financingOptions },
+          { name: `${prefix}video_of_service`, value: videoOfService },
+          { name: `${prefix}avg_install_time`, value: avgInstallTime },
+        ]
+          .filter(d => d.value.trim())
+          .map(d => ({
+            client_id: clientId as string,
+            field_name: d.name,
+            field_value: d.value,
+          }));
+
+        if (detailsArray.length > 0) {
+          const { error: insertErr } = await supabase
+            .from("client_details")
+            .insert(detailsArray);
+          if (insertErr) throw insertErr;
+        }
+      }
+
       toast.success("Script generated successfully!");
       navigate(`/client/${clientId}`);
     } catch (error: any) {
