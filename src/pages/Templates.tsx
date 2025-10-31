@@ -21,6 +21,127 @@ import {
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
 
+const FormattedContent = ({ content }: { content: string }) => {
+  const lines = content.split('\n');
+  
+  const formatLine = (text: string) => {
+    const parts: (string | JSX.Element)[] = [];
+    let remaining = text;
+    let key = 0;
+    
+    while (remaining.length > 0) {
+      const bracketMatch = remaining.match(/\[([^\]]+)\]/);
+      if (bracketMatch && bracketMatch.index !== undefined) {
+        if (bracketMatch.index > 0) {
+          parts.push(remaining.substring(0, bracketMatch.index));
+        }
+        parts.push(
+          <span key={`bracket-${key++}`} className="bg-primary/5 text-primary font-medium px-1.5 py-0.5 rounded">
+            {bracketMatch[1]}
+          </span>
+        );
+        remaining = remaining.substring(bracketMatch.index + bracketMatch[0].length);
+        continue;
+      }
+      
+      const quoteMatch = remaining.match(/"([^"]+)"/);
+      if (quoteMatch && quoteMatch.index !== undefined) {
+        if (quoteMatch.index > 0) {
+          parts.push(remaining.substring(0, quoteMatch.index));
+        }
+        parts.push(
+          <span key={`quote-${key++}`} className="bg-accent/5 text-accent font-medium px-1 rounded">
+            {quoteMatch[1]}
+          </span>
+        );
+        remaining = remaining.substring(quoteMatch.index + quoteMatch[0].length);
+        continue;
+      }
+      
+      const boldMatch = remaining.match(/\*\*([^*]+)\*\*/);
+      if (boldMatch && boldMatch.index !== undefined) {
+        if (boldMatch.index > 0) {
+          parts.push(remaining.substring(0, boldMatch.index));
+        }
+        parts.push(
+          <strong key={`bold-${key++}`} className="font-bold text-foreground">
+            {boldMatch[1]}
+          </strong>
+        );
+        remaining = remaining.substring(boldMatch.index + boldMatch[0].length);
+        continue;
+      }
+      
+      const italicMatch = remaining.match(/\*([^*]+)\*/);
+      if (italicMatch && italicMatch.index !== undefined) {
+        if (italicMatch.index > 0) {
+          parts.push(remaining.substring(0, italicMatch.index));
+        }
+        parts.push(
+          <strong key={`semi-${key++}`} className="font-semibold">
+            {italicMatch[1]}
+          </strong>
+        );
+        remaining = remaining.substring(italicMatch.index + italicMatch[0].length);
+        continue;
+      }
+      
+      parts.push(remaining);
+      break;
+    }
+    
+    return parts.length > 0 ? parts : text;
+  };
+  
+  return (
+    <>
+      {lines.map((line, index) => {
+        if (line.match(/^\d+\.\s+[A-Z]/)) {
+          return (
+            <h3 key={index} className="text-sm font-bold mt-2 mb-1 first:mt-0 text-foreground">
+              {line}
+            </h3>
+          );
+        }
+        
+        if (line.match(/^[A-Z\s]+:$/) || line.match(/^[*#]+\s*[A-Z][^a-z]*$/)) {
+          return (
+            <h3 key={index} className="text-sm font-bold mt-2 mb-1 first:mt-0 text-foreground">
+              {line.replace(/^[*#]+\s*/, '').replace(/:$/, '')}
+            </h3>
+          );
+        }
+        
+        if (line.match(/^(Stage|Phase|Step)\s+\d+/i)) {
+          return (
+            <h4 key={index} className="text-sm font-semibold mt-2 mb-1 text-foreground">
+              {line}
+            </h4>
+          );
+        }
+        
+        if (line.match(/^\*\*[^*]+\*\*/) || (line.endsWith(':') && line.length < 60 && !line.includes('.'))) {
+          return (
+            <h5 key={index} className="font-semibold text-sm mt-2 mb-1 text-foreground">
+              {line.replace(/^\*\*/, '').replace(/\*\*$/, '').replace(/:$/, '')}
+            </h5>
+          );
+        }
+        
+        if (!line.trim()) {
+          return <div key={index} className="h-1" />;
+        }
+        
+        return (
+          <p key={index} className="text-sm leading-relaxed text-foreground/80">
+            {formatLine(line)}
+          </p>
+        );
+      })}
+    </>
+  );
+};
+
 interface Template {
   id: string;
   service_name: string;
@@ -532,8 +653,8 @@ export default function Templates() {
                           </div>
                           <div className="flex-1 min-w-0">
                             <CardTitle className="text-lg">{template.service_name}</CardTitle>
-                            <CardDescription className="mt-1">
-                              {template.content.substring(0, 120)}...
+                            <CardDescription className="mt-1 line-clamp-3">
+                              <FormattedContent content={template.content} />
                             </CardDescription>
                           </div>
                         </div>

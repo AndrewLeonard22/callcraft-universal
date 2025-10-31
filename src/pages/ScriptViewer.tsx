@@ -814,7 +814,9 @@ export default function ScriptViewer() {
                     <Card key={template.id} className="border border-border">
                       <CardContent className="p-4">
                         <h4 className="font-semibold text-sm mb-2">{template.service_name}</h4>
-                        <p className="text-sm text-muted-foreground whitespace-pre-wrap">{template.content}</p>
+                        <div className="text-sm whitespace-pre-wrap">
+                          <FormattedScript content={template.content} />
+                        </div>
                       </CardContent>
                     </Card>
                   ))}
