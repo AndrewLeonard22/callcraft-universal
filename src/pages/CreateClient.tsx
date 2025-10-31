@@ -12,9 +12,7 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 
 export default function CreateClient() {
   const navigate = useNavigate();
-  const [scriptTemplate, setScriptTemplate] = useState("");
   const [loading, setLoading] = useState(false);
-  const [isScriptDragging, setIsScriptDragging] = useState(false);
   
   // Business Info
   const [businessName, setBusinessName] = useState("");
@@ -29,47 +27,10 @@ export default function CreateClient() {
   const [facebookPage, setFacebookPage] = useState("");
   const [instagram, setInstagram] = useState("");
   const [crmAccountLink, setCrmAccountLink] = useState("");
-  const [appointmentCalendar, setAppointmentCalendar] = useState("");
-  const [rescheduleCalendar, setRescheduleCalendar] = useState("");
-
-  const handleFileUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
-    const file = e.target.files?.[0];
-    if (!file) return;
-
-    try {
-      const text = await file.text();
-      setScriptTemplate(text);
-      toast.success("Script uploaded successfully");
-    } catch (error) {
-      console.error("Error reading file:", error);
-      toast.error("Failed to read file");
-    }
-  };
-
-  const handleScriptDrop = async (e: React.DragEvent) => {
-    e.preventDefault();
-    setIsScriptDragging(false);
-    
-    const file = e.dataTransfer.files[0];
-    if (!file) return;
-
-    try {
-      const text = await file.text();
-      setScriptTemplate(text);
-      toast.success("Script uploaded successfully");
-    } catch (error) {
-      console.error("Error reading file:", error);
-      toast.error("Failed to read file");
-    }
-  };
-
-  const handleDragOver = (e: React.DragEvent) => {
-    e.preventDefault();
-  };
 
   const handleGenerate = async () => {
-    if (!scriptTemplate.trim()) {
-      toast.error("Please provide a script template");
+    if (!businessName.trim()) {
+      toast.error("Please provide a business name");
       return;
     }
 
@@ -77,8 +38,6 @@ export default function CreateClient() {
     try {
       const { data, error } = await supabase.functions.invoke("extract-client-data", {
         body: { 
-          use_template: true,
-          template_script: scriptTemplate,
           business_info: {
             business_name: businessName,
             owners_name: ownersName,
@@ -92,15 +51,13 @@ export default function CreateClient() {
             facebook_page: facebookPage,
             instagram,
             crm_account_link: crmAccountLink,
-            appointment_calendar: appointmentCalendar,
-            reschedule_calendar: rescheduleCalendar,
           }
         },
       });
 
       if (error) throw error;
 
-      toast.success("Client and script created successfully!");
+      toast.success("Client created successfully!");
       navigate(`/client/${data.client_id}`);
     } catch (error: any) {
       console.error("Error generating script:", error);
@@ -123,63 +80,11 @@ export default function CreateClient() {
         <div className="mb-8">
           <h1 className="text-3xl font-bold mb-2">Create New Client</h1>
           <p className="text-muted-foreground">
-            Upload your script template and provide client data to generate a customized call script
+            Provide client information to create a new client profile
           </p>
         </div>
 
         <div className="space-y-6">
-          <Card>
-            <CardHeader>
-              <CardTitle>Script Template</CardTitle>
-              <CardDescription>
-                Upload or paste your base script that will be customized for this client
-              </CardDescription>
-            </CardHeader>
-            <CardContent className="space-y-4">
-              <div className="flex items-center gap-4">
-                <Label htmlFor="script-upload" className="cursor-pointer">
-                  <div className="flex items-center gap-2 px-4 py-2 border border-input rounded-lg hover:bg-accent transition-colors">
-                    <Upload className="h-4 w-4" />
-                    <span className="text-sm font-medium">Upload Script File</span>
-                  </div>
-                  <input
-                    id="script-upload"
-                    type="file"
-                    accept=".txt,.md"
-                    onChange={handleFileUpload}
-                    className="hidden"
-                  />
-                </Label>
-                {scriptTemplate && (
-                  <span className="text-sm text-muted-foreground">
-                    ✓ Script loaded ({scriptTemplate.length} characters)
-                  </span>
-                )}
-              </div>
-              
-              <div 
-                className={`relative border-2 border-dashed rounded-lg transition-colors ${
-                  isScriptDragging ? "border-primary bg-primary/5" : "border-muted-foreground/25"
-                }`}
-                onDrop={handleScriptDrop}
-                onDragOver={handleDragOver}
-                onDragEnter={() => setIsScriptDragging(true)}
-                onDragLeave={() => setIsScriptDragging(false)}
-              >
-                <Label htmlFor="script-template" className="text-sm font-medium">
-                  Or paste/drag your script here
-                </Label>
-                <Textarea
-                  id="script-template"
-                  placeholder="Paste your script template here or drag a file..."
-                  className="min-h-[200px] font-mono text-sm mt-2 border-0 focus-visible:ring-0"
-                  value={scriptTemplate}
-                  onChange={(e) => setScriptTemplate(e.target.value)}
-                />
-              </div>
-            </CardContent>
-          </Card>
-
           <Card>
             <CardHeader>
               <CardTitle>Client Information</CardTitle>
@@ -189,9 +94,8 @@ export default function CreateClient() {
             </CardHeader>
             <CardContent>
               <Tabs defaultValue="business" className="w-full">
-                <TabsList className="grid w-full grid-cols-3 mb-4">
+                <TabsList className="grid w-full grid-cols-2 mb-4">
                   <TabsTrigger value="business">Business Info</TabsTrigger>
-                  <TabsTrigger value="additional">Additional Info</TabsTrigger>
                   <TabsTrigger value="links">Links</TabsTrigger>
                 </TabsList>
                 
@@ -244,19 +148,16 @@ export default function CreateClient() {
                         onChange={(e) => setServiceArea(e.target.value)}
                       />
                     </div>
-                  </div>
-                </TabsContent>
-                
-                <TabsContent value="additional">
-                  <div>
-                    <Label htmlFor="other-info">Additional Information</Label>
-                    <Textarea
-                      id="other-info"
-                      placeholder="Any other important information about the business..."
-                      value={otherKeyInfo}
-                      onChange={(e) => setOtherKeyInfo(e.target.value)}
-                      className="min-h-[200px]"
-                    />
+                    <div>
+                      <Label htmlFor="other-info">Additional Information</Label>
+                      <Textarea
+                        id="other-info"
+                        placeholder="Any other important information about the business..."
+                        value={otherKeyInfo}
+                        onChange={(e) => setOtherKeyInfo(e.target.value)}
+                        className="min-h-[100px]"
+                      />
+                    </div>
                   </div>
                 </TabsContent>
 
@@ -302,26 +203,6 @@ export default function CreateClient() {
                         onChange={(e) => setCrmAccountLink(e.target.value)}
                       />
                     </div>
-                    <div>
-                      <Label htmlFor="appointment">Appointment Calendar</Label>
-                      <Input
-                        id="appointment"
-                        type="url"
-                        placeholder="https://calendly.com/yourlink"
-                        value={appointmentCalendar}
-                        onChange={(e) => setAppointmentCalendar(e.target.value)}
-                      />
-                    </div>
-                    <div>
-                      <Label htmlFor="reschedule">Reschedule Calendar</Label>
-                      <Input
-                        id="reschedule"
-                        type="url"
-                        placeholder="https://calendly.com/reschedule"
-                        value={rescheduleCalendar}
-                        onChange={(e) => setRescheduleCalendar(e.target.value)}
-                      />
-                    </div>
                   </div>
                 </TabsContent>
               </Tabs>
@@ -334,7 +215,7 @@ export default function CreateClient() {
             className="w-full"
             size="lg"
           >
-            {loading ? "Generating Script..." : "Generate Customized Script"}
+            {loading ? "Creating Client..." : "Create Client"}
           </Button>
         </div>
       </div>

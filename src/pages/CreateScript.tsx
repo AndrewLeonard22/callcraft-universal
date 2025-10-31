@@ -22,9 +22,19 @@ export default function CreateScript() {
   const { clientId } = useParams();
   const [client, setClient] = useState<Client | null>(null);
   const [serviceName, setServiceName] = useState("");
-  const [onboardingForm, setOnboardingForm] = useState("");
   const [scriptTemplate, setScriptTemplate] = useState("");
   const [loading, setLoading] = useState(false);
+  
+  // Service-specific fields
+  const [projectMinPrice, setProjectMinPrice] = useState("");
+  const [projectMinSize, setProjectMinSize] = useState("");
+  const [pricePerSqFt, setPricePerSqFt] = useState("");
+  const [warranties, setWarranties] = useState("");
+  const [financingOptions, setFinancingOptions] = useState("");
+  const [videoOfService, setVideoOfService] = useState("");
+  const [avgInstallTime, setAvgInstallTime] = useState("");
+  const [appointmentCalendar, setAppointmentCalendar] = useState("");
+  const [rescheduleCalendar, setRescheduleCalendar] = useState("");
 
   useEffect(() => {
     loadClient();
@@ -71,20 +81,25 @@ export default function CreateScript() {
       return;
     }
 
-    if (!onboardingForm.trim()) {
-      toast.error("Please provide onboarding form data");
-      return;
-    }
-
     setLoading(true);
     try {
       const { data, error } = await supabase.functions.invoke("extract-client-data", {
         body: {
           client_id: clientId,
           service_name: serviceName,
-          onboarding_form: onboardingForm,
           use_template: true,
-          template_script: scriptTemplate
+          template_script: scriptTemplate,
+          service_details: {
+            project_min_price: projectMinPrice,
+            project_min_size: projectMinSize,
+            price_per_sq_ft: pricePerSqFt,
+            warranties,
+            financing_options: financingOptions,
+            video_of_service: videoOfService,
+            avg_install_time: avgInstallTime,
+            appointment_calendar: appointmentCalendar,
+            reschedule_calendar: rescheduleCalendar,
+          }
         },
       });
 
@@ -190,16 +205,96 @@ export default function CreateScript() {
             <CardHeader>
               <CardTitle>Service Details</CardTitle>
               <CardDescription>
-                Provide onboarding form information to customize the script
+                Provide specific information about this service
               </CardDescription>
             </CardHeader>
-            <CardContent>
-              <Textarea
-                placeholder="Paste onboarding form data here..."
-                className="min-h-[200px] font-mono text-sm"
-                value={onboardingForm}
-                onChange={(e) => setOnboardingForm(e.target.value)}
-              />
+            <CardContent className="space-y-4">
+              <div>
+                <Label htmlFor="min-price">Project Minimum Price</Label>
+                <Input
+                  id="min-price"
+                  placeholder="e.g., $5,000"
+                  value={projectMinPrice}
+                  onChange={(e) => setProjectMinPrice(e.target.value)}
+                />
+              </div>
+              <div>
+                <Label htmlFor="min-size">Project Minimum Size</Label>
+                <Input
+                  id="min-size"
+                  placeholder="e.g., 500 sq ft"
+                  value={projectMinSize}
+                  onChange={(e) => setProjectMinSize(e.target.value)}
+                />
+              </div>
+              <div>
+                <Label htmlFor="price-sqft">Price Per Square Foot</Label>
+                <Input
+                  id="price-sqft"
+                  placeholder="e.g., $15-25/sq ft"
+                  value={pricePerSqFt}
+                  onChange={(e) => setPricePerSqFt(e.target.value)}
+                />
+              </div>
+              <div>
+                <Label htmlFor="warranties">Warranties/Guarantees</Label>
+                <Textarea
+                  id="warranties"
+                  placeholder="Describe warranties and guarantees..."
+                  value={warranties}
+                  onChange={(e) => setWarranties(e.target.value)}
+                  className="min-h-[80px]"
+                />
+              </div>
+              <div>
+                <Label htmlFor="financing">Financing Options</Label>
+                <Textarea
+                  id="financing"
+                  placeholder="Describe available financing options..."
+                  value={financingOptions}
+                  onChange={(e) => setFinancingOptions(e.target.value)}
+                  className="min-h-[80px]"
+                />
+              </div>
+              <div>
+                <Label htmlFor="video">Video of Service</Label>
+                <Input
+                  id="video"
+                  type="url"
+                  placeholder="https://youtube.com/watch?v=..."
+                  value={videoOfService}
+                  onChange={(e) => setVideoOfService(e.target.value)}
+                />
+              </div>
+              <div>
+                <Label htmlFor="install-time">Average Install Time After Booking</Label>
+                <Input
+                  id="install-time"
+                  placeholder="e.g., 2-3 weeks"
+                  value={avgInstallTime}
+                  onChange={(e) => setAvgInstallTime(e.target.value)}
+                />
+              </div>
+              <div>
+                <Label htmlFor="appointment">Appointment Calendar Link</Label>
+                <Input
+                  id="appointment"
+                  type="url"
+                  placeholder="https://calendly.com/yourlink"
+                  value={appointmentCalendar}
+                  onChange={(e) => setAppointmentCalendar(e.target.value)}
+                />
+              </div>
+              <div>
+                <Label htmlFor="reschedule">Reschedule Calendar Link</Label>
+                <Input
+                  id="reschedule"
+                  type="url"
+                  placeholder="https://calendly.com/reschedule"
+                  value={rescheduleCalendar}
+                  onChange={(e) => setRescheduleCalendar(e.target.value)}
+                />
+              </div>
             </CardContent>
           </Card>
 

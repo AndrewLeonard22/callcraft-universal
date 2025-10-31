@@ -13,7 +13,7 @@ serve(async (req) => {
 
   try {
     const requestBody = await req.json();
-    const { onboarding_form, transcript, client_id, service_name, use_template, template_script, regenerate, links, business_info } = requestBody;
+    const { onboarding_form, transcript, client_id, service_name, use_template, template_script, regenerate, links, business_info, service_details } = requestBody;
 
     const LOVABLE_API_KEY = Deno.env.get("LOVABLE_API_KEY");
     const SUPABASE_URL = Deno.env.get("SUPABASE_URL");
@@ -26,7 +26,98 @@ serve(async (req) => {
 
     const supabase = createClient(SUPABASE_URL, SUPABASE_SERVICE_ROLE_KEY);
 
+    // If creating a new client without script, skip AI extraction
+    if (!client_id && business_info && !use_template) {
+      console.log("Creating new client without script...");
+      
+      // Insert new client with just the name (required)
+      const { data: newClient, error: clientError } = await supabase
+        .from("clients")
+        .insert({
+          name: business_info.business_name || "New Client",
+          service_type: "General Services",
+          city: "",
+        })
+        .select()
+        .single();
+
+      if (clientError) throw clientError;
+
+      // Insert business info and links as client details
+      const detailsToInsert: Array<{ client_id: string; field_name: string; field_value: string }> = [];
+
+      if (business_info) {
+        const businessFields = [
+          { name: "business_name", value: business_info.business_name },
+          { name: "owners_name", value: business_info.owners_name },
+          { name: "sales_rep_phone", value: business_info.sales_rep_phone },
+          { name: "address", value: business_info.address },
+          { name: "service_area", value: business_info.service_area },
+          { name: "other_key_info", value: business_info.other_key_info },
+        ];
+
+        businessFields.forEach(({ name, value }) => {
+          if (value) {
+            detailsToInsert.push({
+              client_id: newClient.id,
+              field_name: name,
+              field_value: value,
+            });
+          }
+        });
+      }
+
+      if (links) {
+        const linkFields = [
+          { name: "website", value: links.website },
+          { name: "facebook_page", value: links.facebook_page },
+          { name: "instagram", value: links.instagram },
+          { name: "crm_account_link", value: links.crm_account_link },
+        ];
+
+        linkFields.forEach(({ name, value }) => {
+          if (value) {
+            detailsToInsert.push({
+              client_id: newClient.id,
+              field_name: name,
+              field_value: value,
+            });
+          }
+        });
+      }
+
+      if (detailsToInsert.length > 0) {
+        const { error: detailsError } = await supabase
+          .from("client_details")
+          .insert(detailsToInsert);
+
+        if (detailsError) throw detailsError;
+      }
+
+      console.log("Successfully created client");
+
+      return new Response(
+        JSON.stringify({
+          success: true,
+          client_id: newClient.id,
+        }),
+        {
+          headers: { ...corsHeaders, "Content-Type": "application/json" },
+        }
+      );
+    }
+
     console.log("Extracting client data with AI...");
+
+    // Prepare data for AI extraction - use service_details if provided, otherwise onboarding_form
+    let dataToExtract = "";
+    if (service_details) {
+      dataToExtract = Object.entries(service_details)
+        .map(([key, value]) => `${key}: ${value}`)
+        .join("\n");
+    } else if (onboarding_form) {
+      dataToExtract = onboarding_form;
+    }
 
     // Call Lovable AI to extract structured data
     const extractionResponse = await fetch("https://ai.gateway.lovable.dev/v1/chat/completions", {
@@ -77,11 +168,11 @@ OPTIONAL FIELDS:
 - financing_options (string)
 - faqs (array of objects with question and answer)
 
-Onboarding Form:
-${onboarding_form}
+Data to extract from:
+${dataToExtract}
 
 Call Transcript:
-${transcript}
+${transcript || "N/A"}
 
 Return ONLY valid JSON with at least company_name and service_type. No markdown formatting.`,
           },
@@ -249,7 +340,7 @@ Make it natural, conversational, and specific to their business. Include specifi
           .from("client_details")
           .delete()
           .eq("client_id", client_id)
-          .not("field_name", "in", '("_original_onboarding_form","_original_transcript","website","facebook_page","instagram","crm_account_link","appointment_calendar","reschedule_calendar","business_name","owners_name","sales_rep_phone","address","service_area","other_key_info")');
+          .not("field_name", "in", '("_original_onboarding_form","_original_transcript","website","facebook_page","instagram","crm_account_link","business_name","owners_name","sales_rep_phone","address","service_area","other_key_info")');
 
         // Insert new details
         const detailsToInsert = Object.entries(extractedInfo)
@@ -285,6 +376,31 @@ Make it natural, conversational, and specific to their business. Include specifi
           });
         }
 
+        // Add service details if provided
+        if (service_details) {
+          const serviceFields = [
+            { name: "project_min_price", value: service_details.project_min_price },
+            { name: "project_min_size", value: service_details.project_min_size },
+            { name: "price_per_sq_ft", value: service_details.price_per_sq_ft },
+            { name: "warranties", value: service_details.warranties },
+            { name: "financing_options", value: service_details.financing_options },
+            { name: "video_of_service", value: service_details.video_of_service },
+            { name: "avg_install_time", value: service_details.avg_install_time },
+            { name: "appointment_calendar", value: service_details.appointment_calendar },
+            { name: "reschedule_calendar", value: service_details.reschedule_calendar },
+          ];
+
+          serviceFields.forEach(({ name, value }) => {
+            if (value) {
+              detailsToInsert.push({
+                client_id: client_id,
+                field_name: name,
+                field_value: value,
+              });
+            }
+          });
+        }
+
         // Add links if provided
         if (links) {
           const linkFields = [
@@ -292,8 +408,6 @@ Make it natural, conversational, and specific to their business. Include specifi
             { name: "facebook_page", value: links.facebook_page },
             { name: "instagram", value: links.instagram },
             { name: "crm_account_link", value: links.crm_account_link },
-            { name: "appointment_calendar", value: links.appointment_calendar },
-            { name: "reschedule_calendar", value: links.reschedule_calendar },
           ];
 
           linkFields.forEach(({ name, value }) => {
@@ -377,6 +491,31 @@ Make it natural, conversational, and specific to their business. Include specifi
         });
       }
 
+      // Add service details if provided
+      if (service_details) {
+        const serviceFields = [
+          { name: "project_min_price", value: service_details.project_min_price },
+          { name: "project_min_size", value: service_details.project_min_size },
+          { name: "price_per_sq_ft", value: service_details.price_per_sq_ft },
+          { name: "warranties", value: service_details.warranties },
+          { name: "financing_options", value: service_details.financing_options },
+          { name: "video_of_service", value: service_details.video_of_service },
+          { name: "avg_install_time", value: service_details.avg_install_time },
+          { name: "appointment_calendar", value: service_details.appointment_calendar },
+          { name: "reschedule_calendar", value: service_details.reschedule_calendar },
+        ];
+
+        serviceFields.forEach(({ name, value }) => {
+          if (value) {
+            detailsToInsert.push({
+              client_id: clientData.id,
+              field_name: name,
+              field_value: value,
+            });
+          }
+        });
+      }
+
       // Add links if provided
       if (links) {
         const linkFields = [
@@ -384,8 +523,6 @@ Make it natural, conversational, and specific to their business. Include specifi
           { name: "facebook_page", value: links.facebook_page },
           { name: "instagram", value: links.instagram },
           { name: "crm_account_link", value: links.crm_account_link },
-          { name: "appointment_calendar", value: links.appointment_calendar },
-          { name: "reschedule_calendar", value: links.reschedule_calendar },
         ];
 
         linkFields.forEach(({ name, value }) => {
