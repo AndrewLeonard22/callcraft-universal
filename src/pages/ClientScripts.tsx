@@ -28,6 +28,7 @@ interface Script {
   version: number;
   created_at: string;
   is_template: boolean;
+  image_url?: string;
 }
 
 interface Client {
@@ -92,7 +93,7 @@ export default function ClientScripts() {
       // Load scripts for this client
       const { data: scriptsData, error: scriptsError } = await supabase
         .from("scripts")
-        .select("id, service_name, version, created_at, is_template")
+        .select("id, service_name, version, created_at, is_template, image_url")
         .eq("client_id", clientId)
         .eq("is_template", false)
         .order("created_at", { ascending: false });
@@ -206,7 +207,16 @@ export default function ClientScripts() {
         ) : (
           <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
             {scripts.map((script) => (
-              <Card key={script.id} className="group hover:border-primary/50 transition-all">
+              <Card key={script.id} className="group hover:border-primary/50 transition-all overflow-hidden">
+                {script.image_url && (
+                  <div className="w-full h-40 bg-muted/20 overflow-hidden border-b border-border/50">
+                    <img 
+                      src={script.image_url} 
+                      alt={script.service_name}
+                      className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300"
+                    />
+                  </div>
+                )}
                 <CardHeader className="pb-3">
                   <div className="flex items-start justify-between gap-2">
                     <div className="flex-1 min-w-0">
