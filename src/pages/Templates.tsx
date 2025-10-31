@@ -192,10 +192,6 @@ export default function Templates() {
   const [faqServiceTypeId, setFaqServiceTypeId] = useState("");
   const [faqQuestion, setFaqQuestion] = useState("");
   const [faqAnswer, setFaqAnswer] = useState("");
-  const [faqTextSize, setFaqTextSize] = useState("medium");
-  const [faqTextColor, setFaqTextColor] = useState("default");
-  const [objectionTextSize, setObjectionTextSize] = useState("medium");
-  const [objectionTextColor, setObjectionTextColor] = useState("default");
   const [saving, setSaving] = useState(false);
   const [templateImageFile, setTemplateImageFile] = useState<File | null>(null);
 
@@ -370,8 +366,6 @@ export default function Templates() {
     setEditingObjection(template);
     setObjectionServiceName(template.service_name);
     setObjectionContent(template.content);
-    setObjectionTextSize("medium");
-    setObjectionTextColor("default");
     setShowObjectionForm(true);
   };
 
@@ -408,8 +402,6 @@ export default function Templates() {
 
       setObjectionServiceName("");
       setObjectionContent("");
-      setObjectionTextSize("medium");
-      setObjectionTextColor("default");
       setShowObjectionForm(false);
       setEditingObjection(null);
       loadObjectionTemplates();
@@ -443,8 +435,6 @@ export default function Templates() {
     setFaqServiceTypeId(faq.service_type_id || "");
     setFaqQuestion(faq.question);
     setFaqAnswer(faq.answer);
-    setFaqTextSize("medium");
-    setFaqTextColor("default");
     setShowFaqForm(true);
   };
 
@@ -484,8 +474,6 @@ export default function Templates() {
       setFaqServiceTypeId("");
       setFaqQuestion("");
       setFaqAnswer("");
-      setFaqTextSize("medium");
-      setFaqTextColor("default");
       setShowFaqForm(false);
       setEditingFaq(null);
       loadFaqs();
@@ -732,50 +720,74 @@ export default function Templates() {
                     />
                   </div>
                   <div>
-                    <Label htmlFor="objection-content">Objection Handling Content</Label>
-                    <div className="mb-2 flex gap-2 items-center flex-wrap">
-                      <span className="text-xs text-muted-foreground">Text formatting:</span>
-                      <Select
-                        value={objectionTextSize}
-                        onValueChange={setObjectionTextSize}
-                      >
-                        <SelectTrigger className="w-[120px] h-8 text-xs">
-                          <SelectValue placeholder="Text size" />
-                        </SelectTrigger>
-                        <SelectContent>
-                          <SelectItem value="small">Small</SelectItem>
-                          <SelectItem value="medium">Medium</SelectItem>
-                          <SelectItem value="large">Large</SelectItem>
-                        </SelectContent>
-                      </Select>
-                      <Select
-                        value={objectionTextColor}
-                        onValueChange={setObjectionTextColor}
-                      >
-                        <SelectTrigger className="w-[120px] h-8 text-xs">
-                          <SelectValue placeholder="Text color" />
-                        </SelectTrigger>
-                        <SelectContent>
-                          <SelectItem value="default">Default</SelectItem>
-                          <SelectItem value="primary">Primary</SelectItem>
-                          <SelectItem value="accent">Accent</SelectItem>
-                          <SelectItem value="muted">Muted</SelectItem>
-                        </SelectContent>
-                      </Select>
+                    <div className="flex items-center justify-between mb-2">
+                      <Label htmlFor="objection-content">Objection Handling Content</Label>
+                      <div className="flex gap-1">
+                        <Button
+                          type="button"
+                          variant="outline"
+                          size="sm"
+                          className="h-7 px-2 text-xs"
+                          onClick={() => {
+                            const textarea = document.getElementById('objection-content') as HTMLTextAreaElement;
+                            const start = textarea.selectionStart;
+                            const end = textarea.selectionEnd;
+                            const selectedText = objectionContent.substring(start, end) || 'text';
+                            const newText = objectionContent.substring(0, start) + `**${selectedText}**` + objectionContent.substring(end);
+                            setObjectionContent(newText);
+                          }}
+                        >
+                          <strong>B</strong>
+                        </Button>
+                        <Button
+                          type="button"
+                          variant="outline"
+                          size="sm"
+                          className="h-7 px-2 text-xs bg-primary/5"
+                          onClick={() => {
+                            const textarea = document.getElementById('objection-content') as HTMLTextAreaElement;
+                            const start = textarea.selectionStart;
+                            const end = textarea.selectionEnd;
+                            const selectedText = objectionContent.substring(start, end) || 'highlight';
+                            const newText = objectionContent.substring(0, start) + `[${selectedText}]` + objectionContent.substring(end);
+                            setObjectionContent(newText);
+                          }}
+                        >
+                          [H]
+                        </Button>
+                        <Button
+                          type="button"
+                          variant="outline"
+                          size="sm"
+                          className="h-7 px-2 text-xs bg-accent/5"
+                          onClick={() => {
+                            const textarea = document.getElementById('objection-content') as HTMLTextAreaElement;
+                            const start = textarea.selectionStart;
+                            const end = textarea.selectionEnd;
+                            const selectedText = objectionContent.substring(start, end) || 'quote';
+                            const newText = objectionContent.substring(0, start) + `"${selectedText}"` + objectionContent.substring(end);
+                            setObjectionContent(newText);
+                          }}
+                        >
+                          "Q"
+                        </Button>
+                      </div>
                     </div>
                     <Textarea
                       id="objection-content"
-                      placeholder="Enter objection handling responses..."
-                      className="min-h-[300px] font-mono text-sm"
+                      placeholder="Enter objection handling responses... Use **bold**, [highlight], or &quot;quotes&quot; for formatting"
+                      className="min-h-[200px] font-mono text-sm"
                       value={objectionContent}
                       onChange={(e) => setObjectionContent(e.target.value)}
-                      style={{
-                        fontSize: objectionTextSize === 'small' ? '0.875rem' : objectionTextSize === 'large' ? '1.125rem' : '1rem',
-                        color: objectionTextColor === 'primary' ? 'hsl(var(--primary))' : 
-                               objectionTextColor === 'accent' ? 'hsl(var(--accent))' : 
-                               objectionTextColor === 'muted' ? 'hsl(var(--muted-foreground))' : 'inherit'
-                      }}
                     />
+                    {objectionContent && (
+                      <div className="mt-3 p-3 border rounded-lg bg-muted/30">
+                        <Label className="text-xs text-muted-foreground mb-2 block">Preview:</Label>
+                        <div className="text-sm">
+                          <FormattedContent content={objectionContent} />
+                        </div>
+                      </div>
+                    )}
                   </div>
                   <div className="flex gap-3">
                     <Button onClick={handleCreateObjection} disabled={saving}>
@@ -786,8 +798,6 @@ export default function Templates() {
                       setEditingObjection(null);
                       setObjectionServiceName("");
                       setObjectionContent("");
-                      setObjectionTextSize("medium");
-                      setObjectionTextColor("default");
                     }}>
                       Cancel
                     </Button>
@@ -924,50 +934,74 @@ export default function Templates() {
                     />
                   </div>
                   <div>
-                    <Label htmlFor="faq-answer">Answer</Label>
-                    <div className="mb-2 flex gap-2 items-center flex-wrap">
-                      <span className="text-xs text-muted-foreground">Text formatting:</span>
-                      <Select
-                        value={faqTextSize}
-                        onValueChange={setFaqTextSize}
-                      >
-                        <SelectTrigger className="w-[120px] h-8 text-xs">
-                          <SelectValue placeholder="Text size" />
-                        </SelectTrigger>
-                        <SelectContent>
-                          <SelectItem value="small">Small</SelectItem>
-                          <SelectItem value="medium">Medium</SelectItem>
-                          <SelectItem value="large">Large</SelectItem>
-                        </SelectContent>
-                      </Select>
-                      <Select
-                        value={faqTextColor}
-                        onValueChange={setFaqTextColor}
-                      >
-                        <SelectTrigger className="w-[120px] h-8 text-xs">
-                          <SelectValue placeholder="Text color" />
-                        </SelectTrigger>
-                        <SelectContent>
-                          <SelectItem value="default">Default</SelectItem>
-                          <SelectItem value="primary">Primary</SelectItem>
-                          <SelectItem value="accent">Accent</SelectItem>
-                          <SelectItem value="muted">Muted</SelectItem>
-                        </SelectContent>
-                      </Select>
+                    <div className="flex items-center justify-between mb-2">
+                      <Label htmlFor="faq-answer">Answer</Label>
+                      <div className="flex gap-1">
+                        <Button
+                          type="button"
+                          variant="outline"
+                          size="sm"
+                          className="h-7 px-2 text-xs"
+                          onClick={() => {
+                            const textarea = document.getElementById('faq-answer') as HTMLTextAreaElement;
+                            const start = textarea.selectionStart;
+                            const end = textarea.selectionEnd;
+                            const selectedText = faqAnswer.substring(start, end) || 'text';
+                            const newText = faqAnswer.substring(0, start) + `**${selectedText}**` + faqAnswer.substring(end);
+                            setFaqAnswer(newText);
+                          }}
+                        >
+                          <strong>B</strong>
+                        </Button>
+                        <Button
+                          type="button"
+                          variant="outline"
+                          size="sm"
+                          className="h-7 px-2 text-xs bg-primary/5"
+                          onClick={() => {
+                            const textarea = document.getElementById('faq-answer') as HTMLTextAreaElement;
+                            const start = textarea.selectionStart;
+                            const end = textarea.selectionEnd;
+                            const selectedText = faqAnswer.substring(start, end) || 'highlight';
+                            const newText = faqAnswer.substring(0, start) + `[${selectedText}]` + faqAnswer.substring(end);
+                            setFaqAnswer(newText);
+                          }}
+                        >
+                          [H]
+                        </Button>
+                        <Button
+                          type="button"
+                          variant="outline"
+                          size="sm"
+                          className="h-7 px-2 text-xs bg-accent/5"
+                          onClick={() => {
+                            const textarea = document.getElementById('faq-answer') as HTMLTextAreaElement;
+                            const start = textarea.selectionStart;
+                            const end = textarea.selectionEnd;
+                            const selectedText = faqAnswer.substring(start, end) || 'quote';
+                            const newText = faqAnswer.substring(0, start) + `"${selectedText}"` + faqAnswer.substring(end);
+                            setFaqAnswer(newText);
+                          }}
+                        >
+                          "Q"
+                        </Button>
+                      </div>
                     </div>
                     <Textarea
                       id="faq-answer"
-                      placeholder="Enter the answer..."
+                      placeholder="Enter the answer... Use **bold**, [highlight], or &quot;quotes&quot; for formatting"
                       className="min-h-[150px]"
                       value={faqAnswer}
                       onChange={(e) => setFaqAnswer(e.target.value)}
-                      style={{
-                        fontSize: faqTextSize === 'small' ? '0.875rem' : faqTextSize === 'large' ? '1.125rem' : '1rem',
-                        color: faqTextColor === 'primary' ? 'hsl(var(--primary))' : 
-                               faqTextColor === 'accent' ? 'hsl(var(--accent))' : 
-                               faqTextColor === 'muted' ? 'hsl(var(--muted-foreground))' : 'inherit'
-                      }}
                     />
+                    {faqAnswer && (
+                      <div className="mt-3 p-3 border rounded-lg bg-muted/30">
+                        <Label className="text-xs text-muted-foreground mb-2 block">Preview:</Label>
+                        <div className="text-sm">
+                          <FormattedContent content={faqAnswer} />
+                        </div>
+                      </div>
+                    )}
                   </div>
                   <div className="flex gap-3">
                     <Button onClick={handleCreateFaq} disabled={saving}>
@@ -979,8 +1013,6 @@ export default function Templates() {
                       setFaqServiceTypeId("");
                       setFaqQuestion("");
                       setFaqAnswer("");
-                      setFaqTextSize("medium");
-                      setFaqTextColor("default");
                     }}>
                       Cancel
                     </Button>
