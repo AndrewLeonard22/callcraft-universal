@@ -95,15 +95,21 @@ export default function ScriptViewer() {
 
       // Load FAQs if service_type_id exists
       if (scriptResult.data.service_type_id) {
+        console.log('Loading FAQs for service_type_id:', scriptResult.data.service_type_id);
         const { data: faqData, error: faqError } = await supabase
           .from("faqs")
           .select("*")
           .eq("service_type_id", scriptResult.data.service_type_id)
           .order("created_at", { ascending: false });
 
-        if (!faqError) {
+        if (faqError) {
+          console.error('Error loading FAQs:', faqError);
+        } else {
+          console.log('Loaded FAQs:', faqData);
           setFaqs(faqData || []);
         }
+      } else {
+        console.log('No service_type_id found on script');
       }
 
       // Then load client and details

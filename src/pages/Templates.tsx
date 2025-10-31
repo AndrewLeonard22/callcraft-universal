@@ -940,10 +940,10 @@ export default function Templates() {
                             </div>
                             <div className="flex-1 min-w-0">
                               <CardTitle className="text-lg">{faq.question}</CardTitle>
-                              <CardDescription className="mt-1 line-clamp-2">
+                              <div className="mt-1 text-sm text-muted-foreground line-clamp-2">
                                 {serviceType?.name && <span className="font-medium">{serviceType.name} • </span>}
-                                <FormattedContent content={faq.answer} />
-                              </CardDescription>
+                                {faq.answer.substring(0, 100)}...
+                              </div>
                             </div>
                           </div>
                           <div className="flex gap-2 flex-shrink-0">
