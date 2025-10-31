@@ -72,17 +72,34 @@ const extractRadius = (serviceArea?: string): number => {
 export default function ServiceAreaMap({ city, serviceArea, address, radiusMiles }: ServiceAreaMapProps) {
   const mapContainer = useRef<HTMLDivElement>(null);
   const map = useRef<mapboxgl.Map | null>(null);
-  const [mapboxToken, setMapboxToken] = useState<string>('');
-  const [searchAddress, setSearchAddress] = useState('');
+  const [mapboxToken, setMapboxToken] = useState<string>("");
+  const [tokenError, setTokenError] = useState<boolean>(false);
+  const [manualToken, setManualToken] = useState<string>("");
+  const [searchAddress, setSearchAddress] = useState("");
   const [centerCoordinates, setCenterCoordinates] = useState<[number, number] | null>(null);
   const [serviceRadius, setServiceRadius] = useState(30);
   const searchMarkerRef = useRef<mapboxgl.Marker | null>(null);
 
   useEffect(() => {
     const fetchToken = async () => {
-      const { data } = await supabase.functions.invoke('get-mapbox-token');
-      if (data?.token) {
-        setMapboxToken(data.token);
+      try {
+        // 1) Prefer a locally saved token to unblock UI quickly
+        const local = localStorage.getItem("MAPBOX_PUBLIC_TOKEN");
+        if (local) {
+          setMapboxToken(local);
+          return;
+        }
+
+        // 2) Fetch from backend function (recommended)
+        const { data, error } = await supabase.functions.invoke("get-mapbox-token");
+        if (error) throw error;
+        if (data?.token) {
+          setMapboxToken(data.token);
+        } else {
+          setTokenError(true);
+        }
+      } catch (e) {
+        setTokenError(true);
       }
     };
     fetchToken();
@@ -279,8 +296,37 @@ export default function ServiceAreaMap({ city, serviceArea, address, radiusMiles
 
   if (!mapboxToken) {
     return (
-      <div className="w-full h-[400px] rounded-lg bg-muted animate-pulse flex items-center justify-center">
-        <p className="text-sm text-muted-foreground">Loading map...</p>
+      <div className="space-y-3">
+        {tokenError && (
+          <div className="rounded-lg border border-border bg-card p-4">
+            <p className="text-sm text-muted-foreground mb-3">
+              Map is unavailable because the Mapbox public token is missing.
+            </p>
+            <div className="flex gap-2">
+              <Input
+                placeholder="Paste Mapbox public token (pk_...)"
+                value={manualToken}
+                onChange={(e) => setManualToken(e.target.value)}
+              />
+              <Button
+                onClick={() => {
+                  if (manualToken.trim()) {
+                    localStorage.setItem("MAPBOX_PUBLIC_TOKEN", manualToken.trim());
+                    setMapboxToken(manualToken.trim());
+                  }
+                }}
+              >
+                Use Token
+              </Button>
+            </div>
+            <p className="text-xs text-muted-foreground mt-2">
+              Tip: Add this permanently in backend secrets as MAPBOX_PUBLIC_TOKEN for all users.
+            </p>
+          </div>
+        )}
+        <div className="w-full h-[400px] rounded-lg bg-muted animate-pulse flex items-center justify-center">
+          <p className="text-sm text-muted-foreground">Loading map...</p>
+        </div>
       </div>
     );
   }
