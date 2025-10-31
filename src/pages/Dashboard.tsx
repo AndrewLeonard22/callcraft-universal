@@ -145,8 +145,7 @@ export default function Dashboard() {
             created_at: client.created_at,
             scripts: clientScripts,
           };
-        })
-        .filter(c => c.scripts.length > 0); // Only show clients with scripts
+        });
 
       setClients(clientsWithScripts);
     } catch (error) {
