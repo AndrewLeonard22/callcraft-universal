@@ -1,6 +1,6 @@
 import { useState } from "react";
 import { useNavigate, Link } from "react-router-dom";
-import { ArrowLeft, Building2, User, Phone, MapPin, Globe, Link2, Sparkles } from "lucide-react";
+import { ArrowLeft, Building2, User, Phone, MapPin, Globe, Link2, Sparkles, Upload, X } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
@@ -22,12 +22,35 @@ export default function CreateClient() {
   const [serviceArea, setServiceArea] = useState("");
   const [otherKeyInfo, setOtherKeyInfo] = useState("");
   const [serviceRadiusMiles, setServiceRadiusMiles] = useState<string>("");
+  const [logoFile, setLogoFile] = useState<File | null>(null);
+  const [logoPreview, setLogoPreview] = useState<string>("");
   
   // Links
   const [website, setWebsite] = useState("");
   const [facebookPage, setFacebookPage] = useState("");
   const [instagram, setInstagram] = useState("");
   const [crmAccountLink, setCrmAccountLink] = useState("");
+
+  const handleLogoChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (file) {
+      if (file.size > 5 * 1024 * 1024) {
+        toast.error("Logo file size must be less than 5MB");
+        return;
+      }
+      if (!file.type.startsWith("image/")) {
+        toast.error("Please upload an image file");
+        return;
+      }
+      setLogoFile(file);
+      setLogoPreview(URL.createObjectURL(file));
+    }
+  };
+
+  const handleRemoveLogo = () => {
+    setLogoFile(null);
+    setLogoPreview("");
+  };
 
   const handleGenerate = async () => {
     if (!businessName.trim()) {
@@ -37,6 +60,33 @@ export default function CreateClient() {
 
     setLoading(true);
     try {
+      // Upload logo first if provided
+      let logoUrl = "";
+      if (logoFile) {
+        const fileExt = logoFile.name.split(".").pop();
+        const fileName = `${Date.now()}-${businessName.replace(/\s+/g, "-")}.${fileExt}`;
+        const filePath = fileName;
+
+        const { error: uploadError } = await supabase.storage
+          .from("client-logos")
+          .upload(filePath, logoFile, {
+            cacheControl: "3600",
+            upsert: false,
+          });
+
+        if (uploadError) {
+          console.error("Logo upload error:", uploadError);
+          toast.error("Failed to upload logo");
+          return;
+        }
+
+        const { data: urlData } = supabase.storage
+          .from("client-logos")
+          .getPublicUrl(filePath);
+        
+        logoUrl = urlData.publicUrl;
+      }
+
       const { data, error } = await supabase.functions.invoke("extract-client-data", {
         body: { 
           business_info: {
@@ -58,8 +108,16 @@ export default function CreateClient() {
 
       if (error) throw error;
 
-      toast.success("Company created successfully!");
       const newClientId = data.client_id as string;
+
+      // Save logo URL if uploaded
+      if (logoUrl) {
+        await supabase.from("client_details").insert({
+          client_id: newClientId,
+          field_name: "logo_url",
+          field_value: logoUrl,
+        });
+      }
 
       // Save numeric service radius for accurate map rendering
       const radiusNumber = parseFloat(serviceRadiusMiles);
@@ -71,6 +129,7 @@ export default function CreateClient() {
         });
       }
 
+      toast.success("Company created successfully!");
       navigate(`/client/${newClientId}`);
     } catch (error: any) {
       console.error("Error creating client:", error);
@@ -145,6 +204,44 @@ export default function CreateClient() {
                       onChange={(e) => setBusinessName(e.target.value)}
                       className="h-11 bg-background shadow-sm border-border/50 focus:border-primary/50 transition-colors"
                     />
+                  </div>
+
+                  <div className="space-y-2">
+                    <Label htmlFor="logo" className="text-sm font-medium flex items-center gap-2">
+                      <Upload className="h-4 w-4 text-muted-foreground" />
+                      Company Logo
+                    </Label>
+                    {logoPreview ? (
+                      <div className="relative w-full h-32 border border-border/50 rounded-lg overflow-hidden bg-muted/20">
+                        <img
+                          src={logoPreview}
+                          alt="Logo preview"
+                          className="w-full h-full object-contain p-2"
+                        />
+                        <Button
+                          type="button"
+                          variant="destructive"
+                          size="icon"
+                          className="absolute top-2 right-2 h-8 w-8"
+                          onClick={handleRemoveLogo}
+                        >
+                          <X className="h-4 w-4" />
+                        </Button>
+                      </div>
+                    ) : (
+                      <div className="relative">
+                        <Input
+                          id="logo"
+                          type="file"
+                          accept="image/*"
+                          onChange={handleLogoChange}
+                          className="h-11 bg-background shadow-sm border-border/50 focus:border-primary/50 transition-colors cursor-pointer file:mr-4 file:py-2 file:px-4 file:rounded-md file:border-0 file:text-sm file:font-medium file:bg-primary file:text-primary-foreground hover:file:bg-primary/90"
+                        />
+                        <p className="text-xs text-muted-foreground mt-1">
+                          PNG, JPG, or WEBP (max 5MB)
+                        </p>
+                      </div>
+                    )}
                   </div>
 
                   <div className="space-y-2">
