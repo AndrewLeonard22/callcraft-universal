@@ -12,17 +12,18 @@ import logoHvac from "@/assets/logo-hvac.png";
 import logoSolar from "@/assets/logo-solar.png";
 import logoLandscaping from "@/assets/logo-landscaping.png";
 
-interface ScriptWithClient {
+interface ClientWithScripts {
   id: string;
-  service_name: string;
+  name: string;
+  service_type: string;
+  city: string;
+  logo_url?: string;
   created_at: string;
-  client: {
+  scripts: Array<{
     id: string;
-    name: string;
-    service_type: string;
-    city: string;
-    logo_url?: string;
-  };
+    service_name: string;
+    created_at: string;
+  }>;
 }
 
 // Helper to get logo based on service type
@@ -40,16 +41,25 @@ const getClientLogo = (serviceType: string, customLogoUrl?: string): string => {
 };
 
 export default function Dashboard() {
-  const [scripts, setScripts] = useState<ScriptWithClient[]>([]);
+  const [clients, setClients] = useState<ClientWithScripts[]>([]);
   const [loading, setLoading] = useState(true);
   const [searchQuery, setSearchQuery] = useState("");
 
   useEffect(() => {
-    loadScripts();
+    loadClients();
   }, []);
 
-  const loadScripts = async () => {
+  const loadClients = async () => {
     try {
+      // Get all clients
+      const { data: clientsData, error: clientsError } = await supabase
+        .from("clients")
+        .select("*")
+        .neq("id", "00000000-0000-0000-0000-000000000001")
+        .order("created_at", { ascending: false });
+
+      if (clientsError) throw clientsError;
+
       // Get all non-template scripts
       const { data: scriptsData, error: scriptsError } = await supabase
         .from("scripts")
@@ -58,14 +68,6 @@ export default function Dashboard() {
         .order("created_at", { ascending: false });
 
       if (scriptsError) throw scriptsError;
-
-      // Get all clients
-      const { data: clientsData, error: clientsError } = await supabase
-        .from("clients")
-        .select("*")
-        .neq("id", "00000000-0000-0000-0000-000000000001");
-
-      if (clientsError) throw clientsError;
 
       // Get logo URLs for all clients
       const { data: logosData } = await supabase
@@ -77,44 +79,46 @@ export default function Dashboard() {
         (logosData || []).map(l => [l.client_id, l.field_value])
       );
 
-      // Combine scripts with client data
-      const scriptsWithClients: ScriptWithClient[] = (scriptsData || [])
-        .map((script) => {
-          const client = clientsData?.find(c => c.id === script.client_id);
-          if (!client) return null;
+      // Group scripts by client
+      const clientsWithScripts: ClientWithScripts[] = (clientsData || [])
+        .map((client) => {
+          const clientScripts = (scriptsData || [])
+            .filter(s => s.client_id === client.id)
+            .map(s => ({
+              id: s.id,
+              service_name: s.service_name,
+              created_at: s.created_at,
+            }));
 
           return {
-            id: script.id,
-            service_name: script.service_name,
-            created_at: script.created_at,
-            client: {
-              id: client.id,
-              name: client.name,
-              service_type: client.service_type,
-              city: client.city,
-              logo_url: logosMap.get(client.id),
-            },
-          } as ScriptWithClient;
+            id: client.id,
+            name: client.name,
+            service_type: client.service_type,
+            city: client.city,
+            logo_url: logosMap.get(client.id),
+            created_at: client.created_at,
+            scripts: clientScripts,
+          };
         })
-        .filter(Boolean) as ScriptWithClient[];
+        .filter(c => c.scripts.length > 0); // Only show clients with scripts
 
-      setScripts(scriptsWithClients);
+      setClients(clientsWithScripts);
     } catch (error) {
-      console.error("Error loading scripts:", error);
-      setScripts([]);
+      console.error("Error loading clients:", error);
+      setClients([]);
     } finally {
       setLoading(false);
     }
   };
 
-  // Filter scripts based on search query
-  const filteredScripts = scripts.filter((script) => {
+  // Filter clients based on search query
+  const filteredClients = clients.filter((client) => {
     const query = searchQuery.toLowerCase();
     return (
-      script.service_name.toLowerCase().includes(query) ||
-      script.client.name.toLowerCase().includes(query) ||
-      script.client.service_type.toLowerCase().includes(query) ||
-      (script.client.city && script.client.city.toLowerCase().includes(query))
+      client.name.toLowerCase().includes(query) ||
+      client.service_type.toLowerCase().includes(query) ||
+      (client.city && client.city.toLowerCase().includes(query)) ||
+      client.scripts.some(s => s.service_name.toLowerCase().includes(query))
     );
   });
 
@@ -145,19 +149,19 @@ export default function Dashboard() {
             </div>
           </div>
           
-          {!loading && scripts.length > 0 && (
+          {!loading && clients.length > 0 && (
             <div className="relative max-w-md">
               <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
               <Input
                 type="text"
-                placeholder="Search scripts by service, client, or city..."
+                placeholder="Search by client, service, or city..."
                 value={searchQuery}
                 onChange={(e) => setSearchQuery(e.target.value)}
                 className="pl-9"
               />
               {searchQuery && (
                 <p className="text-xs text-muted-foreground mt-2">
-                  {filteredScripts.length} {filteredScripts.length === 1 ? 'script' : 'scripts'} found
+                  {filteredClients.length} {filteredClients.length === 1 ? 'client' : 'clients'} found
                 </p>
               )}
             </div>
@@ -173,12 +177,13 @@ export default function Dashboard() {
                   <div className="h-3 bg-muted rounded w-1/2" />
                 </CardHeader>
                 <CardContent className="pt-0">
-                  <div className="h-3 bg-muted rounded w-full" />
+                  <div className="h-3 bg-muted rounded w-full mb-3" />
+                  <div className="h-8 bg-muted rounded w-full" />
                 </CardContent>
               </Card>
             ))}
           </div>
-        ) : scripts.length === 0 ? (
+        ) : clients.length === 0 ? (
           <Card>
             <CardContent className="flex flex-col items-center justify-center py-12">
               <FileText className="h-12 w-12 text-muted-foreground/50 mb-3" />
@@ -194,11 +199,11 @@ export default function Dashboard() {
               </Link>
             </CardContent>
           </Card>
-        ) : filteredScripts.length === 0 ? (
+        ) : filteredClients.length === 0 ? (
           <Card>
             <CardContent className="flex flex-col items-center justify-center py-12">
               <Search className="h-12 w-12 text-muted-foreground/50 mb-3" />
-              <h3 className="text-lg font-semibold mb-1">No scripts found</h3>
+              <h3 className="text-lg font-semibold mb-1">No clients found</h3>
               <p className="text-sm text-muted-foreground mb-4 text-center max-w-sm">
                 Try adjusting your search query
               </p>
@@ -209,48 +214,54 @@ export default function Dashboard() {
           </Card>
         ) : (
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-            {filteredScripts.map((script) => (
-              <Card key={script.id} className="group hover:border-primary/50 transition-all h-full flex flex-col">
-                <Link to={`/script/${script.id}`} className="flex-1">
-                  <CardHeader className="pb-3">
-                    <div className="flex items-start gap-3">
-                      <div className="h-12 w-12 rounded-lg overflow-hidden bg-muted flex-shrink-0 border border-border">
-                        <img 
-                          src={getClientLogo(script.client.service_type, script.client.logo_url)} 
-                          alt={`${script.client.name} logo`}
-                          className="h-full w-full object-cover"
-                        />
-                      </div>
-                      <div className="flex-1 min-w-0">
-                        <CardTitle className="text-base line-clamp-1 mb-1">
-                          {script.service_name}
-                        </CardTitle>
-                        <CardDescription className="text-xs">
-                          {script.client.name}
-                          {script.client.city && ` • ${script.client.city}`}
-                        </CardDescription>
-                      </div>
+            {filteredClients.map((client) => (
+              <Card key={client.id} className="group hover:border-primary/50 transition-all h-full flex flex-col">
+                <CardHeader className="pb-3">
+                  <div className="flex items-start gap-3">
+                    <div className="h-12 w-12 rounded-lg overflow-hidden bg-muted flex-shrink-0 border border-border">
+                      <img 
+                        src={getClientLogo(client.service_type, client.logo_url)} 
+                        alt={`${client.name} logo`}
+                        className="h-full w-full object-cover"
+                      />
                     </div>
-                  </CardHeader>
-                  <CardContent className="pt-0">
-                    <div className="flex items-center gap-1.5 text-xs text-muted-foreground">
-                      <Calendar className="h-3 w-3" />
-                      <span>{format(new Date(script.created_at), "MMM d, yyyy")}</span>
+                    <div className="flex-1 min-w-0">
+                      <CardTitle className="text-base line-clamp-1 mb-1">
+                        {client.name}
+                      </CardTitle>
+                      <CardDescription className="text-xs capitalize">
+                        {client.service_type}
+                        {client.city && ` • ${client.city}`}
+                      </CardDescription>
                     </div>
-                  </CardContent>
-                </Link>
-                <CardContent className="pt-0 pb-4">
-                  <div className="flex gap-2">
-                    <Link to={`/script/${script.id}`} className="flex-1">
-                      <Button variant="outline" size="sm" className="w-full">
-                        View Script
-                      </Button>
-                    </Link>
-                    <Link to={`/client/${script.client.id}`}>
-                      <Button variant="outline" size="sm">
-                        Client
-                      </Button>
-                    </Link>
+                  </div>
+                </CardHeader>
+                <CardContent className="pt-0 flex-1 flex flex-col">
+                  <div className="flex items-center gap-1.5 text-xs text-muted-foreground mb-4">
+                    <Calendar className="h-3 w-3" />
+                    <span>{format(new Date(client.created_at), "MMM d, yyyy")}</span>
+                  </div>
+                  
+                  <div className="space-y-2 mt-auto">
+                    <div className="text-xs font-medium text-muted-foreground mb-2">
+                      Scripts ({client.scripts.length})
+                    </div>
+                    <div className="flex flex-col gap-2">
+                      {client.scripts.map((script) => (
+                        <Link key={script.id} to={`/script/${script.id}`}>
+                          <Button variant="outline" size="sm" className="w-full justify-start">
+                            <FileText className="mr-2 h-3 w-3" />
+                            {script.service_name}
+                          </Button>
+                        </Link>
+                      ))}
+                      <Link to={`/create-script/${client.id}`}>
+                        <Button variant="secondary" size="sm" className="w-full">
+                          <Plus className="mr-2 h-3 w-3" />
+                          Add Script
+                        </Button>
+                      </Link>
+                    </div>
                   </div>
                 </CardContent>
               </Card>
