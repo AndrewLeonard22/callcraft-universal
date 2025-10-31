@@ -22,6 +22,7 @@ interface Template {
   id: string;
   service_name: string;
   script_content: string;
+  image_url?: string;
 }
 
 export default function CreateScript() {
@@ -69,7 +70,7 @@ export default function CreateScript() {
     try {
       const { data, error } = await supabase
         .from("scripts")
-        .select("*")
+        .select("id, service_name, script_content, image_url")
         .eq("is_template", true)
         .order("service_name", { ascending: true });
 
@@ -114,6 +115,7 @@ export default function CreateScript() {
           service_name: serviceName,
           use_template: true,
           template_script: selectedTemplate.script_content,
+          template_image_url: selectedTemplate.image_url,
           service_details: {
             project_min_price: projectMinPrice,
             project_min_size: projectMinSize,

@@ -1,6 +1,6 @@
 import { useEffect, useState } from "react";
 import { Link } from "react-router-dom";
-import { Plus, FileText, Calendar, Search, Settings } from "lucide-react";
+import { Plus, FileText, Calendar, Search, Settings, Image as ImageIcon } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
@@ -23,6 +23,7 @@ interface ClientWithScripts {
     id: string;
     service_name: string;
     created_at: string;
+    image_url?: string;
   }>;
 }
 
@@ -60,10 +61,10 @@ export default function Dashboard() {
 
       if (clientsError) throw clientsError;
 
-      // Get all non-template scripts
+      // Get all non-template scripts with image_url
       const { data: scriptsData, error: scriptsError } = await supabase
         .from("scripts")
-        .select("id, service_name, created_at, client_id")
+        .select("id, service_name, created_at, client_id, image_url")
         .eq("is_template", false)
         .order("created_at", { ascending: false });
 
@@ -88,6 +89,7 @@ export default function Dashboard() {
               id: s.id,
               service_name: s.service_name,
               created_at: s.created_at,
+              image_url: s.image_url,
             }));
 
           return {
@@ -249,9 +251,19 @@ export default function Dashboard() {
                     <div className="flex flex-wrap gap-1.5">
                       {client.scripts.map((script) => (
                         <Link key={script.id} to={`/script/${script.id}`}>
-                          <Button variant="outline" size="sm" className="h-7 text-xs px-2">
-                            <FileText className="mr-1.5 h-3 w-3" />
-                            {script.service_name}
+                          <Button variant="outline" size="sm" className="h-7 text-xs px-2 gap-1.5">
+                            {script.image_url ? (
+                              <div className="h-3.5 w-3.5 rounded overflow-hidden flex-shrink-0">
+                                <img 
+                                  src={script.image_url} 
+                                  alt=""
+                                  className="h-full w-full object-cover"
+                                />
+                              </div>
+                            ) : (
+                              <FileText className="h-3 w-3 flex-shrink-0" />
+                            )}
+                            <span className="truncate">{script.service_name}</span>
                           </Button>
                         </Link>
                       ))}

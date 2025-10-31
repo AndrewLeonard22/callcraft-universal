@@ -78,6 +78,7 @@ export type Database = {
           client_id: string
           created_at: string | null
           id: string
+          image_url: string | null
           is_template: boolean
           script_content: string
           service_name: string
@@ -87,6 +88,7 @@ export type Database = {
           client_id: string
           created_at?: string | null
           id?: string
+          image_url?: string | null
           is_template?: boolean
           script_content: string
           service_name?: string
@@ -96,6 +98,7 @@ export type Database = {
           client_id?: string
           created_at?: string | null
           id?: string
+          image_url?: string | null
           is_template?: boolean
           script_content?: string
           service_name?: string
