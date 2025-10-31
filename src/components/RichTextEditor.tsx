@@ -63,17 +63,17 @@ const FormattedPreview = ({ content }: { content: string }) => {
         continue;
       }
       
-      const uppercaseMatch = remaining.match(/__([^_]+)__/);
-      if (uppercaseMatch && uppercaseMatch.index !== undefined) {
-        if (uppercaseMatch.index > 0) {
-          parts.push(remaining.substring(0, uppercaseMatch.index));
+      const underscoreMatch = remaining.match(/__([^_]+)__/);
+      if (underscoreMatch && underscoreMatch.index !== undefined) {
+        if (underscoreMatch.index > 0) {
+          parts.push(remaining.substring(0, underscoreMatch.index));
         }
         parts.push(
-          <span key={`uppercase-${key++}`} className="uppercase font-semibold">
-            {uppercaseMatch[1]}
-          </span>
+          <strong key={`underscore-${key++}`} className="font-bold text-foreground">
+            {underscoreMatch[1]}
+          </strong>
         );
-        remaining = remaining.substring(uppercaseMatch.index + uppercaseMatch[0].length);
+        remaining = remaining.substring(underscoreMatch.index + underscoreMatch[0].length);
         continue;
       }
       
@@ -193,10 +193,10 @@ export function RichTextEditor({
               size="sm"
               className="h-8 px-3 hover:bg-background"
               onClick={() => applyFormat('uppercase')}
-              title="Uppercase (wraps text with __)"
+              title="Bold Alt (wraps text with __)"
             >
               <Type className="h-4 w-4 mr-1.5" />
-              <span className="text-xs">Uppercase</span>
+              <span className="text-xs">Bold Alt</span>
             </Button>
           </div>
           <Button
@@ -231,7 +231,7 @@ export function RichTextEditor({
       </div>
       
       <p className="text-xs text-muted-foreground">
-        Select text and use the formatting buttons above, or type <strong>**bold**</strong>, <span className="bg-primary/10 px-1 rounded">[highlight]</span>, <span className="italic">"quotes"</span>, or <span className="uppercase font-semibold">__uppercase__</span> manually
+        Select text and use the formatting buttons above, or type <strong>**bold**</strong>, <strong>__bold__</strong>, <span className="bg-primary/10 px-1 rounded">[highlight]</span>, or <span className="italic">"quotes"</span> manually
       </p>
     </div>
   );
