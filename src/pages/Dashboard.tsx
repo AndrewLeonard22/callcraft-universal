@@ -32,6 +32,8 @@ interface ClientWithScripts {
   service_type: string;
   city: string;
   logo_url?: string;
+  business_name?: string;
+  owners_name?: string;
   created_at: string;
   scripts: ScriptWithType[];
 }
@@ -100,6 +102,23 @@ export default function Dashboard() {
         (logosData || []).map(l => [l.client_id, l.field_value])
       );
 
+      // Get business names and owner names
+      const { data: businessNamesData } = await supabase
+        .from("client_details")
+        .select("client_id, field_name, field_value")
+        .in("field_name", ["business_name", "owners_name"]);
+
+      const businessNamesMap = new Map<string, string>();
+      const ownersNamesMap = new Map<string, string>();
+      
+      (businessNamesData || []).forEach(detail => {
+        if (detail.field_name === "business_name") {
+          businessNamesMap.set(detail.client_id, detail.field_value);
+        } else if (detail.field_name === "owners_name") {
+          ownersNamesMap.set(detail.client_id, detail.field_value);
+        }
+      });
+
       // Group scripts by client
       const clientsWithScripts: ClientWithScripts[] = (clientsData || [])
         .map((client) => {
@@ -119,6 +138,8 @@ export default function Dashboard() {
             service_type: client.service_type,
             city: client.city,
             logo_url: logosMap.get(client.id),
+            business_name: businessNamesMap.get(client.id),
+            owners_name: ownersNamesMap.get(client.id),
             created_at: client.created_at,
             scripts: clientScripts,
           };
@@ -256,11 +277,16 @@ export default function Dashboard() {
                     </Link>
                     <div className="flex-1 min-w-0">
                       <CardTitle className="text-base line-clamp-1 mb-1">
-                        {client.name}
+                        {client.business_name || client.name}
                       </CardTitle>
-                      <CardDescription className="text-xs capitalize">
-                        {client.service_type}
-                        {client.city && ` • ${client.city}`}
+                      <CardDescription className="text-xs">
+                        {client.owners_name && (
+                          <span className="block mb-0.5">{client.owners_name}</span>
+                        )}
+                        <span className="capitalize">
+                          {client.service_type}
+                          {client.city && ` • ${client.city}`}
+                        </span>
                       </CardDescription>
                     </div>
                   </div>
