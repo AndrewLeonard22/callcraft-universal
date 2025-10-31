@@ -210,8 +210,8 @@ export default function Dashboard() {
         ) : (
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
             {filteredScripts.map((script) => (
-              <Link key={script.id} to={`/script/${script.id}`}>
-                <Card className="group hover:border-primary/50 transition-all cursor-pointer h-full">
+              <Card key={script.id} className="group hover:border-primary/50 transition-all h-full flex flex-col">
+                <Link to={`/script/${script.id}`} className="flex-1">
                   <CardHeader className="pb-3">
                     <div className="flex items-start gap-3">
                       <div className="h-12 w-12 rounded-lg overflow-hidden bg-muted flex-shrink-0 border border-border">
@@ -238,8 +238,22 @@ export default function Dashboard() {
                       <span>{format(new Date(script.created_at), "MMM d, yyyy")}</span>
                     </div>
                   </CardContent>
-                </Card>
-              </Link>
+                </Link>
+                <CardContent className="pt-0 pb-4">
+                  <div className="flex gap-2">
+                    <Link to={`/script/${script.id}`} className="flex-1">
+                      <Button variant="outline" size="sm" className="w-full">
+                        View Script
+                      </Button>
+                    </Link>
+                    <Link to={`/client/${script.client.id}`}>
+                      <Button variant="outline" size="sm">
+                        Client
+                      </Button>
+                    </Link>
+                  </div>
+                </CardContent>
+              </Card>
             ))}
           </div>
         )}
