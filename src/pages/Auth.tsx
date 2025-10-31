@@ -341,27 +341,27 @@ export default function Auth() {
   return (
     <div className="min-h-screen bg-background flex items-center justify-center p-4">
       <div className="w-full max-w-md">
-        <div className="flex flex-col items-center justify-center mb-8 space-y-4">
+        <div className="flex flex-col items-center justify-center mb-6 sm:mb-8 space-y-3 sm:space-y-4">
           <img 
             src={logo} 
             alt="Social Works Logo" 
-            className="h-24 w-24 object-contain"
+            className="h-16 w-16 sm:h-24 sm:w-24 object-contain"
           />
-          <h1 className="text-4xl font-bold text-foreground tracking-tight">SOCIAL WORKS</h1>
-          <p className="text-muted-foreground text-sm">Data-driven growth platform</p>
+          <h1 className="text-3xl sm:text-4xl font-bold text-foreground tracking-tight">SOCIAL WORKS</h1>
+          <p className="text-muted-foreground text-xs sm:text-sm">Data-driven growth platform</p>
         </div>
 
         <Tabs defaultValue="login" className="w-full">
-          <TabsList className="grid w-full grid-cols-2 bg-muted">
-            <TabsTrigger value="login" className="data-[state=active]:bg-background data-[state=active]:shadow-sm">Login</TabsTrigger>
-            <TabsTrigger value="signup" className="data-[state=active]:bg-background data-[state=active]:shadow-sm">Sign Up</TabsTrigger>
+          <TabsList className="grid w-full grid-cols-2 bg-muted mb-4 sm:mb-6">
+            <TabsTrigger value="login" className="data-[state=active]:bg-background data-[state=active]:shadow-sm text-sm sm:text-base">Login</TabsTrigger>
+            <TabsTrigger value="signup" className="data-[state=active]:bg-background data-[state=active]:shadow-sm text-sm sm:text-base">Sign Up</TabsTrigger>
           </TabsList>
 
           <TabsContent value="login">
             <Card className="border-border shadow-medium">
               <CardHeader>
-                <CardTitle className="text-2xl font-bold">Welcome back</CardTitle>
-                <CardDescription>
+                <CardTitle className="text-xl sm:text-2xl font-bold">Welcome back</CardTitle>
+                <CardDescription className="text-sm sm:text-base">
                   Enter your credentials to access your account
                 </CardDescription>
               </CardHeader>
@@ -413,8 +413,8 @@ export default function Auth() {
           <TabsContent value="signup">
             <Card className="border-border shadow-medium">
               <CardHeader>
-                <CardTitle className="text-2xl font-bold">Create an account</CardTitle>
-                <CardDescription>
+                <CardTitle className="text-xl sm:text-2xl font-bold">Create an account</CardTitle>
+                <CardDescription className="text-sm sm:text-base">
                   Enter your information to get started
                 </CardDescription>
               </CardHeader>

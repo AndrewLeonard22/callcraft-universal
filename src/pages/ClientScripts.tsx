@@ -192,41 +192,44 @@ export default function ClientScripts() {
 
   return (
     <div className="min-h-screen bg-background">
-      <div className="container mx-auto px-6 py-8 max-w-6xl">
+      <div className="container mx-auto px-4 sm:px-6 py-6 sm:py-8 max-w-6xl">
         <Link to="/">
-          <Button variant="ghost" size="sm" className="mb-6">
+          <Button variant="ghost" size="sm" className="mb-4 sm:mb-6">
             <ArrowLeft className="mr-2 h-4 w-4" />
-            Back to Dashboard
+            <span className="hidden sm:inline">Back to Dashboard</span>
+            <span className="sm:hidden">Back</span>
           </Button>
         </Link>
 
-        <div className="mb-8 flex items-start justify-between">
-          <div className="flex items-start gap-4">
-            <div className="h-16 w-16 rounded-lg overflow-hidden bg-muted flex-shrink-0 border border-border shadow-sm">
+        <div className="mb-6 sm:mb-8 flex flex-col sm:flex-row items-start justify-between gap-4">
+          <div className="flex items-start gap-3 sm:gap-4 w-full sm:w-auto">
+            <div className="h-14 w-14 sm:h-16 sm:w-16 rounded-lg overflow-hidden bg-muted flex-shrink-0 border border-border shadow-sm">
               <img 
                 src={getClientLogo(client.service_type, client.logo_url)} 
                 alt={`${client.name} logo`}
                 className="h-full w-full object-cover"
               />
             </div>
-            <div>
-              <h1 className="text-3xl font-bold mb-1">{client.name}</h1>
-              <p className="text-muted-foreground">
+            <div className="min-w-0 flex-1">
+              <h1 className="text-2xl sm:text-3xl font-bold mb-1 break-words">{client.name}</h1>
+              <p className="text-sm sm:text-base text-muted-foreground">
                 {client.service_type} {client.city && `• ${client.city}`}
               </p>
             </div>
           </div>
-          <div className="flex gap-2">
-            <Link to={`/edit/${clientId}`}>
-              <Button variant="outline">
+          <div className="flex gap-2 w-full sm:w-auto">
+            <Link to={`/edit/${clientId}`} className="flex-1 sm:flex-none">
+              <Button variant="outline" className="w-full sm:w-auto">
                 <Edit2 className="mr-2 h-4 w-4" />
-                Edit Client
+                <span className="hidden sm:inline">Edit Client</span>
+                <span className="sm:hidden">Edit</span>
               </Button>
             </Link>
-            <Link to={`/create-script/${clientId}`}>
-              <Button>
+            <Link to={`/create-script/${clientId}`} className="flex-1 sm:flex-none">
+              <Button className="w-full sm:w-auto">
                 <Plus className="mr-2 h-4 w-4" />
-                Add Script
+                <span className="hidden sm:inline">Add Script</span>
+                <span className="sm:hidden">Add</span>
               </Button>
             </Link>
           </div>
@@ -249,7 +252,7 @@ export default function ClientScripts() {
             </CardContent>
           </Card>
         ) : (
-          <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
+          <div className="grid gap-4 grid-cols-1 sm:grid-cols-2 lg:grid-cols-3">
             {scripts.map((script) => (
               <Card key={script.id} className="group hover:border-primary/50 transition-all overflow-hidden">
                 <div className="w-full h-40 bg-muted/20 overflow-hidden border-b border-border/50 relative">

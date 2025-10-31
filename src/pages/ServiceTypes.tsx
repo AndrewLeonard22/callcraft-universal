@@ -203,17 +203,18 @@ export default function ServiceTypes() {
 
   return (
     <div className="min-h-screen bg-background">
-      <div className="container mx-auto px-6 py-8 max-w-5xl">
-        <div className="flex items-center justify-between mb-8">
-          <div>
-            <h1 className="text-3xl font-bold mb-1">Service Types</h1>
+      <div className="container mx-auto px-4 sm:px-6 py-6 sm:py-8 max-w-5xl">
+        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 mb-6 sm:mb-8">
+          <div className="min-w-0">
+            <h1 className="text-2xl sm:text-3xl font-bold mb-1">Service Types</h1>
             <p className="text-sm text-muted-foreground">
               Manage service types and their icons
             </p>
           </div>
-          <div className="flex gap-3">
-            <Button variant="outline" onClick={() => navigate("/")}>
-              Back to Dashboard
+          <div className="flex gap-2 sm:gap-3">
+            <Button variant="outline" onClick={() => navigate("/")} className="flex-1 sm:flex-none">
+              <span className="hidden sm:inline">Back to Dashboard</span>
+              <span className="sm:hidden">Back</span>
             </Button>
             <Button onClick={() => {
               setEditingService(null);
@@ -221,9 +222,10 @@ export default function ServiceTypes() {
               setIconFile(null);
               setIconPreview(null);
               setShowCreateForm(!showCreateForm);
-            }}>
+            }} className="flex-1 sm:flex-none">
               <Plus className="mr-2 h-4 w-4" />
-              New Service Type
+              <span className="hidden sm:inline">New Service Type</span>
+              <span className="sm:hidden">New</span>
             </Button>
           </div>
         </div>
@@ -310,7 +312,7 @@ export default function ServiceTypes() {
             </CardContent>
           </Card>
         ) : (
-          <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
+          <div className="grid gap-4 grid-cols-1 sm:grid-cols-2 lg:grid-cols-3">
             {serviceTypes.map((serviceType) => (
               <Card key={serviceType.id}>
                 <CardHeader>

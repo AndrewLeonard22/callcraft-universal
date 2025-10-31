@@ -265,56 +265,89 @@ export default function Dashboard() {
     <div className="min-h-screen bg-background">
       {/* Premium Header */}
       <div className="border-b border-border/50 bg-card/30 backdrop-blur-xl sticky top-0 z-50">
-        <div className="container mx-auto px-6 py-6 max-w-7xl">
-          <div className="flex items-center justify-between">
-            <div className="flex items-center gap-4">
+        <div className="container mx-auto px-4 sm:px-6 py-4 sm:py-6 max-w-7xl">
+          <div className="flex items-center justify-between gap-2">
+            <div className="flex items-center gap-2 sm:gap-4 min-w-0">
               <img 
                 src={socialWorksLogo} 
                 alt="Social Works" 
-                className="h-10 w-auto"
+                className="h-8 sm:h-10 w-auto flex-shrink-0"
               />
-              <div className="h-8 w-px bg-border/50" />
-              <div>
-                <h1 className="text-2xl font-semibold tracking-tight">Companies</h1>
-                <p className="text-sm text-muted-foreground">
+              <div className="h-6 sm:h-8 w-px bg-border/50 hidden sm:block" />
+              <div className="min-w-0">
+                <h1 className="text-lg sm:text-2xl font-semibold tracking-tight truncate">Companies</h1>
+                <p className="text-xs sm:text-sm text-muted-foreground hidden sm:block">
                   {clients.length} {clients.length === 1 ? 'company' : 'companies'} total
                 </p>
               </div>
             </div>
             
-            <div className="flex items-center gap-2">
-              <Link to="/team">
-                <Button variant="outline" size="default" className="gap-2 shadow-sm hover:shadow transition-shadow">
-                  <Users className="h-4 w-4" />
-                  Team
-                </Button>
-              </Link>
-              <Link to="/service-types">
-                <Button variant="outline" size="default" className="gap-2 shadow-sm hover:shadow transition-shadow">
-                  <Settings className="h-4 w-4" />
-                  Services
-                </Button>
-              </Link>
-              <Link to="/templates">
-                <Button variant="outline" size="default" className="gap-2 shadow-sm hover:shadow transition-shadow">
-                  <FileText className="h-4 w-4" />
-                  Templates
-                </Button>
-              </Link>
+            <div className="flex items-center gap-1 sm:gap-2 flex-shrink-0">
+              {/* Desktop Navigation */}
+              <div className="hidden lg:flex items-center gap-2">
+                <Link to="/team">
+                  <Button variant="outline" size="default" className="gap-2 shadow-sm hover:shadow transition-shadow">
+                    <Users className="h-4 w-4" />
+                    Team
+                  </Button>
+                </Link>
+                <Link to="/service-types">
+                  <Button variant="outline" size="default" className="gap-2 shadow-sm hover:shadow transition-shadow">
+                    <Settings className="h-4 w-4" />
+                    Services
+                  </Button>
+                </Link>
+                <Link to="/templates">
+                  <Button variant="outline" size="default" className="gap-2 shadow-sm hover:shadow transition-shadow">
+                    <FileText className="h-4 w-4" />
+                    Templates
+                  </Button>
+                </Link>
+              </div>
+              
+              {/* Mobile Menu */}
+              <DropdownMenu>
+                <DropdownMenuTrigger asChild className="lg:hidden">
+                  <Button variant="outline" size="icon" className="shadow-sm">
+                    <Settings className="h-4 w-4" />
+                  </Button>
+                </DropdownMenuTrigger>
+                <DropdownMenuContent align="end" className="w-48 bg-background">
+                  <DropdownMenuItem asChild>
+                    <Link to="/team" className="flex items-center cursor-pointer">
+                      <Users className="mr-2 h-4 w-4" />
+                      <span>Team</span>
+                    </Link>
+                  </DropdownMenuItem>
+                  <DropdownMenuItem asChild>
+                    <Link to="/service-types" className="flex items-center cursor-pointer">
+                      <Settings className="mr-2 h-4 w-4" />
+                      <span>Services</span>
+                    </Link>
+                  </DropdownMenuItem>
+                  <DropdownMenuItem asChild>
+                    <Link to="/templates" className="flex items-center cursor-pointer">
+                      <FileText className="mr-2 h-4 w-4" />
+                      <span>Templates</span>
+                    </Link>
+                  </DropdownMenuItem>
+                </DropdownMenuContent>
+              </DropdownMenu>
+              
               <Link to="/create">
                 <Button size="default" className="gap-2 shadow-md hover:shadow-lg transition-all bg-gradient-to-r from-primary to-primary/90">
                   <Plus className="h-4 w-4" />
-                  New Company
+                  <span className="hidden sm:inline">New Company</span>
                 </Button>
               </Link>
               
               {/* User Menu */}
               <DropdownMenu>
                 <DropdownMenuTrigger asChild>
-                  <Button variant="ghost" className="relative h-10 w-10 rounded-full">
-                    <Avatar className="h-10 w-10">
+                  <Button variant="ghost" className="relative h-9 w-9 sm:h-10 sm:w-10 rounded-full">
+                    <Avatar className="h-9 w-9 sm:h-10 sm:w-10">
                       <AvatarImage src={profile?.avatar_url} alt={profile?.display_name || "User"} />
-                      <AvatarFallback className="bg-primary text-primary-foreground">
+                      <AvatarFallback className="bg-primary text-primary-foreground text-xs sm:text-sm">
                         {getUserInitials()}
                       </AvatarFallback>
                     </Avatar>
@@ -323,8 +356,8 @@ export default function Dashboard() {
                 <DropdownMenuContent className="w-56 bg-background" align="end" forceMount>
                   <DropdownMenuLabel className="font-normal">
                     <div className="flex flex-col space-y-1">
-                      <p className="text-sm font-medium leading-none">{profile?.display_name || "User"}</p>
-                      <p className="text-xs leading-none text-muted-foreground">
+                      <p className="text-sm font-medium leading-none truncate">{profile?.display_name || "User"}</p>
+                      <p className="text-xs leading-none text-muted-foreground truncate">
                         {user?.email}
                       </p>
                     </div>
@@ -345,22 +378,22 @@ export default function Dashboard() {
         </div>
       </div>
 
-      <div className="container mx-auto px-6 py-8 max-w-7xl">
+      <div className="container mx-auto px-4 sm:px-6 py-6 sm:py-8 max-w-7xl">
         {/* Search Bar */}
         {!loading && clients.length > 0 && (
-          <div className="mb-8">
+          <div className="mb-6 sm:mb-8">
             <div className="relative max-w-md">
-              <Search className="absolute left-4 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+              <Search className="absolute left-3 sm:left-4 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
               <Input
                 type="text"
-                placeholder="Search companies, services, locations..."
+                placeholder="Search companies..."
                 value={searchQuery}
                 onChange={(e) => setSearchQuery(e.target.value)}
-                className="pl-11 h-12 bg-card shadow-sm border-border/50 focus:border-primary/50 transition-colors"
+                className="pl-10 sm:pl-11 h-10 sm:h-12 bg-card shadow-sm border-border/50 focus:border-primary/50 transition-colors text-sm sm:text-base"
               />
             </div>
             {searchQuery && (
-              <p className="text-sm text-muted-foreground mt-3">
+              <p className="text-xs sm:text-sm text-muted-foreground mt-2 sm:mt-3">
                 Found {filteredClients.length} {filteredClients.length === 1 ? 'result' : 'results'}
               </p>
             )}

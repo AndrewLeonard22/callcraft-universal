@@ -145,25 +145,26 @@ export default function CreateClient() {
     <div className="min-h-screen bg-background">
       {/* Premium Header */}
       <div className="border-b border-border/50 bg-card/30 backdrop-blur-xl">
-        <div className="container mx-auto px-6 py-4 max-w-4xl">
+        <div className="container mx-auto px-4 sm:px-6 py-4 max-w-4xl">
           <Link to="/">
             <Button variant="ghost" size="sm" className="gap-2 hover:bg-muted/50 transition-colors">
               <ArrowLeft className="h-4 w-4" />
-              Back to Dashboard
+              <span className="hidden sm:inline">Back to Dashboard</span>
+              <span className="sm:hidden">Back</span>
             </Button>
           </Link>
         </div>
       </div>
 
-      <div className="container mx-auto px-6 py-8 max-w-4xl">
+      <div className="container mx-auto px-4 sm:px-6 py-6 sm:py-8 max-w-4xl">
         {/* Page Header */}
-        <div className="mb-8 flex items-start gap-4">
-          <div className="h-14 w-14 rounded-2xl bg-gradient-to-br from-primary to-accent flex items-center justify-center shadow-md">
-            <Building2 className="h-7 w-7 text-white" />
+        <div className="mb-6 sm:mb-8 flex items-start gap-3 sm:gap-4">
+          <div className="h-12 w-12 sm:h-14 sm:w-14 rounded-2xl bg-gradient-to-br from-primary to-accent flex items-center justify-center shadow-md flex-shrink-0">
+            <Building2 className="h-6 w-6 sm:h-7 sm:w-7 text-white" />
           </div>
-          <div className="flex-1">
-            <h1 className="text-3xl font-semibold tracking-tight mb-2">Create New Company</h1>
-            <p className="text-muted-foreground">
+          <div className="flex-1 min-w-0">
+            <h1 className="text-2xl sm:text-3xl font-semibold tracking-tight mb-1 sm:mb-2">Create New Company</h1>
+            <p className="text-sm sm:text-base text-muted-foreground">
               Add a new company profile to get started with call scripts
             </p>
           </div>
@@ -182,13 +183,14 @@ export default function CreateClient() {
             </CardHeader>
             <CardContent>
               <Tabs defaultValue="business" className="w-full">
-                <TabsList className="grid w-full grid-cols-2 mb-6 bg-muted/50">
-                  <TabsTrigger value="business" className="gap-2 data-[state=active]:shadow-sm">
-                    <Building2 className="h-4 w-4" />
-                    Business Info
+                <TabsList className="grid w-full grid-cols-2 mb-4 sm:mb-6 bg-muted/50">
+                  <TabsTrigger value="business" className="gap-2 data-[state=active]:shadow-sm text-sm sm:text-base">
+                    <Building2 className="h-3 w-3 sm:h-4 sm:w-4" />
+                    <span className="hidden sm:inline">Business Info</span>
+                    <span className="sm:hidden">Business</span>
                   </TabsTrigger>
-                  <TabsTrigger value="links" className="gap-2 data-[state=active]:shadow-sm">
-                    <Link2 className="h-4 w-4" />
+                  <TabsTrigger value="links" className="gap-2 data-[state=active]:shadow-sm text-sm sm:text-base">
+                    <Link2 className="h-3 w-3 sm:h-4 sm:w-4" />
                     Links
                   </TabsTrigger>
                 </TabsList>
@@ -418,7 +420,7 @@ export default function CreateClient() {
           <Button
             onClick={handleGenerate}
             disabled={loading}
-            className="w-full h-12 text-base font-medium shadow-md hover:shadow-lg transition-all bg-gradient-to-r from-primary to-primary/90 gap-2"
+            className="w-full h-11 sm:h-12 text-sm sm:text-base font-medium shadow-md hover:shadow-lg transition-all bg-gradient-to-r from-primary to-primary/90 gap-2"
             size="lg"
           >
             {loading ? (

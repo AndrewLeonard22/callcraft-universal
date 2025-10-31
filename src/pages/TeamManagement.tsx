@@ -422,19 +422,20 @@ export default function TeamManagement() {
   }
 
   return (
-    <div className="min-h-screen bg-background p-6">
-      <div className="max-w-5xl mx-auto space-y-6">
-        <div className="flex items-center gap-4">
+    <div className="min-h-screen bg-background p-4 sm:p-6">
+      <div className="max-w-5xl mx-auto space-y-4 sm:space-y-6">
+        <div className="flex items-center gap-3 sm:gap-4">
           <Button
             variant="outline"
             size="icon"
             onClick={() => navigate("/")}
+            className="flex-shrink-0"
           >
             <ArrowLeft className="h-4 w-4" />
           </Button>
-          <div>
-            <h1 className="text-3xl font-bold">Team Management</h1>
-            <p className="text-muted-foreground">{organization?.name}</p>
+          <div className="min-w-0">
+            <h1 className="text-2xl sm:text-3xl font-bold truncate">Team Management</h1>
+            <p className="text-sm sm:text-base text-muted-foreground truncate">{organization?.name}</p>
           </div>
         </div>
 
@@ -513,55 +514,59 @@ export default function TeamManagement() {
               </CardDescription>
             </CardHeader>
             <CardContent>
-              <Table>
-                <TableHeader>
-                  <TableRow>
-                    <TableHead>Email</TableHead>
-                    <TableHead>Role</TableHead>
-                    <TableHead>Invited By</TableHead>
-                    <TableHead>Expires</TableHead>
-                    <TableHead className="text-right">Actions</TableHead>
-                  </TableRow>
-                </TableHeader>
-                <TableBody>
-                  {pendingInvitations.map((invitation) => (
-                    <TableRow key={invitation.id}>
-                      <TableCell>
-                        <div className="flex items-center gap-2">
-                          <span className="font-medium">{invitation.email}</span>
-                          <Badge variant="outline" className="text-xs">Pending</Badge>
-                        </div>
-                      </TableCell>
-                      <TableCell>
-                        <Badge variant={invitation.role === "admin" ? "secondary" : "outline"}>
-                          {invitation.role === "admin" && <Shield className="h-3 w-3 mr-1" />}
-                          {invitation.role === "member" && <UserIcon className="h-3 w-3 mr-1" />}
-                          <span className="capitalize">{invitation.role}</span>
-                        </Badge>
-                      </TableCell>
-                      <TableCell>
-                        <span className="text-sm text-muted-foreground">
-                          {invitation.inviter_profile?.display_name || "Unknown"}
-                        </span>
-                      </TableCell>
-                      <TableCell>
-                        <span className="text-sm text-muted-foreground">
-                          {new Date(invitation.expires_at).toLocaleDateString()}
-                        </span>
-                      </TableCell>
-                      <TableCell className="text-right">
-                        <Button
-                          variant="outline"
-                          size="sm"
-                          onClick={() => confirmCancelInvitation(invitation)}
-                        >
-                          Cancel
-                        </Button>
-                      </TableCell>
-                    </TableRow>
-                  ))}
-                </TableBody>
-              </Table>
+              <div className="overflow-x-auto -mx-6 sm:mx-0">
+                <div className="inline-block min-w-full align-middle px-6 sm:px-0">
+                  <Table>
+                    <TableHeader>
+                      <TableRow>
+                        <TableHead className="min-w-[200px]">Email</TableHead>
+                        <TableHead className="min-w-[100px]">Role</TableHead>
+                        <TableHead className="min-w-[120px]">Invited By</TableHead>
+                        <TableHead className="min-w-[100px]">Expires</TableHead>
+                        <TableHead className="text-right min-w-[100px]">Actions</TableHead>
+                      </TableRow>
+                    </TableHeader>
+                    <TableBody>
+                      {pendingInvitations.map((invitation) => (
+                        <TableRow key={invitation.id}>
+                          <TableCell>
+                            <div className="flex items-center gap-2">
+                              <span className="font-medium">{invitation.email}</span>
+                              <Badge variant="outline" className="text-xs">Pending</Badge>
+                            </div>
+                          </TableCell>
+                          <TableCell>
+                            <Badge variant={invitation.role === "admin" ? "secondary" : "outline"}>
+                              {invitation.role === "admin" && <Shield className="h-3 w-3 mr-1" />}
+                              {invitation.role === "member" && <UserIcon className="h-3 w-3 mr-1" />}
+                              <span className="capitalize">{invitation.role}</span>
+                            </Badge>
+                          </TableCell>
+                          <TableCell>
+                            <span className="text-sm text-muted-foreground">
+                              {invitation.inviter_profile?.display_name || "Unknown"}
+                            </span>
+                          </TableCell>
+                          <TableCell>
+                            <span className="text-sm text-muted-foreground">
+                              {new Date(invitation.expires_at).toLocaleDateString()}
+                            </span>
+                          </TableCell>
+                          <TableCell className="text-right">
+                            <Button
+                              variant="outline"
+                              size="sm"
+                              onClick={() => confirmCancelInvitation(invitation)}
+                            >
+                              Cancel
+                            </Button>
+                          </TableCell>
+                        </TableRow>
+                      ))}
+                    </TableBody>
+                  </Table>
+                </div>
+              </div>
             </CardContent>
           </Card>
         )}
@@ -575,75 +580,79 @@ export default function TeamManagement() {
             </CardDescription>
           </CardHeader>
           <CardContent>
-            <Table>
-              <TableHeader>
-                <TableRow>
-                  <TableHead>Member</TableHead>
-                  <TableHead>Role</TableHead>
-                  <TableHead>Joined</TableHead>
-                  <TableHead className="text-right">Actions</TableHead>
-                </TableRow>
-              </TableHeader>
-              <TableBody>
-                {members.map((member) => (
-                  <TableRow key={member.id}>
-                    <TableCell>
-                      <div className="flex flex-col">
-                        <span className="font-medium">
-                          {member.profiles?.display_name || "Unknown User"}
-                        </span>
-                        {member.profiles?.username && (
-                          <span className="text-sm text-muted-foreground">
-                            @{member.profiles.username}
-                          </span>
-                        )}
-                      </div>
-                    </TableCell>
-                    <TableCell>
-                      <Badge
-                        variant={getRoleBadgeVariant(member.role)}
-                        className="flex items-center gap-1 w-fit"
-                      >
-                        {getRoleIcon(member.role)}
-                        <span className="capitalize">{member.role}</span>
-                      </Badge>
-                    </TableCell>
-                    <TableCell>
-                      {new Date(member.created_at).toLocaleDateString()}
-                    </TableCell>
-                    <TableCell className="text-right">
-                      {member.role !== "owner" && member.user_id !== user?.id && (
-                        <div className="flex justify-end gap-2">
-                          {userRole === "owner" && (
-                            <Select
-                              value={member.role}
-                              onValueChange={(value: "admin" | "member") =>
-                                handleRoleChange(member.id, value)
-                              }
-                            >
-                              <SelectTrigger className="w-32">
-                                <SelectValue />
-                              </SelectTrigger>
-                              <SelectContent>
-                                <SelectItem value="member">Member</SelectItem>
-                                <SelectItem value="admin">Admin</SelectItem>
-                              </SelectContent>
-                            </Select>
-                          )}
-                          <Button
-                            variant="outline"
-                            size="icon"
-                            onClick={() => confirmDeleteMember(member)}
+            <div className="overflow-x-auto -mx-6 sm:mx-0">
+              <div className="inline-block min-w-full align-middle px-6 sm:px-0">
+                <Table>
+                  <TableHeader>
+                    <TableRow>
+                      <TableHead className="min-w-[200px]">Member</TableHead>
+                      <TableHead className="min-w-[120px]">Role</TableHead>
+                      <TableHead className="min-w-[100px]">Joined</TableHead>
+                      <TableHead className="text-right min-w-[150px]">Actions</TableHead>
+                    </TableRow>
+                  </TableHeader>
+                  <TableBody>
+                    {members.map((member) => (
+                      <TableRow key={member.id}>
+                        <TableCell>
+                          <div className="flex flex-col">
+                            <span className="font-medium">
+                              {member.profiles?.display_name || "Unknown User"}
+                            </span>
+                            {member.profiles?.username && (
+                              <span className="text-sm text-muted-foreground">
+                                @{member.profiles.username}
+                              </span>
+                            )}
+                          </div>
+                        </TableCell>
+                        <TableCell>
+                          <Badge
+                            variant={getRoleBadgeVariant(member.role)}
+                            className="flex items-center gap-1 w-fit"
                           >
-                            <Trash2 className="h-4 w-4" />
-                          </Button>
-                        </div>
-                      )}
-                    </TableCell>
-                  </TableRow>
-                ))}
-              </TableBody>
-            </Table>
+                            {getRoleIcon(member.role)}
+                            <span className="capitalize">{member.role}</span>
+                          </Badge>
+                        </TableCell>
+                        <TableCell>
+                          <span className="text-sm">{new Date(member.created_at).toLocaleDateString()}</span>
+                        </TableCell>
+                        <TableCell className="text-right">
+                          {member.role !== "owner" && member.user_id !== user?.id && (
+                            <div className="flex justify-end gap-2">
+                              {userRole === "owner" && (
+                                <Select
+                                  value={member.role}
+                                  onValueChange={(value: "admin" | "member") =>
+                                    handleRoleChange(member.id, value)
+                                  }
+                                >
+                                  <SelectTrigger className="w-32">
+                                    <SelectValue />
+                                  </SelectTrigger>
+                                  <SelectContent>
+                                    <SelectItem value="member">Member</SelectItem>
+                                    <SelectItem value="admin">Admin</SelectItem>
+                                  </SelectContent>
+                                </Select>
+                              )}
+                              <Button
+                                variant="outline"
+                                size="icon"
+                                onClick={() => confirmDeleteMember(member)}
+                              >
+                                <Trash2 className="h-4 w-4" />
+                              </Button>
+                            </div>
+                          )}
+                        </TableCell>
+                      </TableRow>
+                    ))}
+                  </TableBody>
+                </Table>
+              </div>
+            </div>
           </CardContent>
         </Card>
       </div>
