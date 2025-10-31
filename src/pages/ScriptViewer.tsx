@@ -259,16 +259,67 @@ export default function ScriptViewer() {
       
       // Process the text to find and replace patterns
       while (remaining.length > 0) {
+        // Color formatting: {red:text}, {blue:text}, {green:text}, {yellow:text}
+        const colorMatch = remaining.match(/\{(red|blue|green|yellow|purple|orange):([^}]+)\}/);
+        if (colorMatch && colorMatch.index !== undefined) {
+          if (colorMatch.index > 0) {
+            parts.push(remaining.substring(0, colorMatch.index));
+          }
+          const colorClass = {
+            red: 'text-red-600 dark:text-red-400',
+            blue: 'text-blue-600 dark:text-blue-400',
+            green: 'text-green-600 dark:text-green-400',
+            yellow: 'text-yellow-600 dark:text-yellow-400',
+            purple: 'text-purple-600 dark:text-purple-400',
+            orange: 'text-orange-600 dark:text-orange-400',
+          }[colorMatch[1]];
+          parts.push(
+            <span key={`color-${key++}`} className={`${colorClass} font-medium`}>
+              {colorMatch[2]}
+            </span>
+          );
+          remaining = remaining.substring(colorMatch.index + colorMatch[0].length);
+          continue;
+        }
+        
+        // Large text: ^text^
+        const largeMatch = remaining.match(/\^([^^]+)\^/);
+        if (largeMatch && largeMatch.index !== undefined) {
+          if (largeMatch.index > 0) {
+            parts.push(remaining.substring(0, largeMatch.index));
+          }
+          parts.push(
+            <span key={`large-${key++}`} className="text-lg font-semibold">
+              {largeMatch[1]}
+            </span>
+          );
+          remaining = remaining.substring(largeMatch.index + largeMatch[0].length);
+          continue;
+        }
+        
+        // Small text: ~text~
+        const smallMatch = remaining.match(/~([^~]+)~/);
+        if (smallMatch && smallMatch.index !== undefined) {
+          if (smallMatch.index > 0) {
+            parts.push(remaining.substring(0, smallMatch.index));
+          }
+          parts.push(
+            <span key={`small-${key++}`} className="text-xs">
+              {smallMatch[1]}
+            </span>
+          );
+          remaining = remaining.substring(smallMatch.index + smallMatch[0].length);
+          continue;
+        }
+        
         // Check for [bracketed text]
         const bracketMatch = remaining.match(/\[([^\]]+)\]/);
         if (bracketMatch && bracketMatch.index !== undefined) {
-          // Add text before match
           if (bracketMatch.index > 0) {
             parts.push(remaining.substring(0, bracketMatch.index));
           }
-          // Add highlighted span
           parts.push(
-            <span key={`bracket-${key++}`} className="bg-primary/5 text-primary font-medium px-1.5 py-0.5 rounded">
+            <span key={`bracket-${key++}`} className="bg-yellow-500/20 text-yellow-700 dark:text-yellow-400 font-medium px-2 py-0.5 rounded">
               {bracketMatch[1]}
             </span>
           );
@@ -279,14 +330,12 @@ export default function ScriptViewer() {
         // Check for "quoted text"
         const quoteMatch = remaining.match(/"([^"]+)"/);
         if (quoteMatch && quoteMatch.index !== undefined) {
-          // Add text before match
           if (quoteMatch.index > 0) {
             parts.push(remaining.substring(0, quoteMatch.index));
           }
-          // Add highlighted span
           parts.push(
-            <span key={`quote-${key++}`} className="bg-accent/5 text-accent font-medium px-1 rounded">
-              {quoteMatch[1]}
+            <span key={`quote-${key++}`} className="bg-blue-500/20 text-blue-700 dark:text-blue-400 font-medium px-1.5 rounded italic">
+              "{quoteMatch[1]}"
             </span>
           );
           remaining = remaining.substring(quoteMatch.index + quoteMatch[0].length);
@@ -296,13 +345,11 @@ export default function ScriptViewer() {
         // Check for **bold text**
         const boldMatch = remaining.match(/\*\*([^*]+)\*\*/);
         if (boldMatch && boldMatch.index !== undefined) {
-          // Add text before match
           if (boldMatch.index > 0) {
             parts.push(remaining.substring(0, boldMatch.index));
           }
-          // Add bold text
           parts.push(
-            <strong key={`bold-${key++}`} className="font-bold text-foreground">
+            <strong key={`bold-${key++}`} className="font-bold">
               {boldMatch[1]}
             </strong>
           );
@@ -310,14 +357,27 @@ export default function ScriptViewer() {
           continue;
         }
         
+        // Check for __bold text__
+        const underscoreMatch = remaining.match(/__([^_]+)__/);
+        if (underscoreMatch && underscoreMatch.index !== undefined) {
+          if (underscoreMatch.index > 0) {
+            parts.push(remaining.substring(0, underscoreMatch.index));
+          }
+          parts.push(
+            <strong key={`underscore-${key++}`} className="font-bold">
+              {underscoreMatch[1]}
+            </strong>
+          );
+          remaining = remaining.substring(underscoreMatch.index + underscoreMatch[0].length);
+          continue;
+        }
+        
         // Check for *italic/semibold text*
         const italicMatch = remaining.match(/\*([^*]+)\*/);
         if (italicMatch && italicMatch.index !== undefined) {
-          // Add text before match
           if (italicMatch.index > 0) {
             parts.push(remaining.substring(0, italicMatch.index));
           }
-          // Add semibold text
           parts.push(
             <strong key={`semi-${key++}`} className="font-semibold">
               {italicMatch[1]}
