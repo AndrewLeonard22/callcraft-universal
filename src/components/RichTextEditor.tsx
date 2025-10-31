@@ -1,5 +1,5 @@
 import { useState, useRef } from "react";
-import { Bold, Highlighter, Quote } from "lucide-react";
+import { Bold, Highlighter, Quote, Type } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
 import { Label } from "@/components/ui/label";
@@ -63,6 +63,20 @@ const FormattedPreview = ({ content }: { content: string }) => {
         continue;
       }
       
+      const uppercaseMatch = remaining.match(/__([^_]+)__/);
+      if (uppercaseMatch && uppercaseMatch.index !== undefined) {
+        if (uppercaseMatch.index > 0) {
+          parts.push(remaining.substring(0, uppercaseMatch.index));
+        }
+        parts.push(
+          <span key={`uppercase-${key++}`} className="uppercase font-semibold">
+            {uppercaseMatch[1]}
+          </span>
+        );
+        remaining = remaining.substring(uppercaseMatch.index + uppercaseMatch[0].length);
+        continue;
+      }
+      
       parts.push(remaining);
       break;
     }
@@ -97,7 +111,7 @@ export function RichTextEditor({
   const textareaRef = useRef<HTMLTextAreaElement>(null);
   const [showPreview, setShowPreview] = useState(false);
 
-  const applyFormat = (formatType: 'bold' | 'highlight' | 'quote') => {
+  const applyFormat = (formatType: 'bold' | 'highlight' | 'quote' | 'uppercase') => {
     const textarea = textareaRef.current;
     if (!textarea) return;
 
@@ -117,6 +131,9 @@ export function RichTextEditor({
         break;
       case 'quote':
         wrapper = { before: '"', after: '"' };
+        break;
+      case 'uppercase':
+        wrapper = { before: '__', after: '__' };
         break;
     }
     
@@ -170,6 +187,17 @@ export function RichTextEditor({
               <Quote className="h-4 w-4 mr-1.5" />
               <span className="text-xs">Quote</span>
             </Button>
+            <Button
+              type="button"
+              variant="ghost"
+              size="sm"
+              className="h-8 px-3 hover:bg-background"
+              onClick={() => applyFormat('uppercase')}
+              title="Uppercase (wraps text with __)"
+            >
+              <Type className="h-4 w-4 mr-1.5" />
+              <span className="text-xs">Uppercase</span>
+            </Button>
           </div>
           <Button
             type="button"
@@ -203,7 +231,7 @@ export function RichTextEditor({
       </div>
       
       <p className="text-xs text-muted-foreground">
-        Select text and use the formatting buttons above, or type <strong>**bold**</strong>, <span className="bg-primary/10 px-1 rounded">[highlight]</span>, or <span className="italic">"quotes"</span> manually
+        Select text and use the formatting buttons above, or type <strong>**bold**</strong>, <span className="bg-primary/10 px-1 rounded">[highlight]</span>, <span className="italic">"quotes"</span>, or <span className="uppercase font-semibold">__uppercase__</span> manually
       </p>
     </div>
   );
