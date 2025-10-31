@@ -319,7 +319,7 @@ export default function ScriptViewer() {
         <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
           {/* Sticky Sidebar - Client Information */}
           <div className="lg:col-span-1">
-            <div className="sticky top-6 space-y-6">
+            <div className="sticky top-6 space-y-6 max-h-[calc(100vh-3rem)] overflow-y-auto pr-2">
               {/* Service Area Map */}
               {(client.city || getDetailValue("service_area") !== "N/A") && (
                 <Card className="border border-border shadow-sm">
