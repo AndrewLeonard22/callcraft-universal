@@ -229,12 +229,21 @@ export default function ScriptViewer() {
     };
     
     return (
-      <div className="space-y-6">
+      <div className="space-y-4">
         {lines.map((line, index) => {
+          // Main numbered sections (like "1. SECTION NAME" or "3. UNDERSTAND WHY THEY CALLED")
+          if (line.match(/^\d+\.\s+[A-Z]/)) {
+            return (
+              <h3 key={index} className="text-2xl font-bold mt-8 mb-4 first:mt-0 text-foreground">
+                {line}
+              </h3>
+            );
+          }
+          
           // Section headers (all caps or ending with colon)
           if (line.match(/^[A-Z\s]+:$/) || line.match(/^[*#]+\s*[A-Z][^a-z]*$/)) {
             return (
-              <h3 key={index} className="text-lg font-semibold mt-8 mb-4 first:mt-0 text-foreground">
+              <h3 key={index} className="text-xl font-bold mt-8 mb-4 first:mt-0 text-foreground">
                 {line.replace(/^[*#]+\s*/, '').replace(/:$/, '')}
               </h3>
             );
@@ -243,7 +252,7 @@ export default function ScriptViewer() {
           // Stage markers (like "Stage 1:", "Phase 2:")
           if (line.match(/^(Stage|Phase|Step)\s+\d+/i)) {
             return (
-              <h4 key={index} className="text-base font-medium mt-6 mb-3 text-foreground/80">
+              <h4 key={index} className="text-lg font-semibold mt-6 mb-3 text-foreground">
                 {line}
               </h4>
             );
@@ -252,7 +261,7 @@ export default function ScriptViewer() {
           // Sub-headers (lines starting with ** or ending with :)
           if (line.match(/^\*\*[^*]+\*\*/) || (line.endsWith(':') && line.length < 60 && !line.includes('.'))) {
             return (
-              <h5 key={index} className="font-medium text-sm mt-4 mb-2 text-foreground">
+              <h5 key={index} className="font-semibold text-base mt-4 mb-2 text-foreground">
                 {line.replace(/^\*\*/, '').replace(/\*\*$/, '').replace(/:$/, '')}
               </h5>
             );
@@ -260,12 +269,12 @@ export default function ScriptViewer() {
           
           // Empty lines
           if (!line.trim()) {
-            return <div key={index} className="h-3" />;
+            return <div key={index} className="h-2" />;
           }
           
           // Regular content with formatting
           return (
-            <p key={index} className="text-[15px] leading-7 text-foreground/70">
+            <p key={index} className="text-[15px] leading-relaxed text-foreground/80">
               {formatLine(line)}
             </p>
           );
