@@ -1,8 +1,15 @@
 import { useState, useRef } from "react";
-import { Bold, Highlighter, Quote, Type } from "lucide-react";
+import { Bold, Highlighter, Quote, Type, TextIcon, Palette } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
 import { Label } from "@/components/ui/label";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
 
 interface RichTextEditorProps {
   value: string;
@@ -21,6 +28,60 @@ const FormattedPreview = ({ content }: { content: string }) => {
     let key = 0;
     
     while (remaining.length > 0) {
+      // Color formatting: {red:text}, {blue:text}, {green:text}, {yellow:text}
+      const colorMatch = remaining.match(/\{(red|blue|green|yellow|purple|orange):([^}]+)\}/);
+      if (colorMatch && colorMatch.index !== undefined) {
+        if (colorMatch.index > 0) {
+          parts.push(remaining.substring(0, colorMatch.index));
+        }
+        const colorClass = {
+          red: 'text-red-600 dark:text-red-400',
+          blue: 'text-blue-600 dark:text-blue-400',
+          green: 'text-green-600 dark:text-green-400',
+          yellow: 'text-yellow-600 dark:text-yellow-400',
+          purple: 'text-purple-600 dark:text-purple-400',
+          orange: 'text-orange-600 dark:text-orange-400',
+        }[colorMatch[1]];
+        parts.push(
+          <span key={`color-${key++}`} className={`${colorClass} font-medium`}>
+            {colorMatch[2]}
+          </span>
+        );
+        remaining = remaining.substring(colorMatch.index + colorMatch[0].length);
+        continue;
+      }
+      
+      // Large text: ^text^
+      const largeMatch = remaining.match(/\^([^^]+)\^/);
+      if (largeMatch && largeMatch.index !== undefined) {
+        if (largeMatch.index > 0) {
+          parts.push(remaining.substring(0, largeMatch.index));
+        }
+        parts.push(
+          <span key={`large-${key++}`} className="text-lg font-semibold">
+            {largeMatch[1]}
+          </span>
+        );
+        remaining = remaining.substring(largeMatch.index + largeMatch[0].length);
+        continue;
+      }
+      
+      // Small text: ~text~
+      const smallMatch = remaining.match(/~([^~]+)~/);
+      if (smallMatch && smallMatch.index !== undefined) {
+        if (smallMatch.index > 0) {
+          parts.push(remaining.substring(0, smallMatch.index));
+        }
+        parts.push(
+          <span key={`small-${key++}`} className="text-xs">
+            {smallMatch[1]}
+          </span>
+        );
+        remaining = remaining.substring(smallMatch.index + smallMatch[0].length);
+        continue;
+      }
+      
+      // Bracket highlight
       const bracketMatch = remaining.match(/\[([^\]]+)\]/);
       if (bracketMatch && bracketMatch.index !== undefined) {
         if (bracketMatch.index > 0) {
@@ -35,6 +96,7 @@ const FormattedPreview = ({ content }: { content: string }) => {
         continue;
       }
       
+      // Quote formatting
       const quoteMatch = remaining.match(/"([^"]+)"/);
       if (quoteMatch && quoteMatch.index !== undefined) {
         if (quoteMatch.index > 0) {
@@ -49,13 +111,14 @@ const FormattedPreview = ({ content }: { content: string }) => {
         continue;
       }
       
+      // Bold with **
       const boldMatch = remaining.match(/\*\*([^*]+)\*\*/);
       if (boldMatch && boldMatch.index !== undefined) {
         if (boldMatch.index > 0) {
           parts.push(remaining.substring(0, boldMatch.index));
         }
         parts.push(
-          <strong key={`bold-${key++}`} className="font-bold text-foreground">
+          <strong key={`bold-${key++}`} className="font-bold">
             {boldMatch[1]}
           </strong>
         );
@@ -63,13 +126,14 @@ const FormattedPreview = ({ content }: { content: string }) => {
         continue;
       }
       
+      // Bold with __
       const underscoreMatch = remaining.match(/__([^_]+)__/);
       if (underscoreMatch && underscoreMatch.index !== undefined) {
         if (underscoreMatch.index > 0) {
           parts.push(remaining.substring(0, underscoreMatch.index));
         }
         parts.push(
-          <strong key={`underscore-${key++}`} className="font-bold text-foreground">
+          <strong key={`underscore-${key++}`} className="font-bold">
             {underscoreMatch[1]}
           </strong>
         );
@@ -109,8 +173,10 @@ export function RichTextEditor({
   minHeight = "150px" 
 }: RichTextEditorProps) {
   const textareaRef = useRef<HTMLTextAreaElement>(null);
+  const [selectedColor, setSelectedColor] = useState<string>('red');
+  const [selectedSize, setSelectedSize] = useState<string>('normal');
 
-  const applyFormat = (formatType: 'bold' | 'highlight' | 'quote' | 'uppercase') => {
+  const applyFormat = (formatType: 'bold' | 'highlight' | 'quote' | 'boldalt' | 'size' | 'color') => {
     const textarea = textareaRef.current;
     if (!textarea) return;
 
@@ -131,8 +197,18 @@ export function RichTextEditor({
       case 'quote':
         wrapper = { before: '"', after: '"' };
         break;
-      case 'uppercase':
+      case 'boldalt':
         wrapper = { before: '__', after: '__' };
+        break;
+      case 'size':
+        if (selectedSize === 'small') {
+          wrapper = { before: '~', after: '~' };
+        } else if (selectedSize === 'large') {
+          wrapper = { before: '^', after: '^' };
+        }
+        break;
+      case 'color':
+        wrapper = { before: `{${selectedColor}:`, after: '}' };
         break;
     }
     
@@ -151,7 +227,7 @@ export function RichTextEditor({
       {label && <Label>{label}</Label>}
       
       <div className="border rounded-lg overflow-hidden bg-background">
-        <div className="flex items-center gap-2 px-3 py-2 bg-muted/50 border-b">
+        <div className="flex flex-wrap items-center gap-2 px-3 py-2 bg-muted/50 border-b">
           <Button
             type="button"
             variant="ghost"
@@ -162,6 +238,17 @@ export function RichTextEditor({
           >
             <Bold className="h-4 w-4 mr-1.5" />
             <span className="text-xs">Bold</span>
+          </Button>
+          <Button
+            type="button"
+            variant="ghost"
+            size="sm"
+            className="h-8 px-3 hover:bg-background"
+            onClick={() => applyFormat('boldalt')}
+            title="Bold Alt (wraps text with __)"
+          >
+            <Type className="h-4 w-4 mr-1.5" />
+            <span className="text-xs">Bold Alt</span>
           </Button>
           <Button
             type="button"
@@ -185,17 +272,61 @@ export function RichTextEditor({
             <Quote className="h-4 w-4 mr-1.5" />
             <span className="text-xs">Quote</span>
           </Button>
-          <Button
-            type="button"
-            variant="ghost"
-            size="sm"
-            className="h-8 px-3 hover:bg-background"
-            onClick={() => applyFormat('uppercase')}
-            title="Bold Alt (wraps text with __)"
-          >
-            <Type className="h-4 w-4 mr-1.5" />
-            <span className="text-xs">Bold Alt</span>
-          </Button>
+          
+          <div className="h-6 w-px bg-border mx-1" />
+          
+          <div className="flex items-center gap-2">
+            <Select value={selectedSize} onValueChange={setSelectedSize}>
+              <SelectTrigger className="h-8 w-[100px]">
+                <TextIcon className="h-4 w-4 mr-1.5" />
+                <SelectValue />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="small">Small</SelectItem>
+                <SelectItem value="normal">Normal</SelectItem>
+                <SelectItem value="large">Large</SelectItem>
+              </SelectContent>
+            </Select>
+            <Button
+              type="button"
+              variant="ghost"
+              size="sm"
+              className="h-8 px-3 hover:bg-background"
+              onClick={() => applyFormat('size')}
+              title="Apply text size"
+            >
+              Apply
+            </Button>
+          </div>
+          
+          <div className="h-6 w-px bg-border mx-1" />
+          
+          <div className="flex items-center gap-2">
+            <Select value={selectedColor} onValueChange={setSelectedColor}>
+              <SelectTrigger className="h-8 w-[100px]">
+                <Palette className="h-4 w-4 mr-1.5" />
+                <SelectValue />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="red">Red</SelectItem>
+                <SelectItem value="blue">Blue</SelectItem>
+                <SelectItem value="green">Green</SelectItem>
+                <SelectItem value="yellow">Yellow</SelectItem>
+                <SelectItem value="purple">Purple</SelectItem>
+                <SelectItem value="orange">Orange</SelectItem>
+              </SelectContent>
+            </Select>
+            <Button
+              type="button"
+              variant="ghost"
+              size="sm"
+              className="h-8 px-3 hover:bg-background"
+              onClick={() => applyFormat('color')}
+              title="Apply text color"
+            >
+              Apply
+            </Button>
+          </div>
         </div>
         
         <Textarea
@@ -216,7 +347,7 @@ export function RichTextEditor({
       </div>
       
       <p className="text-xs text-muted-foreground">
-        Select text and use the formatting buttons above, or type <strong>**bold**</strong>, <strong>__bold__</strong>, <span className="bg-primary/10 px-1 rounded">[highlight]</span>, or <span className="italic">"quotes"</span> manually
+        Format: <strong>**bold**</strong> or <strong>__bold__</strong>, <span className="bg-yellow-500/20 px-1 rounded">[highlight]</span>, <span className="italic">"quotes"</span>, <span className="text-xs">~small~</span>, <span className="text-lg">^large^</span>, <span className="text-red-600">{`{red:text}`}</span>
       </p>
     </div>
   );
