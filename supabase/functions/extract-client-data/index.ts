@@ -149,41 +149,74 @@ serve(async (req) => {
       );
     }
 
-    console.log("Extracting client data with AI...");
+    // If client_id is provided, fetch existing client data
+    let extractedInfo: any = {};
+    
+    if (client_id) {
+      console.log("Using existing client data...");
+      
+      // Fetch existing client
+      const { data: existingClient, error: clientFetchError } = await supabase
+        .from("clients")
+        .select("*")
+        .eq("id", client_id)
+        .single();
 
-    // Prepare data for AI extraction - use service_details if provided, otherwise onboarding_form
-    let dataToExtract = "";
-    if (service_details) {
-      dataToExtract = Object.entries(service_details)
-        .map(([key, value]) => `${key}: ${value}`)
-        .join("\n");
-    } else if (onboarding_form) {
-      dataToExtract = onboarding_form;
-    }
+      if (clientFetchError) throw clientFetchError;
+      
+      // Use existing client data as base
+      extractedInfo = {
+        company_name: existingClient.name,
+        service_type: service_name || existingClient.service_type,
+        city: existingClient.city,
+      };
+      
+      // Extract additional details from service_details if provided
+      if (service_details && Object.keys(service_details).some(key => service_details[key])) {
+        Object.entries(service_details).forEach(([key, value]) => {
+          if (value && value !== "") {
+            extractedInfo[key] = value;
+          }
+        });
+      }
+      
+      console.log("Using client data:", extractedInfo);
+    } else {
+      console.log("Extracting new client data with AI...");
 
-    // Call Lovable AI to extract structured data
-    const extractionResponse = await fetch("https://ai.gateway.lovable.dev/v1/chat/completions", {
-      method: "POST",
-      headers: {
-        Authorization: `Bearer ${LOVABLE_API_KEY}`,
-        "Content-Type": "application/json",
-      },
-      body: JSON.stringify({
-        model: "google/gemini-2.5-flash",
-        messages: [
-          {
-            role: "system",
-            content: `You are an expert at extracting business information from onboarding forms and call transcripts. 
+      // Prepare data for AI extraction - use service_details if provided, otherwise onboarding_form
+      let dataToExtract = "";
+      if (service_details) {
+        dataToExtract = Object.entries(service_details)
+          .map(([key, value]) => `${key}: ${value}`)
+          .join("\n");
+      } else if (onboarding_form) {
+        dataToExtract = onboarding_form;
+      }
+
+      // Call Lovable AI to extract structured data
+      const extractionResponse = await fetch("https://ai.gateway.lovable.dev/v1/chat/completions", {
+        method: "POST",
+        headers: {
+          Authorization: `Bearer ${LOVABLE_API_KEY}`,
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({
+          model: "google/gemini-2.5-flash",
+          messages: [
+            {
+              role: "system",
+              content: `You are an expert at extracting business information from onboarding forms and call transcripts. 
 
 CRITICAL REQUIREMENTS:
 - You MUST extract both company_name and service_type - these are required fields
 - If service_type is not explicitly stated, infer it from context (e.g., "pergola", "turf", "lighting", "concrete", "landscaping", etc.)
 - If you cannot determine service_type, use "General Services" as a fallback
 - Extract ALL other relevant details thoroughly`,
-          },
-          {
-            role: "user",
-            content: `Extract all client information from the following data and format it as JSON with these fields:
+            },
+            {
+              role: "user",
+              content: `Extract all client information from the following data and format it as JSON with these fields:
 
 REQUIRED FIELDS (must be present):
 - company_name (string, required)
@@ -217,37 +250,38 @@ Call Transcript:
 ${transcript || "N/A"}
 
 Return ONLY valid JSON with at least company_name and service_type. No markdown formatting.`,
-          },
-        ],
-      }),
-    });
+            },
+          ],
+        }),
+      });
 
-    if (!extractionResponse.ok) {
-      const errorText = await extractionResponse.text();
-      console.error("AI extraction error:", errorText);
-      throw new Error("Failed to extract data with AI");
-    }
+      if (!extractionResponse.ok) {
+        const errorText = await extractionResponse.text();
+        console.error("AI extraction error:", errorText);
+        throw new Error("Failed to extract data with AI");
+      }
 
-    const extractionData = await extractionResponse.json();
-    let extractedContent = extractionData.choices[0].message.content;
-    
-    // Strip markdown code blocks if present
-    if (extractedContent.startsWith("```")) {
-      extractedContent = extractedContent.replace(/^```json\n?/i, "").replace(/\n?```$/, "");
-    }
-    
-    const extractedInfo = JSON.parse(extractedContent);
+      const extractionData = await extractionResponse.json();
+      let extractedContent = extractionData.choices[0].message.content;
+      
+      // Strip markdown code blocks if present
+      if (extractedContent.startsWith("```")) {
+        extractedContent = extractedContent.replace(/^```json\n?/i, "").replace(/\n?```$/, "");
+      }
+      
+      extractedInfo = JSON.parse(extractedContent);
 
-    console.log("Extracted data:", extractedInfo);
+      console.log("Extracted data:", extractedInfo);
 
-    // Validate required fields
-    if (!extractedInfo.company_name || !extractedInfo.service_type) {
-      console.error("Missing required fields:", extractedInfo);
-      throw new Error(
-        `Missing required information. Please ensure the data includes:\n` +
-        `${!extractedInfo.company_name ? "- Company name\n" : ""}` +
-        `${!extractedInfo.service_type ? "- Service type (e.g., pergola, turf, lighting)\n" : ""}`
-      );
+      // Validate required fields
+      if (!extractedInfo.company_name || !extractedInfo.service_type) {
+        console.error("Missing required fields:", extractedInfo);
+        throw new Error(
+          `Missing required information. Please ensure the data includes:\n` +
+          `${!extractedInfo.company_name ? "- Company name\n" : ""}` +
+          `${!extractedInfo.service_type ? "- Service type (e.g., pergola, turf, lighting)\n" : ""}`
+        );
+      }
     }
 
     // Generate the script
