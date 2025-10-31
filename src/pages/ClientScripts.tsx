@@ -16,6 +16,11 @@ import {
   AlertDialogTitle,
   AlertDialogTrigger,
 } from "@/components/ui/alert-dialog";
+import logoDefault from "@/assets/logo-default.png";
+import logoPergola from "@/assets/logo-pergola.png";
+import logoHvac from "@/assets/logo-hvac.png";
+import logoSolar from "@/assets/logo-solar.png";
+import logoLandscaping from "@/assets/logo-landscaping.png";
 
 interface Script {
   id: string;
@@ -31,6 +36,18 @@ interface Client {
   service_type: string;
   city: string;
 }
+
+// Helper to get logo based on service type
+const getClientLogo = (serviceType: string): string => {
+  const type = serviceType.toLowerCase();
+  
+  if (type.includes("pergola")) return logoPergola;
+  if (type.includes("hvac") || type.includes("heating") || type.includes("cooling")) return logoHvac;
+  if (type.includes("solar") || type.includes("panel")) return logoSolar;
+  if (type.includes("landscape") || type.includes("lawn") || type.includes("garden")) return logoLandscaping;
+  
+  return logoDefault;
+};
 
 export default function ClientScripts() {
   const { clientId } = useParams();
@@ -122,11 +139,20 @@ export default function ClientScripts() {
         </Link>
 
         <div className="mb-8 flex items-start justify-between">
-          <div>
-            <h1 className="text-3xl font-bold mb-1">{client.name}</h1>
-            <p className="text-muted-foreground">
-              {client.service_type} {client.city && `• ${client.city}`}
-            </p>
+          <div className="flex items-start gap-4">
+            <div className="h-16 w-16 rounded-lg overflow-hidden bg-muted flex-shrink-0 border border-border shadow-sm">
+              <img 
+                src={getClientLogo(client.service_type)} 
+                alt={`${client.name} logo`}
+                className="h-full w-full object-cover"
+              />
+            </div>
+            <div>
+              <h1 className="text-3xl font-bold mb-1">{client.name}</h1>
+              <p className="text-muted-foreground">
+                {client.service_type} {client.city && `• ${client.city}`}
+              </p>
+            </div>
           </div>
           <div className="flex gap-2">
             <Link to={`/edit/${clientId}`}>

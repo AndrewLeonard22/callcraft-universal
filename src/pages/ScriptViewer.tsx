@@ -6,6 +6,11 @@ import { Card, CardContent } from "@/components/ui/card";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
 import ServiceAreaMap from "@/components/ServiceAreaMap";
+import logoDefault from "@/assets/logo-default.png";
+import logoPergola from "@/assets/logo-pergola.png";
+import logoHvac from "@/assets/logo-hvac.png";
+import logoSolar from "@/assets/logo-solar.png";
+import logoLandscaping from "@/assets/logo-landscaping.png";
 
 interface ClientData {
   id: string;
@@ -23,6 +28,18 @@ interface Script {
   script_content: string;
   version: number;
 }
+
+// Helper to get logo based on service type
+const getClientLogo = (serviceType: string): string => {
+  const type = serviceType.toLowerCase();
+  
+  if (type.includes("pergola")) return logoPergola;
+  if (type.includes("hvac") || type.includes("heating") || type.includes("cooling")) return logoHvac;
+  if (type.includes("solar") || type.includes("panel")) return logoSolar;
+  if (type.includes("landscape") || type.includes("lawn") || type.includes("garden")) return logoLandscaping;
+  
+  return logoDefault;
+};
 
 export default function ScriptViewer() {
   const { scriptId } = useParams();
@@ -264,13 +281,22 @@ export default function ScriptViewer() {
         {/* Client Header */}
         <div className="mb-8">
           <div className="flex items-start justify-between mb-8">
-            <div className="flex-1">
-              <h1 className="text-3xl font-semibold mb-2 text-foreground">
-                {client.name}
-              </h1>
-              <p className="text-base text-muted-foreground capitalize">
-                {(script as any)?.service_name || client.service_type} {client.city && `• ${client.city}`}
-              </p>
+            <div className="flex items-start gap-4 flex-1">
+              <div className="h-16 w-16 rounded-lg overflow-hidden bg-muted flex-shrink-0 border border-border shadow-sm">
+                <img 
+                  src={getClientLogo(client.service_type)} 
+                  alt={`${client.name} logo`}
+                  className="h-full w-full object-cover"
+                />
+              </div>
+              <div>
+                <h1 className="text-3xl font-semibold mb-2 text-foreground">
+                  {client.name}
+                </h1>
+                <p className="text-base text-muted-foreground capitalize">
+                  {(script as any)?.service_name || client.service_type} {client.city && `• ${client.city}`}
+                </p>
+              </div>
             </div>
             <div className="flex gap-3">
               <Button variant="outline" onClick={() => navigate(`/edit/${client.id}`)} className="h-9">

@@ -6,6 +6,11 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/com
 import { Input } from "@/components/ui/input";
 import { supabase } from "@/integrations/supabase/client";
 import { format } from "date-fns";
+import logoDefault from "@/assets/logo-default.png";
+import logoPergola from "@/assets/logo-pergola.png";
+import logoHvac from "@/assets/logo-hvac.png";
+import logoSolar from "@/assets/logo-solar.png";
+import logoLandscaping from "@/assets/logo-landscaping.png";
 
 interface Client {
   id: string;
@@ -14,6 +19,18 @@ interface Client {
   city: string;
   created_at: string;
 }
+
+// Helper to get logo based on service type
+const getClientLogo = (serviceType: string): string => {
+  const type = serviceType.toLowerCase();
+  
+  if (type.includes("pergola")) return logoPergola;
+  if (type.includes("hvac") || type.includes("heating") || type.includes("cooling")) return logoHvac;
+  if (type.includes("solar") || type.includes("panel")) return logoSolar;
+  if (type.includes("landscape") || type.includes("lawn") || type.includes("garden")) return logoLandscaping;
+  
+  return logoDefault;
+};
 
 export default function Dashboard() {
   const [clients, setClients] = useState<Client[]>([]);
@@ -136,14 +153,24 @@ export default function Dashboard() {
               <Link key={client.id} to={`/client/${client.id}`}>
                 <Card className="group hover:border-primary/50 transition-all cursor-pointer h-full">
                   <CardHeader className="pb-3">
-                    <CardTitle className="text-base line-clamp-1 flex items-center gap-2">
-                      <FileText className="h-4 w-4 text-primary flex-shrink-0" />
-                      {client.name}
-                    </CardTitle>
-                    <CardDescription className="text-xs capitalize">
-                      {client.service_type}
-                      {client.city && ` • ${client.city}`}
-                    </CardDescription>
+                    <div className="flex items-start gap-3">
+                      <div className="h-12 w-12 rounded-lg overflow-hidden bg-muted flex-shrink-0 border border-border">
+                        <img 
+                          src={getClientLogo(client.service_type)} 
+                          alt={`${client.name} logo`}
+                          className="h-full w-full object-cover"
+                        />
+                      </div>
+                      <div className="flex-1 min-w-0">
+                        <CardTitle className="text-base line-clamp-1 mb-1">
+                          {client.name}
+                        </CardTitle>
+                        <CardDescription className="text-xs capitalize">
+                          {client.service_type}
+                          {client.city && ` • ${client.city}`}
+                        </CardDescription>
+                      </div>
+                    </div>
                   </CardHeader>
                   <CardContent className="pt-0">
                     <div className="flex items-center gap-1.5 text-xs text-muted-foreground">
