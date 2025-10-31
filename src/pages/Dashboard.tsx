@@ -269,9 +269,9 @@ export default function Dashboard() {
           <Card>
             <CardContent className="flex flex-col items-center justify-center py-12">
               <FileText className="h-12 w-12 text-muted-foreground/50 mb-3" />
-              <h3 className="text-lg font-semibold mb-1">No scripts yet</h3>
+              <h3 className="text-lg font-semibold mb-1">No companies yet</h3>
               <p className="text-sm text-muted-foreground mb-4 text-center max-w-sm">
-                Create your first client and add a script to get started
+                Create your first company to get started
               </p>
               <Link to="/create">
                 <Button>
@@ -316,8 +316,8 @@ export default function Dashboard() {
                           <span className="block mb-0.5">{client.owners_name}</span>
                         )}
                         <span className="capitalize">
-                          {client.service_type}
-                          {client.city && ` • ${client.city}`}
+                          {client.service_type && client.service_type.toLowerCase() !== "general services" && client.service_type}
+                          {client.city && `${client.service_type && client.service_type.toLowerCase() !== "general services" ? " • " : ""}${client.city}`}
                         </span>
                       </CardDescription>
                     </div>
