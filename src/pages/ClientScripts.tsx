@@ -55,6 +55,23 @@ const getClientLogo = (serviceType: string, customLogoUrl?: string): string => {
   return logoDefault;
 };
 
+// Resolve storage path to a public URL for script images
+const resolveStoragePublicUrl = (url?: string): string | undefined => {
+  if (!url) return undefined;
+  if (url.startsWith("http") || url.startsWith("data:")) return url;
+  const parts = url.split("/");
+  if (parts.length > 1) {
+    const bucket = parts[0];
+    const path = parts.slice(1).join("/");
+    const { data } = supabase.storage.from(bucket).getPublicUrl(path);
+    return data.publicUrl;
+  } else {
+    // Assume default bucket for template images
+    const { data } = supabase.storage.from("template-images").getPublicUrl(url);
+    return data.publicUrl;
+  }
+};
+
 export default function ClientScripts() {
   const { clientId } = useParams();
   const navigate = useNavigate();
@@ -99,7 +116,11 @@ export default function ClientScripts() {
         .order("created_at", { ascending: false });
 
       if (scriptsError) throw scriptsError;
-      setScripts(scriptsData || []);
+      const mapped = (scriptsData || []).map((s) => ({
+        ...s,
+        image_url: resolveStoragePublicUrl(s.image_url) || s.image_url,
+      }));
+      setScripts(mapped);
     } catch (error) {
       console.error("Error loading data:", error);
       toast.error("Failed to load client data");
@@ -214,6 +235,7 @@ export default function ClientScripts() {
                       src={script.image_url} 
                       alt={script.service_name}
                       className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300"
+                      onError={(e) => { e.currentTarget.src = '/placeholder.svg'; }}
                     />
                   ) : (
                     <div className="w-full h-full flex items-center justify-center bg-gradient-to-br from-primary/10 to-accent/10">
