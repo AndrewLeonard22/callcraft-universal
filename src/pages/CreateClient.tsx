@@ -22,6 +22,7 @@ export default function CreateClient() {
   const [ownersName, setOwnersName] = useState("");
   const [salesRepPhone, setSalesRepPhone] = useState("");
   const [address, setAddress] = useState("");
+  const [serviceArea, setServiceArea] = useState("");
   const [googleMapLink, setGoogleMapLink] = useState("");
   const [otherKeyInfo, setOtherKeyInfo] = useState("");
   
@@ -91,6 +92,7 @@ export default function CreateClient() {
             owners_name: ownersName,
             sales_rep_phone: salesRepPhone,
             address,
+            service_area: serviceArea,
             google_map_link: googleMapLink,
             other_key_info: otherKeyInfo,
           },
@@ -239,6 +241,16 @@ export default function CreateClient() {
                         placeholder="123 Main St, City, State ZIP"
                         value={address}
                         onChange={(e) => setAddress(e.target.value)}
+                      />
+                    </div>
+                    <div>
+                      <Label htmlFor="service-area">Service Area (miles radius)</Label>
+                      <Input
+                        id="service-area"
+                        type="text"
+                        placeholder="e.g., 50 miles, 30-mile radius, Entire county"
+                        value={serviceArea}
+                        onChange={(e) => setServiceArea(e.target.value)}
                       />
                     </div>
                     <div>
