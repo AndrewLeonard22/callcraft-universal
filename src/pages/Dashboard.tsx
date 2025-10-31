@@ -218,13 +218,13 @@ export default function Dashboard() {
               <Card key={client.id} className="group hover:border-primary/50 transition-all h-full flex flex-col">
                 <CardHeader className="pb-3">
                   <div className="flex items-start gap-3">
-                    <div className="h-12 w-12 rounded-lg overflow-hidden bg-muted flex-shrink-0 border border-border">
+                    <Link to={`/client/${client.id}`} className="h-12 w-12 rounded-lg overflow-hidden bg-muted flex-shrink-0 border border-border hover:border-primary/50 transition-colors">
                       <img 
                         src={getClientLogo(client.service_type, client.logo_url)} 
                         alt={`${client.name} logo`}
                         className="h-full w-full object-cover"
                       />
-                    </div>
+                    </Link>
                     <div className="flex-1 min-w-0">
                       <CardTitle className="text-base line-clamp-1 mb-1">
                         {client.name}
@@ -255,12 +255,6 @@ export default function Dashboard() {
                           </Button>
                         </Link>
                       ))}
-                      <Link to={`/create-script/${client.id}`}>
-                        <Button variant="secondary" size="sm" className="h-7 text-xs px-2">
-                          <Plus className="mr-1.5 h-3 w-3" />
-                          Add Script
-                        </Button>
-                      </Link>
                     </div>
                   </div>
                 </CardContent>
