@@ -246,17 +246,17 @@ export default function Dashboard() {
                     <div className="text-xs font-medium text-muted-foreground mb-2">
                       Scripts ({client.scripts.length})
                     </div>
-                    <div className="flex flex-col gap-2">
+                    <div className="flex flex-wrap gap-2">
                       {client.scripts.map((script) => (
                         <Link key={script.id} to={`/script/${script.id}`}>
-                          <Button variant="outline" size="sm" className="w-full justify-start">
+                          <Button variant="outline" size="sm" className="justify-start">
                             <FileText className="mr-2 h-3 w-3" />
                             {script.service_name}
                           </Button>
                         </Link>
                       ))}
                       <Link to={`/create-script/${client.id}`}>
-                        <Button variant="secondary" size="sm" className="w-full">
+                        <Button variant="secondary" size="sm">
                           <Plus className="mr-2 h-3 w-3" />
                           Add Script
                         </Button>
