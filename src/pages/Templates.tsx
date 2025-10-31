@@ -1,6 +1,6 @@
 import { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
-import { Plus, Trash2, FileText, Upload, Image as ImageIcon } from "lucide-react";
+import { Plus, Trash2, FileText } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
@@ -36,8 +36,6 @@ export default function Templates() {
   const [serviceName, setServiceName] = useState("");
   const [scriptContent, setScriptContent] = useState("");
   const [saving, setSaving] = useState(false);
-  const [imageFile, setImageFile] = useState<File | null>(null);
-  const [imagePreview, setImagePreview] = useState<string | null>(null);
 
   useEffect(() => {
     loadTemplates();
@@ -61,21 +59,6 @@ export default function Templates() {
     }
   };
 
-  const handleImageChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    const file = e.target.files?.[0];
-    if (file) {
-      if (file.size > 5 * 1024 * 1024) {
-        toast.error("Image must be less than 5MB");
-        return;
-      }
-      setImageFile(file);
-      const reader = new FileReader();
-      reader.onloadend = () => {
-        setImagePreview(reader.result as string);
-      };
-      reader.readAsDataURL(file);
-    }
-  };
 
   const handleCreate = async () => {
     if (!serviceName.trim() || !scriptContent.trim()) {
@@ -85,32 +68,12 @@ export default function Templates() {
 
     setSaving(true);
     try {
-      let imageUrl = null;
-
-      // Upload image if provided
-      if (imageFile) {
-        const fileExt = imageFile.name.split('.').pop();
-        const fileName = `${Date.now()}-${serviceName.replace(/\s+/g, '-')}.${fileExt}`;
-        const { error: uploadError, data } = await supabase.storage
-          .from('template-images')
-          .upload(fileName, imageFile);
-
-        if (uploadError) throw uploadError;
-
-        const { data: { publicUrl } } = supabase.storage
-          .from('template-images')
-          .getPublicUrl(fileName);
-        
-        imageUrl = publicUrl;
-      }
-
       const { error } = await supabase.from("scripts").insert({
         client_id: "00000000-0000-0000-0000-000000000001", // Template placeholder
         service_name: serviceName,
         script_content: scriptContent,
         is_template: true,
         version: 1,
-        image_url: imageUrl,
       });
 
       if (error) throw error;
@@ -118,8 +81,6 @@ export default function Templates() {
       toast.success("Template created successfully!");
       setServiceName("");
       setScriptContent("");
-      setImageFile(null);
-      setImagePreview(null);
       setShowCreateForm(false);
       loadTemplates();
     } catch (error: any) {
@@ -178,39 +139,16 @@ export default function Templates() {
             </CardHeader>
             <CardContent className="space-y-4">
               <div>
-                <Label htmlFor="service-name">Service Name</Label>
+                <Label htmlFor="service-name">Template Name</Label>
                 <Input
                   id="service-name"
-                  placeholder="e.g., Pools, Pavers, Pergola, Turf, Outdoor Kitchen"
+                  placeholder="e.g., Standard Sales Script"
                   value={serviceName}
                   onChange={(e) => setServiceName(e.target.value)}
                 />
-              </div>
-              <div>
-                <Label htmlFor="template-image">Service Icon/Image</Label>
-                <div className="flex items-center gap-4">
-                  {imagePreview && (
-                    <div className="h-16 w-16 rounded-lg overflow-hidden bg-muted border border-border flex-shrink-0">
-                      <img 
-                        src={imagePreview} 
-                        alt="Preview"
-                        className="h-full w-full object-cover"
-                      />
-                    </div>
-                  )}
-                  <div className="flex-1">
-                    <Input
-                      id="template-image"
-                      type="file"
-                      accept="image/*"
-                      onChange={handleImageChange}
-                      className="cursor-pointer"
-                    />
-                    <p className="text-xs text-muted-foreground mt-1">
-                      Upload an image to represent this service (max 5MB)
-                    </p>
-                  </div>
-                </div>
+                <p className="text-xs text-muted-foreground mt-1">
+                  This template can be used across all services
+                </p>
               </div>
               <div>
                 <Label htmlFor="script-content">Script Content</Label>
@@ -266,23 +204,13 @@ export default function Templates() {
                 <CardHeader>
                   <div className="flex items-start gap-4 justify-between">
                     <div className="flex items-start gap-3 flex-1">
-                      {template.image_url ? (
-                        <div className="h-12 w-12 rounded-lg overflow-hidden bg-muted border border-border flex-shrink-0">
-                          <img 
-                            src={template.image_url} 
-                            alt={`${template.service_name} icon`}
-                            className="h-full w-full object-cover"
-                          />
-                        </div>
-                      ) : (
-                        <div className="h-12 w-12 rounded-lg bg-muted border border-border flex-shrink-0 flex items-center justify-center">
-                          <ImageIcon className="h-5 w-5 text-muted-foreground" />
-                        </div>
-                      )}
+                      <div className="h-12 w-12 rounded-lg bg-muted border border-border flex-shrink-0 flex items-center justify-center">
+                        <FileText className="h-5 w-5 text-muted-foreground" />
+                      </div>
                       <div className="flex-1 min-w-0">
                         <CardTitle className="text-lg">{template.service_name}</CardTitle>
                         <CardDescription className="mt-1">
-                          {template.script_content.substring(0, 150)}...
+                          Universal template • {template.script_content.substring(0, 120)}...
                         </CardDescription>
                       </div>
                     </div>
