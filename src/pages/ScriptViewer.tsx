@@ -99,7 +99,7 @@ export default function ScriptViewer() {
         const { data: faqData, error: faqError } = await supabase
           .from("faqs")
           .select("*")
-          .or(`service_type_id.eq.${scriptResult.data.service_type_id},client_id.eq.${scriptResult.data.client_id}`)
+          .eq('service_type_id', scriptResult.data.service_type_id)
           .order("created_at", { ascending: false });
 
         if (faqError) {

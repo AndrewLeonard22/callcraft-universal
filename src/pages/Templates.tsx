@@ -161,7 +161,6 @@ interface ObjectionTemplate {
 interface FAQ {
   id: string;
   service_type_id: string | null;
-  client_id: string | null;
   question: string;
   answer: string;
   created_at: string;
@@ -173,19 +172,12 @@ interface ServiceType {
   icon_url?: string;
 }
 
-interface Client {
-  id: string;
-  name: string;
-  service_type: string;
-}
-
 export default function Templates() {
   const navigate = useNavigate();
   const [templates, setTemplates] = useState<Template[]>([]);
   const [objectionTemplates, setObjectionTemplates] = useState<ObjectionTemplate[]>([]);
   const [faqs, setFaqs] = useState<FAQ[]>([]);
   const [serviceTypes, setServiceTypes] = useState<ServiceType[]>([]);
-  const [clients, setClients] = useState<Client[]>([]);
   const [loading, setLoading] = useState(true);
   const [showCreateForm, setShowCreateForm] = useState(false);
   const [showObjectionForm, setShowObjectionForm] = useState(false);
@@ -198,8 +190,6 @@ export default function Templates() {
   const [objectionServiceName, setObjectionServiceName] = useState("");
   const [objectionContent, setObjectionContent] = useState("");
   const [faqServiceTypeId, setFaqServiceTypeId] = useState("");
-  const [faqClientId, setFaqClientId] = useState("");
-  const [faqScope, setFaqScope] = useState<"service" | "client">("service");
   const [faqQuestion, setFaqQuestion] = useState("");
   const [faqAnswer, setFaqAnswer] = useState("");
   const [saving, setSaving] = useState(false);
@@ -210,7 +200,6 @@ export default function Templates() {
     loadObjectionTemplates();
     loadFaqs();
     loadServiceTypes();
-    loadClients();
   }, []);
 
   const loadTemplates = async () => {
@@ -273,21 +262,6 @@ export default function Templates() {
     } catch (error) {
       console.error("Error loading service types:", error);
       toast.error("Failed to load service types");
-    }
-  };
-
-  const loadClients = async () => {
-    try {
-      const { data, error } = await supabase
-        .from("clients")
-        .select("id, name, service_type")
-        .order("name");
-
-      if (error) throw error;
-      setClients(data || []);
-    } catch (error) {
-      console.error("Error loading clients:", error);
-      toast.error("Failed to load clients");
     }
   };
 
@@ -458,45 +432,28 @@ export default function Templates() {
 
   const handleEditFaq = (faq: FAQ) => {
     setEditingFaq(faq);
-    if (faq.client_id) {
-      setFaqScope("client");
-      setFaqClientId(faq.client_id);
-      setFaqServiceTypeId("");
-    } else {
-      setFaqScope("service");
-      setFaqServiceTypeId(faq.service_type_id || "");
-      setFaqClientId("");
-    }
+    setFaqServiceTypeId(faq.service_type_id || "");
     setFaqQuestion(faq.question);
     setFaqAnswer(faq.answer);
     setShowFaqForm(true);
   };
 
   const handleCreateFaq = async () => {
-    if ((faqScope === "service" && !faqServiceTypeId) || (faqScope === "client" && !faqClientId) || !faqQuestion.trim() || !faqAnswer.trim()) {
+    if (!faqServiceTypeId || !faqQuestion.trim() || !faqAnswer.trim()) {
       toast.error("Please fill in all fields");
       return;
     }
 
     setSaving(true);
     try {
-      const faqData: any = {
-        question: faqQuestion,
-        answer: faqAnswer,
-      };
-
-      if (faqScope === "client") {
-        faqData.client_id = faqClientId;
-        faqData.service_type_id = null;
-      } else {
-        faqData.service_type_id = faqServiceTypeId;
-        faqData.client_id = null;
-      }
-
       if (editingFaq) {
         const { error } = await supabase
           .from("faqs")
-          .update(faqData)
+          .update({
+            service_type_id: faqServiceTypeId,
+            question: faqQuestion,
+            answer: faqAnswer,
+          })
           .eq("id", editingFaq.id);
 
         if (error) throw error;
@@ -504,15 +461,17 @@ export default function Templates() {
       } else {
         const { error } = await supabase
           .from("faqs")
-          .insert(faqData);
+          .insert({
+            service_type_id: faqServiceTypeId,
+            question: faqQuestion,
+            answer: faqAnswer,
+          });
 
         if (error) throw error;
         toast.success("FAQ created successfully!");
       }
 
       setFaqServiceTypeId("");
-      setFaqClientId("");
-      setFaqScope("service");
       setFaqQuestion("");
       setFaqAnswer("");
       setShowFaqForm(false);
@@ -891,58 +850,20 @@ export default function Templates() {
                 </CardHeader>
                 <CardContent className="space-y-4">
                   <div>
-                    <Label htmlFor="faq-scope">FAQ Scope</Label>
-                    <Select value={faqScope} onValueChange={(value: "service" | "client") => {
-                      setFaqScope(value);
-                      setFaqServiceTypeId("");
-                      setFaqClientId("");
-                    }}>
-                      <SelectTrigger id="faq-scope">
-                        <SelectValue />
+                    <Label htmlFor="faq-service-type">Service Type</Label>
+                    <Select value={faqServiceTypeId} onValueChange={setFaqServiceTypeId}>
+                      <SelectTrigger id="faq-service-type">
+                        <SelectValue placeholder="Select service type" />
                       </SelectTrigger>
                       <SelectContent>
-                        <SelectItem value="service">Service Type Level</SelectItem>
-                        <SelectItem value="client">Client Specific</SelectItem>
+                        {serviceTypes.map((type) => (
+                          <SelectItem key={type.id} value={type.id}>
+                            {type.name}
+                          </SelectItem>
+                        ))}
                       </SelectContent>
                     </Select>
-                    <p className="text-xs text-muted-foreground mt-1">
-                      {faqScope === "service" ? "FAQ will apply to all clients with this service type" : "FAQ will only apply to the selected client"}
-                    </p>
                   </div>
-
-                  {faqScope === "service" ? (
-                    <div>
-                      <Label htmlFor="faq-service-type">Service Type</Label>
-                      <Select value={faqServiceTypeId} onValueChange={setFaqServiceTypeId}>
-                        <SelectTrigger id="faq-service-type">
-                          <SelectValue placeholder="Select service type" />
-                        </SelectTrigger>
-                        <SelectContent>
-                          {serviceTypes.map((type) => (
-                            <SelectItem key={type.id} value={type.id}>
-                              {type.name}
-                            </SelectItem>
-                          ))}
-                        </SelectContent>
-                      </Select>
-                    </div>
-                  ) : (
-                    <div>
-                      <Label htmlFor="faq-client">Client</Label>
-                      <Select value={faqClientId} onValueChange={setFaqClientId}>
-                        <SelectTrigger id="faq-client">
-                          <SelectValue placeholder="Select client" />
-                        </SelectTrigger>
-                        <SelectContent>
-                          {clients.map((client) => (
-                            <SelectItem key={client.id} value={client.id}>
-                              {client.name} - {client.service_type}
-                            </SelectItem>
-                          ))}
-                        </SelectContent>
-                      </Select>
-                    </div>
-                  )}
                   <div>
                     <Label htmlFor="faq-question">Question</Label>
                     <Input
@@ -970,8 +891,6 @@ export default function Templates() {
                       setShowFaqForm(false);
                       setEditingFaq(null);
                       setFaqServiceTypeId("");
-                      setFaqClientId("");
-                      setFaqScope("service");
                       setFaqQuestion("");
                       setFaqAnswer("");
                     }}>
@@ -1011,7 +930,6 @@ export default function Templates() {
               <div className="space-y-4">
                 {faqs.map((faq) => {
                   const serviceType = faq.service_type_id ? serviceTypes.find(st => st.id === faq.service_type_id) : null;
-                  const client = faq.client_id ? clients.find(c => c.id === faq.client_id) : null;
                   return (
                     <Card key={faq.id}>
                       <CardHeader>
@@ -1023,11 +941,7 @@ export default function Templates() {
                             <div className="flex-1 min-w-0">
                               <CardTitle className="text-lg">{faq.question}</CardTitle>
                               <div className="mt-1 text-sm text-muted-foreground line-clamp-2">
-                                {client ? (
-                                  <span className="font-medium bg-primary/10 text-primary px-2 py-0.5 rounded text-xs mr-2">
-                                    {client.name}
-                                  </span>
-                                ) : serviceType ? (
+                                {serviceType ? (
                                   <span className="font-medium">{serviceType.name} • </span>
                                 ) : null}
                                 {faq.answer.substring(0, 100)}...
