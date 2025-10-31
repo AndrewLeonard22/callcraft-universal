@@ -27,7 +27,7 @@ const FormattedPreview = ({ content }: { content: string }) => {
           parts.push(remaining.substring(0, bracketMatch.index));
         }
         parts.push(
-          <span key={`bracket-${key++}`} className="bg-primary/10 text-primary font-medium px-2 py-0.5 rounded">
+          <span key={`bracket-${key++}`} className="bg-yellow-500/20 text-yellow-700 dark:text-yellow-400 font-medium px-2 py-0.5 rounded">
             {bracketMatch[1]}
           </span>
         );
@@ -41,7 +41,7 @@ const FormattedPreview = ({ content }: { content: string }) => {
           parts.push(remaining.substring(0, quoteMatch.index));
         }
         parts.push(
-          <span key={`quote-${key++}`} className="bg-accent/10 text-accent font-medium px-1.5 rounded italic">
+          <span key={`quote-${key++}`} className="bg-blue-500/20 text-blue-700 dark:text-blue-400 font-medium px-1.5 rounded italic">
             "{quoteMatch[1]}"
           </span>
         );
