@@ -13,7 +13,7 @@ serve(async (req) => {
 
   try {
     const requestBody = await req.json();
-    const { onboarding_form, transcript, client_id, service_name, use_template, template_script, regenerate, links } = requestBody;
+    const { onboarding_form, transcript, client_id, service_name, use_template, template_script, regenerate, links, business_info } = requestBody;
 
     const LOVABLE_API_KEY = Deno.env.get("LOVABLE_API_KEY");
     const SUPABASE_URL = Deno.env.get("SUPABASE_URL");
@@ -244,12 +244,12 @@ Make it natural, conversational, and specific to their business. Include specifi
           .eq("client_id", client_id)
           .in("field_name", ["_original_onboarding_form", "_original_transcript"]);
 
-        // Delete existing details except original source data and links
+        // Delete existing details except original source data, links, and business info
         await supabase
           .from("client_details")
           .delete()
           .eq("client_id", client_id)
-          .not("field_name", "in", '("_original_onboarding_form","_original_transcript","website","facebook_page","instagram","crm_account_link","appointment_calendar","reschedule_calendar")');
+          .not("field_name", "in", '("_original_onboarding_form","_original_transcript","website","facebook_page","instagram","crm_account_link","appointment_calendar","reschedule_calendar","business_name","owners_name","sales_rep_phone","address","google_map_link","other_key_info")');
 
         // Insert new details
         const detailsToInsert = Object.entries(extractedInfo)
@@ -297,6 +297,28 @@ Make it natural, conversational, and specific to their business. Include specifi
           ];
 
           linkFields.forEach(({ name, value }) => {
+            if (value) {
+              detailsToInsert.push({
+                client_id: client_id,
+                field_name: name,
+                field_value: value,
+              });
+            }
+          });
+        }
+
+        // Add business info if provided
+        if (business_info) {
+          const businessFields = [
+            { name: "business_name", value: business_info.business_name },
+            { name: "owners_name", value: business_info.owners_name },
+            { name: "sales_rep_phone", value: business_info.sales_rep_phone },
+            { name: "address", value: business_info.address },
+            { name: "google_map_link", value: business_info.google_map_link },
+            { name: "other_key_info", value: business_info.other_key_info },
+          ];
+
+          businessFields.forEach(({ name, value }) => {
             if (value) {
               detailsToInsert.push({
                 client_id: client_id,
@@ -367,6 +389,28 @@ Make it natural, conversational, and specific to their business. Include specifi
         ];
 
         linkFields.forEach(({ name, value }) => {
+          if (value) {
+            detailsToInsert.push({
+              client_id: clientData.id,
+              field_name: name,
+              field_value: value,
+            });
+          }
+        });
+      }
+
+      // Add business info if provided
+      if (business_info) {
+        const businessFields = [
+          { name: "business_name", value: business_info.business_name },
+          { name: "owners_name", value: business_info.owners_name },
+          { name: "sales_rep_phone", value: business_info.sales_rep_phone },
+          { name: "address", value: business_info.address },
+          { name: "google_map_link", value: business_info.google_map_link },
+          { name: "other_key_info", value: business_info.other_key_info },
+        ];
+
+        businessFields.forEach(({ name, value }) => {
           if (value) {
             detailsToInsert.push({
               client_id: clientData.id,

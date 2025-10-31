@@ -2,10 +2,15 @@ import { useEffect, useRef, useState } from 'react';
 import mapboxgl from 'mapbox-gl';
 import 'mapbox-gl/dist/mapbox-gl.css';
 import { supabase } from '@/integrations/supabase/client';
+import { Input } from '@/components/ui/input';
+import { Button } from '@/components/ui/button';
+import { Search } from 'lucide-react';
+import { toast } from 'sonner';
 
 interface ServiceAreaMapProps {
   city?: string;
   serviceArea?: string;
+  address?: string;
 }
 
 // Helper to create a circle polygon
@@ -48,10 +53,14 @@ const extractRadius = (serviceArea?: string): number => {
   return 30; // Default 30 miles if no radius found
 };
 
-export default function ServiceAreaMap({ city, serviceArea }: ServiceAreaMapProps) {
+export default function ServiceAreaMap({ city, serviceArea, address }: ServiceAreaMapProps) {
   const mapContainer = useRef<HTMLDivElement>(null);
   const map = useRef<mapboxgl.Map | null>(null);
   const [mapboxToken, setMapboxToken] = useState<string>('');
+  const [searchAddress, setSearchAddress] = useState('');
+  const [centerCoordinates, setCenterCoordinates] = useState<[number, number] | null>(null);
+  const [serviceRadius, setServiceRadius] = useState(30);
+  const searchMarkerRef = useRef<mapboxgl.Marker | null>(null);
 
   useEffect(() => {
     const fetchToken = async () => {
@@ -68,20 +77,22 @@ export default function ServiceAreaMap({ city, serviceArea }: ServiceAreaMapProp
 
     mapboxgl.accessToken = mapboxToken;
 
-    const searchLocation = city || serviceArea || 'United States';
+    const searchLocation = address || city || serviceArea || 'United States';
     const radius = extractRadius(serviceArea);
+    setServiceRadius(radius);
     
     fetch(`https://api.mapbox.com/geocoding/v5/mapbox.places/${encodeURIComponent(searchLocation)}.json?access_token=${mapboxToken}`)
       .then(res => res.json())
       .then(data => {
         const coordinates = data.features?.[0]?.center || [-98.5795, 39.8283];
+        setCenterCoordinates(coordinates as [number, number]);
         
         // Calculate appropriate zoom based on radius
         const zoom = Math.max(8, Math.min(12, 13 - Math.log2(radius / 10)));
         
         map.current = new mapboxgl.Map({
           container: mapContainer.current!,
-          style: 'mapbox://styles/mapbox/light-v11',
+          style: 'mapbox://styles/mapbox/streets-v12',
           center: coordinates,
           zoom: zoom,
         });
@@ -91,6 +102,7 @@ export default function ServiceAreaMap({ city, serviceArea }: ServiceAreaMapProp
         // Add a marker for the center location
         new mapboxgl.Marker({ color: 'hsl(var(--primary))' })
           .setLngLat(coordinates)
+          .setPopup(new mapboxgl.Popup().setHTML('<div class="font-semibold">Service Center</div>'))
           .addTo(map.current);
 
         // Add service area circle
@@ -103,26 +115,26 @@ export default function ServiceAreaMap({ city, serviceArea }: ServiceAreaMapProp
               data: circleGeoJSON,
             });
 
-            // Fill layer with more visible highlight
+            // Fill layer with themed colors
             map.current.addLayer({
               id: 'service-area-fill',
               type: 'fill',
               source: 'service-area',
               paint: {
-                'fill-color': '#3b82f6',
-                'fill-opacity': 0.2,
+                'fill-color': 'hsl(var(--primary))',
+                'fill-opacity': 0.15,
               },
             });
 
-            // Border layer with stronger visibility
+            // Border layer
             map.current.addLayer({
               id: 'service-area-outline',
               type: 'line',
               source: 'service-area',
               paint: {
-                'line-color': '#3b82f6',
-                'line-width': 3,
-                'line-opacity': 0.8,
+                'line-color': 'hsl(var(--primary))',
+                'line-width': 2,
+                'line-opacity': 0.6,
               },
             });
           }
@@ -130,21 +142,109 @@ export default function ServiceAreaMap({ city, serviceArea }: ServiceAreaMapProp
       });
 
     return () => {
+      searchMarkerRef.current?.remove();
       map.current?.remove();
     };
-  }, [mapboxToken, city, serviceArea]);
+  }, [mapboxToken, city, serviceArea, address]);
+
+  const handleAddressSearch = async () => {
+    if (!searchAddress.trim() || !mapboxToken || !centerCoordinates) {
+      toast.error('Please enter an address to search');
+      return;
+    }
+
+    try {
+      const response = await fetch(
+        `https://api.mapbox.com/geocoding/v5/mapbox.places/${encodeURIComponent(searchAddress)}.json?access_token=${mapboxToken}`
+      );
+      const data = await response.json();
+      
+      if (data.features && data.features.length > 0) {
+        const searchCoords = data.features[0].center as [number, number];
+        
+        // Calculate distance between center and searched address
+        const R = 3959; // Earth's radius in miles
+        const lat1 = centerCoordinates[1] * Math.PI / 180;
+        const lat2 = searchCoords[1] * Math.PI / 180;
+        const dLat = (searchCoords[1] - centerCoordinates[1]) * Math.PI / 180;
+        const dLon = (searchCoords[0] - centerCoordinates[0]) * Math.PI / 180;
+        
+        const a = Math.sin(dLat/2) * Math.sin(dLat/2) +
+                  Math.cos(lat1) * Math.cos(lat2) *
+                  Math.sin(dLon/2) * Math.sin(dLon/2);
+        const c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1-a));
+        const distance = R * c;
+        
+        const isWithinRadius = distance <= serviceRadius;
+        
+        // Remove previous search marker if exists
+        searchMarkerRef.current?.remove();
+        
+        // Add new marker with appropriate color
+        const markerColor = isWithinRadius ? '#22c55e' : '#ef4444';
+        searchMarkerRef.current = new mapboxgl.Marker({ color: markerColor })
+          .setLngLat(searchCoords)
+          .setPopup(
+            new mapboxgl.Popup().setHTML(
+              `<div class="p-2">
+                <p class="font-semibold">${data.features[0].place_name}</p>
+                <p class="text-sm mt-1">${distance.toFixed(1)} miles from center</p>
+                <p class="text-sm font-semibold ${isWithinRadius ? 'text-green-600' : 'text-red-600'}">
+                  ${isWithinRadius ? '✓ Within service area' : '✗ Outside service area'}
+                </p>
+              </div>`
+            )
+          )
+          .addTo(map.current!);
+        
+        // Fly to the searched location
+        map.current?.flyTo({
+          center: searchCoords,
+          zoom: 12,
+          duration: 1500
+        });
+        
+        // Open popup
+        searchMarkerRef.current.togglePopup();
+        
+        toast.success(
+          isWithinRadius 
+            ? `Address is within service area (${distance.toFixed(1)} miles)`
+            : `Address is outside service area (${distance.toFixed(1)} miles from center)`
+        );
+      } else {
+        toast.error('Address not found');
+      }
+    } catch (error) {
+      console.error('Error searching address:', error);
+      toast.error('Failed to search address');
+    }
+  };
 
   if (!mapboxToken) {
     return (
-      <div className="w-full h-[300px] rounded-lg bg-muted animate-pulse flex items-center justify-center">
+      <div className="w-full h-[400px] rounded-lg bg-muted animate-pulse flex items-center justify-center">
         <p className="text-sm text-muted-foreground">Loading map...</p>
       </div>
     );
   }
 
   return (
-    <div className="relative w-full h-[300px] rounded-lg overflow-hidden border border-border">
-      <div ref={mapContainer} className="absolute inset-0" />
+    <div className="space-y-3">
+      <div className="flex gap-2">
+        <Input
+          placeholder="Enter address to check if within service area..."
+          value={searchAddress}
+          onChange={(e) => setSearchAddress(e.target.value)}
+          onKeyDown={(e) => e.key === 'Enter' && handleAddressSearch()}
+        />
+        <Button onClick={handleAddressSearch} size="icon">
+          <Search className="h-4 w-4" />
+        </Button>
+      </div>
+      <div className="relative w-full h-[400px] rounded-lg overflow-hidden border border-border shadow-lg">
+        <div ref={mapContainer} className="absolute inset-0" />
+      </div>
     </div>
   );
 }

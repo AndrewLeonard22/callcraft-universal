@@ -9,13 +9,13 @@ import { Label } from "@/components/ui/label";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import ServiceAreaMap from "@/components/ServiceAreaMap";
 
 export default function EditClient() {
   const { clientId } = useParams();
   const navigate = useNavigate();
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
-  const [isDragging, setIsDragging] = useState(false);
   const [isScriptDragging, setIsScriptDragging] = useState(false);
   
   // Client basic info
@@ -27,9 +27,16 @@ export default function EditClient() {
   const [clientDetailsJson, setClientDetailsJson] = useState("");
   
   // Original data inputs
-  const [onboardingForm, setOnboardingForm] = useState("");
   const [transcript, setTranscript] = useState("");
   const [scriptTemplate, setScriptTemplate] = useState("");
+  
+  // Business Info
+  const [businessName, setBusinessName] = useState("");
+  const [ownersName, setOwnersName] = useState("");
+  const [salesRepPhone, setSalesRepPhone] = useState("");
+  const [address, setAddress] = useState("");
+  const [googleMapLink, setGoogleMapLink] = useState("");
+  const [otherKeyInfo, setOtherKeyInfo] = useState("");
   
   // Links
   const [website, setWebsite] = useState("");
@@ -59,17 +66,26 @@ export default function EditClient() {
       setServiceType(clientResult.data.service_type);
       setCity(clientResult.data.city || "");
 
-      // Convert client details to a readable JSON format and extract original sources
+      // Convert client details to a readable JSON format and extract sources/links/business info
       if (detailsResult.data) {
         const detailsObj: Record<string, string> = {};
-        let originalForm = "";
         let originalTranscript = "";
         
         detailsResult.data.forEach((detail) => {
-          if (detail.field_name === "_original_onboarding_form") {
-            originalForm = detail.field_value || "";
-          } else if (detail.field_name === "_original_transcript") {
+          if (detail.field_name === "_original_transcript") {
             originalTranscript = detail.field_value || "";
+          } else if (detail.field_name === "business_name") {
+            setBusinessName(detail.field_value || "");
+          } else if (detail.field_name === "owners_name") {
+            setOwnersName(detail.field_value || "");
+          } else if (detail.field_name === "sales_rep_phone") {
+            setSalesRepPhone(detail.field_value || "");
+          } else if (detail.field_name === "address") {
+            setAddress(detail.field_value || "");
+          } else if (detail.field_name === "google_map_link") {
+            setGoogleMapLink(detail.field_value || "");
+          } else if (detail.field_name === "other_key_info") {
+            setOtherKeyInfo(detail.field_value || "");
           } else if (detail.field_name === "website") {
             setWebsite(detail.field_value || "");
           } else if (detail.field_name === "facebook_page") {
@@ -88,7 +104,6 @@ export default function EditClient() {
         });
         
         setClientDetailsJson(JSON.stringify(detailsObj, null, 2));
-        setOnboardingForm(originalForm);
         setTranscript(originalTranscript);
       }
 
@@ -109,17 +124,9 @@ export default function EditClient() {
     if (!file) return;
 
     try {
-      if (file.type === "application/pdf") {
-        toast.error("PDF parsing requires backend processing. Please paste the text content instead.");
-      } else if (file.type === "text/csv" || file.name.endsWith(".csv")) {
-        const text = await file.text();
-        setOnboardingForm(text);
-        toast.success("CSV uploaded successfully");
-      } else {
-        const text = await file.text();
-        setOnboardingForm(text);
-        toast.success("Form uploaded successfully");
-      }
+      const text = await file.text();
+      setScriptTemplate(text);
+      toast.success("Script uploaded successfully");
     } catch (error) {
       console.error("Error reading file:", error);
       toast.error("Failed to read file");
@@ -134,31 +141,6 @@ export default function EditClient() {
       const text = await file.text();
       setScriptTemplate(text);
       toast.success("Script uploaded successfully");
-    } catch (error) {
-      console.error("Error reading file:", error);
-      toast.error("Failed to read file");
-    }
-  };
-
-  const handleFormDrop = async (e: React.DragEvent) => {
-    e.preventDefault();
-    setIsDragging(false);
-    
-    const file = e.dataTransfer.files[0];
-    if (!file) return;
-
-    try {
-      if (file.type === "application/pdf") {
-        toast.error("PDF parsing requires backend processing. Please paste the text content instead.");
-      } else if (file.type === "text/csv" || file.name.endsWith(".csv")) {
-        const text = await file.text();
-        setOnboardingForm(text);
-        toast.success("CSV uploaded successfully");
-      } else {
-        const text = await file.text();
-        setOnboardingForm(text);
-        toast.success("Form uploaded successfully");
-      }
     } catch (error) {
       console.error("Error reading file:", error);
       toast.error("Failed to read file");
@@ -219,12 +201,12 @@ export default function EditClient() {
             .eq("client_id", clientId)
             .in("field_name", ["_original_onboarding_form", "_original_transcript"]);
           
-          // Delete existing details except original source data and links
+          // Delete existing details except original source data, links, and business info
           await supabase
             .from("client_details")
             .delete()
             .eq("client_id", clientId)
-            .not("field_name", "in", '("_original_onboarding_form","_original_transcript","website","facebook_page","instagram","crm_account_link","appointment_calendar","reschedule_calendar")');
+            .not("field_name", "in", '("_original_transcript","website","facebook_page","instagram","crm_account_link","appointment_calendar","reschedule_calendar","business_name","owners_name","sales_rep_phone","address","google_map_link","other_key_info")');
           
           // Insert updated details
           const detailsArray = Object.entries(detailsObj).map(([key, value]) => ({
@@ -241,6 +223,26 @@ export default function EditClient() {
               field_value: d.field_value || "",
             })));
           }
+
+          // Add business info
+          const businessFields = [
+            { name: "business_name", value: businessName },
+            { name: "owners_name", value: ownersName },
+            { name: "sales_rep_phone", value: salesRepPhone },
+            { name: "address", value: address },
+            { name: "google_map_link", value: googleMapLink },
+            { name: "other_key_info", value: otherKeyInfo },
+          ];
+
+          businessFields.forEach(({ name, value }) => {
+            if (value) {
+              detailsArray.push({
+                client_id: clientId,
+                field_name: name,
+                field_value: value,
+              });
+            }
+          });
 
           // Add links
           const linkFields = [
@@ -290,8 +292,8 @@ export default function EditClient() {
       return;
     }
 
-    if (!onboardingForm.trim() && !transcript.trim()) {
-      toast.error("Please provide onboarding form or transcript data to regenerate");
+    if (!transcript.trim()) {
+      toast.error("Please provide transcript data to regenerate");
       return;
     }
 
@@ -299,12 +301,19 @@ export default function EditClient() {
     try {
       const { data, error } = await supabase.functions.invoke("extract-client-data", {
         body: { 
-          onboarding_form: onboardingForm, 
           transcript: transcript,
           use_template: true,
           template_script: scriptTemplate,
           client_id: clientId,
           regenerate: true,
+          business_info: {
+            business_name: businessName,
+            owners_name: ownersName,
+            sales_rep_phone: salesRepPhone,
+            address,
+            google_map_link: googleMapLink,
+            other_key_info: otherKeyInfo,
+          },
           links: {
             website,
             facebook_page: facebookPage,
@@ -466,50 +475,88 @@ export default function EditClient() {
 
           <Card>
             <CardHeader>
-              <CardTitle>Source Data</CardTitle>
+              <CardTitle>Service Area Map</CardTitle>
               <CardDescription>
-                View and edit the onboarding form or transcript used to generate scripts
+                View and validate addresses within the service area
               </CardDescription>
             </CardHeader>
             <CardContent>
-              <Tabs defaultValue="form" className="w-full">
+              <ServiceAreaMap city={city} serviceArea={serviceType} address={address} />
+            </CardContent>
+          </Card>
+
+          <Card>
+            <CardHeader>
+              <CardTitle>Source Data</CardTitle>
+              <CardDescription>
+                View and edit the business info, transcript, and links
+              </CardDescription>
+            </CardHeader>
+            <CardContent>
+              <Tabs defaultValue="business" className="w-full">
                 <TabsList className="grid w-full grid-cols-3 mb-4">
-                  <TabsTrigger value="form">Onboarding Form</TabsTrigger>
+                  <TabsTrigger value="business">Business Info</TabsTrigger>
                   <TabsTrigger value="transcript">Call Transcript</TabsTrigger>
                   <TabsTrigger value="links">Links</TabsTrigger>
                 </TabsList>
                 
-                <TabsContent value="form">
+                <TabsContent value="business">
                   <div className="space-y-4">
-                    <div className="flex items-center gap-4">
-                      <Label htmlFor="form-upload" className="cursor-pointer">
-                        <div className="flex items-center gap-2 px-4 py-2 border border-input rounded-lg hover:bg-accent transition-colors">
-                          <Upload className="h-4 w-4" />
-                          <span className="text-sm font-medium">Upload PDF/Text/CSV File</span>
-                        </div>
-                        <input
-                          id="form-upload"
-                          type="file"
-                          accept=".txt,.md,.pdf,.csv"
-                          onChange={handleFileUpload}
-                          className="hidden"
-                        />
-                      </Label>
+                    <div>
+                      <Label htmlFor="business-name">Business Name</Label>
+                      <Input
+                        id="business-name"
+                        placeholder="Business Name"
+                        value={businessName}
+                        onChange={(e) => setBusinessName(e.target.value)}
+                      />
                     </div>
-                    <div 
-                      className={`relative border-2 border-dashed rounded-lg transition-colors ${
-                        isDragging ? "border-primary bg-primary/5" : "border-muted-foreground/25"
-                      }`}
-                      onDrop={handleFormDrop}
-                      onDragOver={handleDragOver}
-                      onDragEnter={() => setIsDragging(true)}
-                      onDragLeave={() => setIsDragging(false)}
-                    >
+                    <div>
+                      <Label htmlFor="owners-name">Owner's Name</Label>
+                      <Input
+                        id="owners-name"
+                        placeholder="Owner's Name"
+                        value={ownersName}
+                        onChange={(e) => setOwnersName(e.target.value)}
+                      />
+                    </div>
+                    <div>
+                      <Label htmlFor="sales-rep">Sales Rep #</Label>
+                      <Input
+                        id="sales-rep"
+                        type="tel"
+                        placeholder="+1 (555) 123-4567"
+                        value={salesRepPhone}
+                        onChange={(e) => setSalesRepPhone(e.target.value)}
+                      />
+                    </div>
+                    <div>
+                      <Label htmlFor="address">Address</Label>
+                      <Input
+                        id="address"
+                        placeholder="123 Main St, City, State ZIP"
+                        value={address}
+                        onChange={(e) => setAddress(e.target.value)}
+                      />
+                    </div>
+                    <div>
+                      <Label htmlFor="google-map-link">Google Map Link</Label>
+                      <Input
+                        id="google-map-link"
+                        type="url"
+                        placeholder="https://goo.gl/maps/..."
+                        value={googleMapLink}
+                        onChange={(e) => setGoogleMapLink(e.target.value)}
+                      />
+                    </div>
+                    <div>
+                      <Label htmlFor="other-info">Other Key Information</Label>
                       <Textarea
-                        placeholder="Paste onboarding form data here or drag a file..."
-                        className="min-h-[200px] font-mono text-sm border-0 focus-visible:ring-0"
-                        value={onboardingForm}
-                        onChange={(e) => setOnboardingForm(e.target.value)}
+                        id="other-info"
+                        placeholder="Any other important information about the business..."
+                        value={otherKeyInfo}
+                        onChange={(e) => setOtherKeyInfo(e.target.value)}
+                        className="min-h-[100px]"
                       />
                     </div>
                   </div>
