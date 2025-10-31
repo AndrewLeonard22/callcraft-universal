@@ -17,6 +17,7 @@ export default function CreateClient() {
   // Business Info
   const [businessName, setBusinessName] = useState("");
   const [ownersName, setOwnersName] = useState("");
+  const [salesRepName, setSalesRepName] = useState("");
   const [salesRepPhone, setSalesRepPhone] = useState("");
   const [address, setAddress] = useState("");
   const [serviceArea, setServiceArea] = useState("");
@@ -92,6 +93,7 @@ export default function CreateClient() {
           business_info: {
             business_name: businessName,
             owners_name: ownersName,
+            sales_rep_name: salesRepName,
             sales_rep_phone: salesRepPhone,
             address,
             service_area: serviceArea,
@@ -259,6 +261,20 @@ export default function CreateClient() {
                       placeholder="John Smith"
                       value={ownersName}
                       onChange={(e) => setOwnersName(e.target.value)}
+                      className="h-11 bg-background shadow-sm border-border/50 focus:border-primary/50 transition-colors"
+                    />
+                  </div>
+
+                  <div className="space-y-2">
+                    <Label htmlFor="sales-rep-name" className="text-sm font-medium flex items-center gap-2">
+                      <User className="h-4 w-4 text-muted-foreground" />
+                      Sales Rep Name
+                    </Label>
+                    <Input
+                      id="sales-rep-name"
+                      placeholder="Jane Doe"
+                      value={salesRepName}
+                      onChange={(e) => setSalesRepName(e.target.value)}
                       className="h-11 bg-background shadow-sm border-border/50 focus:border-primary/50 transition-colors"
                     />
                   </div>
