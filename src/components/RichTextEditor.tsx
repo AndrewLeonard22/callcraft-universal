@@ -227,105 +227,102 @@ export function RichTextEditor({
       {label && <Label>{label}</Label>}
       
       <div className="border rounded-lg overflow-hidden bg-background">
-        <div className="flex flex-wrap items-center gap-2 px-3 py-2 bg-muted/50 border-b">
-          <Button
-            type="button"
-            variant="ghost"
-            size="sm"
-            className="h-8 px-3 hover:bg-background"
-            onClick={() => applyFormat('bold')}
-            title="Bold (wraps text with **)"
-          >
-            <Bold className="h-4 w-4 mr-1.5" />
-            <span className="text-xs">Bold</span>
-          </Button>
-          <Button
-            type="button"
-            variant="ghost"
-            size="sm"
-            className="h-8 px-3 hover:bg-background"
-            onClick={() => applyFormat('boldalt')}
-            title="Bold Alt (wraps text with __)"
-          >
-            <Type className="h-4 w-4 mr-1.5" />
-            <span className="text-xs">Bold Alt</span>
-          </Button>
-          <Button
-            type="button"
-            variant="ghost"
-            size="sm"
-            className="h-8 px-3 hover:bg-background"
-            onClick={() => applyFormat('highlight')}
-            title="Highlight (wraps text with [])"
-          >
-            <Highlighter className="h-4 w-4 mr-1.5" />
-            <span className="text-xs">Highlight</span>
-          </Button>
-          <Button
-            type="button"
-            variant="ghost"
-            size="sm"
-            className="h-8 px-3 hover:bg-background"
-            onClick={() => applyFormat('quote')}
-            title="Quote (wraps text with quotes)"
-          >
-            <Quote className="h-4 w-4 mr-1.5" />
-            <span className="text-xs">Quote</span>
-          </Button>
-          
-          <div className="h-6 w-px bg-border mx-1" />
-          
-          <div className="flex items-center gap-2">
-            <Select value={selectedSize} onValueChange={setSelectedSize}>
-              <SelectTrigger className="h-8 w-[100px]">
-                <TextIcon className="h-4 w-4 mr-1.5" />
-                <SelectValue />
-              </SelectTrigger>
-              <SelectContent>
-                <SelectItem value="small">Small</SelectItem>
-                <SelectItem value="normal">Normal</SelectItem>
-                <SelectItem value="large">Large</SelectItem>
-              </SelectContent>
-            </Select>
-            <Button
-              type="button"
-              variant="ghost"
-              size="sm"
-              className="h-8 px-3 hover:bg-background"
-              onClick={() => applyFormat('size')}
-              title="Apply text size"
-            >
-              Apply
-            </Button>
-          </div>
-          
-          <div className="h-6 w-px bg-border mx-1" />
-          
-          <div className="flex items-center gap-2">
-            <Select value={selectedColor} onValueChange={setSelectedColor}>
-              <SelectTrigger className="h-8 w-[100px]">
-                <Palette className="h-4 w-4 mr-1.5" />
-                <SelectValue />
-              </SelectTrigger>
-              <SelectContent>
-                <SelectItem value="red">Red</SelectItem>
-                <SelectItem value="blue">Blue</SelectItem>
-                <SelectItem value="green">Green</SelectItem>
-                <SelectItem value="yellow">Yellow</SelectItem>
-                <SelectItem value="purple">Purple</SelectItem>
-                <SelectItem value="orange">Orange</SelectItem>
-              </SelectContent>
-            </Select>
-            <Button
-              type="button"
-              variant="ghost"
-              size="sm"
-              className="h-8 px-3 hover:bg-background"
-              onClick={() => applyFormat('color')}
-              title="Apply text color"
-            >
-              Apply
-            </Button>
+        <div className="bg-muted/50 border-b">
+          <div className="flex flex-wrap items-center gap-2 px-3 py-2">
+            <div className="flex items-center gap-1">
+              <Button
+                type="button"
+                variant="ghost"
+                size="sm"
+                className="h-8 px-2"
+                onClick={() => applyFormat('bold')}
+                title="Bold (**text**)"
+              >
+                <Bold className="h-4 w-4" />
+              </Button>
+              <Button
+                type="button"
+                variant="ghost"
+                size="sm"
+                className="h-8 px-2"
+                onClick={() => applyFormat('boldalt')}
+                title="Bold Alt (__text__)"
+              >
+                <Type className="h-4 w-4" />
+              </Button>
+              <Button
+                type="button"
+                variant="ghost"
+                size="sm"
+                className="h-8 px-2"
+                onClick={() => applyFormat('highlight')}
+                title="Highlight ([text])"
+              >
+                <Highlighter className="h-4 w-4" />
+              </Button>
+              <Button
+                type="button"
+                variant="ghost"
+                size="sm"
+                className="h-8 px-2"
+                onClick={() => applyFormat('quote')}
+                title='Quote ("text")'
+              >
+                <Quote className="h-4 w-4" />
+              </Button>
+            </div>
+            
+            <div className="h-6 w-px bg-border" />
+            
+            <div className="flex items-center gap-1.5">
+              <Select value={selectedSize} onValueChange={setSelectedSize}>
+                <SelectTrigger className="h-8 w-[90px] text-xs">
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent className="bg-background z-50">
+                  <SelectItem value="small">Small</SelectItem>
+                  <SelectItem value="normal">Normal</SelectItem>
+                  <SelectItem value="large">Large</SelectItem>
+                </SelectContent>
+              </Select>
+              <Button
+                type="button"
+                variant="ghost"
+                size="sm"
+                className="h-8 px-2 text-xs"
+                onClick={() => applyFormat('size')}
+                disabled={selectedSize === 'normal'}
+              >
+                Apply
+              </Button>
+            </div>
+            
+            <div className="h-6 w-px bg-border" />
+            
+            <div className="flex items-center gap-1.5">
+              <Select value={selectedColor} onValueChange={setSelectedColor}>
+                <SelectTrigger className="h-8 w-[90px] text-xs">
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent className="bg-background z-50">
+                  <SelectItem value="red">Red</SelectItem>
+                  <SelectItem value="blue">Blue</SelectItem>
+                  <SelectItem value="green">Green</SelectItem>
+                  <SelectItem value="yellow">Yellow</SelectItem>
+                  <SelectItem value="purple">Purple</SelectItem>
+                  <SelectItem value="orange">Orange</SelectItem>
+                </SelectContent>
+              </Select>
+              <Button
+                type="button"
+                variant="ghost"
+                size="sm"
+                className="h-8 px-2 text-xs"
+                onClick={() => applyFormat('color')}
+              >
+                Apply
+              </Button>
+            </div>
           </div>
         </div>
         
