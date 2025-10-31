@@ -91,16 +91,42 @@ export default function EditScript() {
       if (clientError) throw clientError;
       setClient(clientData);
 
-      // Load client details for service details
+      // Load service details - check both script-specific and general client details
       const { data: details } = await supabase
         .from("client_details")
         .select("*")
         .eq("client_id", scriptData.client_id);
 
       if (details) {
+        const scriptPrefix = `script_${scriptId}_`;
         details.forEach((detail) => {
-          if (detail.field_name === "appointment_calendar") setAppointmentCalendar(detail.field_value || "");
-          if (detail.field_name === "reschedule_calendar") setRescheduleCalendar(detail.field_value || "");
+          const fieldName = detail.field_name;
+          const fieldValue = detail.field_value || "";
+          
+          // Check for script-specific details first, then fall back to general
+          if (fieldName === `${scriptPrefix}project_min_price` || fieldName === "project_min_price") {
+            if (!projectMinPrice) setProjectMinPrice(fieldValue);
+          }
+          if (fieldName === `${scriptPrefix}project_min_size` || fieldName === "project_min_size") {
+            if (!projectMinSize) setProjectMinSize(fieldValue);
+          }
+          if (fieldName === `${scriptPrefix}price_per_sq_ft` || fieldName === "price_per_sq_ft") {
+            if (!pricePerSqFt) setPricePerSqFt(fieldValue);
+          }
+          if (fieldName === `${scriptPrefix}warranties` || fieldName === "warranties") {
+            if (!warranties) setWarranties(fieldValue);
+          }
+          if (fieldName === `${scriptPrefix}financing_options` || fieldName === "financing_options") {
+            if (!financingOptions) setFinancingOptions(fieldValue);
+          }
+          if (fieldName === `${scriptPrefix}video_of_service` || fieldName === "video_of_service") {
+            if (!videoOfService) setVideoOfService(fieldValue);
+          }
+          if (fieldName === `${scriptPrefix}avg_install_time` || fieldName === "avg_install_time") {
+            if (!avgInstallTime) setAvgInstallTime(fieldValue);
+          }
+          if (fieldName === "appointment_calendar") setAppointmentCalendar(fieldValue);
+          if (fieldName === "reschedule_calendar") setRescheduleCalendar(fieldValue);
         });
       }
     } catch (error) {
@@ -156,6 +182,38 @@ export default function EditScript() {
 
     setSaving(true);
     try {
+      // Save service details to client_details with script-specific prefix
+      const scriptPrefix = `script_${scriptId}_`;
+      const detailsToSave = [
+        { name: `${scriptPrefix}project_min_price`, value: projectMinPrice },
+        { name: `${scriptPrefix}project_min_size`, value: projectMinSize },
+        { name: `${scriptPrefix}price_per_sq_ft`, value: pricePerSqFt },
+        { name: `${scriptPrefix}warranties`, value: warranties },
+        { name: `${scriptPrefix}financing_options`, value: financingOptions },
+        { name: `${scriptPrefix}video_of_service`, value: videoOfService },
+        { name: `${scriptPrefix}avg_install_time`, value: avgInstallTime },
+      ];
+
+      // Delete existing script-specific details
+      await supabase
+        .from("client_details")
+        .delete()
+        .eq("client_id", client?.id)
+        .like("field_name", `${scriptPrefix}%`);
+
+      // Insert new details
+      const detailsArray = detailsToSave
+        .filter(d => d.value.trim())
+        .map(d => ({
+          client_id: client?.id,
+          field_name: d.name,
+          field_value: d.value,
+        }));
+
+      if (detailsArray.length > 0) {
+        await supabase.from("client_details").insert(detailsArray);
+      }
+
       // If template is selected, regenerate script with new details
       if (selectedTemplateId) {
         const selectedTemplate = templates.find(t => t.id === selectedTemplateId);

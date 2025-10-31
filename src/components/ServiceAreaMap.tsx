@@ -92,7 +92,7 @@ export default function ServiceAreaMap({ city, serviceArea, address }: ServiceAr
         
         map.current = new mapboxgl.Map({
           container: mapContainer.current!,
-          style: 'mapbox://styles/mapbox/streets-v12',
+          style: 'mapbox://styles/mapbox/satellite-streets-v12',
           center: coordinates,
           zoom: zoom,
         });
@@ -141,56 +141,16 @@ export default function ServiceAreaMap({ city, serviceArea, address }: ServiceAr
               },
             });
 
-            // Border layer
+            // Border layer with glow effect
             map.current.addLayer({
               id: 'service-area-outline',
               type: 'line',
               source: 'service-area',
               paint: {
                 'line-color': mapboxColor,
-                'line-width': 2,
-                'line-opacity': 0.6,
+                'line-width': 3,
+                'line-opacity': 0.8,
               },
-            });
-
-            // Add clean distance markers at cardinal directions only
-            const distanceX = radius / (69 * Math.cos((coordinates[1] * Math.PI) / 180));
-            const distanceY = radius / 69;
-            
-            const directions = [
-              { angle: 0, label: `${radius} mi`, position: 'right' },           // East
-              { angle: Math.PI / 2, label: `${radius} mi`, position: 'top' },   // North
-              { angle: Math.PI, label: `${radius} mi`, position: 'left' },      // West
-              { angle: 3 * Math.PI / 2, label: `${radius} mi`, position: 'bottom' } // South
-            ];
-
-            directions.forEach(({ angle, label, position }) => {
-              const x = distanceX * Math.cos(angle);
-              const y = distanceY * Math.sin(angle);
-              const markerCoords: [number, number] = [coordinates[0] + x, coordinates[1] + y];
-              
-              // Create a minimal distance marker
-              const el = document.createElement('div');
-              el.className = 'distance-marker';
-              el.style.cssText = `
-                background: white;
-                color: hsl(var(--primary));
-                padding: 4px 10px;
-                border-radius: 12px;
-                font-size: 11px;
-                font-weight: 600;
-                box-shadow: 0 2px 6px rgba(0,0,0,0.15);
-                white-space: nowrap;
-                border: 1.5px solid hsl(var(--primary));
-              `;
-              el.textContent = label;
-              
-              new mapboxgl.Marker({ 
-                element: el,
-                anchor: 'center'
-              })
-                .setLngLat(markerCoords)
-                .addTo(map.current!);
             });
           }
         });

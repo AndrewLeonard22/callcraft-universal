@@ -139,6 +139,11 @@ export default function ScriptViewer() {
   }
 
   const getDetailValue = (fieldName: string) => {
+    // First check for script-specific details
+    const scriptSpecific = details.find((d) => d.field_name === `script_${scriptId}_${fieldName}`)?.field_value;
+    if (scriptSpecific) return scriptSpecific;
+    
+    // Fall back to general client details
     return details.find((d) => d.field_name === fieldName)?.field_value || "N/A";
   };
 
@@ -448,6 +453,72 @@ export default function ScriptViewer() {
                       </div>
                     )}
                   </div>
+
+                  {/* Service Details Section */}
+                  {(getDetailValue("project_min_price") !== "N/A" || 
+                    getDetailValue("project_min_size") !== "N/A" || 
+                    getDetailValue("price_per_sq_ft") !== "N/A" || 
+                    getDetailValue("warranties") !== "N/A" || 
+                    getDetailValue("financing_options") !== "N/A" ||
+                    getDetailValue("video_of_service") !== "N/A" ||
+                    getDetailValue("avg_install_time") !== "N/A") && (
+                    <div className="border-t border-border pt-4 mt-4">
+                      <h3 className="text-xs font-semibold mb-3 text-foreground uppercase tracking-wide">Service Details</h3>
+                      <div className="space-y-3">
+                        {getDetailValue("project_min_price") !== "N/A" && (
+                          <div className="space-y-1">
+                            <div className="text-xs font-medium text-muted-foreground">Minimum Price</div>
+                            <div className="text-sm text-foreground">{getDetailValue("project_min_price")}</div>
+                          </div>
+                        )}
+                        
+                        {getDetailValue("project_min_size") !== "N/A" && (
+                          <div className="space-y-1">
+                            <div className="text-xs font-medium text-muted-foreground">Minimum Size</div>
+                            <div className="text-sm text-foreground">{getDetailValue("project_min_size")}</div>
+                          </div>
+                        )}
+                        
+                        {getDetailValue("price_per_sq_ft") !== "N/A" && (
+                          <div className="space-y-1">
+                            <div className="text-xs font-medium text-muted-foreground">Price per Sq Ft</div>
+                            <div className="text-sm text-foreground">{getDetailValue("price_per_sq_ft")}</div>
+                          </div>
+                        )}
+                        
+                        {getDetailValue("warranties") !== "N/A" && (
+                          <div className="space-y-1">
+                            <div className="text-xs font-medium text-muted-foreground">Warranties</div>
+                            <div className="text-sm text-foreground whitespace-pre-wrap">{getDetailValue("warranties")}</div>
+                          </div>
+                        )}
+                        
+                        {getDetailValue("financing_options") !== "N/A" && (
+                          <div className="space-y-1">
+                            <div className="text-xs font-medium text-muted-foreground">Financing Options</div>
+                            <div className="text-sm text-foreground whitespace-pre-wrap">{getDetailValue("financing_options")}</div>
+                          </div>
+                        )}
+                        
+                        {getDetailValue("video_of_service") !== "N/A" && (
+                          <div className="space-y-1">
+                            <div className="text-xs font-medium text-muted-foreground">Service Video</div>
+                            <a href={getDetailValue("video_of_service")} target="_blank" rel="noopener noreferrer" 
+                               className="text-xs text-primary hover:text-primary/80 transition-colors block">
+                              Watch Video
+                            </a>
+                          </div>
+                        )}
+                        
+                        {getDetailValue("avg_install_time") !== "N/A" && (
+                          <div className="space-y-1">
+                            <div className="text-xs font-medium text-muted-foreground">Install Time</div>
+                            <div className="text-sm text-foreground">{getDetailValue("avg_install_time")}</div>
+                          </div>
+                        )}
+                      </div>
+                    </div>
+                  )}
 
                   {/* Links Section */}
                   {(getDetailValue("website") !== "N/A" || 
