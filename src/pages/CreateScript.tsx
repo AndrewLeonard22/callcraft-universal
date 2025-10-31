@@ -8,7 +8,7 @@ import { Textarea } from "@/components/ui/textarea";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
-import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+
 
 interface Client {
   id: string;
@@ -23,7 +23,6 @@ export default function CreateScript() {
   const [client, setClient] = useState<Client | null>(null);
   const [serviceName, setServiceName] = useState("");
   const [onboardingForm, setOnboardingForm] = useState("");
-  const [transcript, setTranscript] = useState("");
   const [scriptTemplate, setScriptTemplate] = useState("");
   const [loading, setLoading] = useState(false);
 
@@ -72,8 +71,8 @@ export default function CreateScript() {
       return;
     }
 
-    if (!onboardingForm.trim() && !transcript.trim()) {
-      toast.error("Please provide onboarding form data or transcript");
+    if (!onboardingForm.trim()) {
+      toast.error("Please provide onboarding form data");
       return;
     }
 
@@ -84,7 +83,6 @@ export default function CreateScript() {
           client_id: clientId,
           service_name: serviceName,
           onboarding_form: onboardingForm,
-          transcript: transcript,
           use_template: true,
           template_script: scriptTemplate
         },
@@ -192,34 +190,16 @@ export default function CreateScript() {
             <CardHeader>
               <CardTitle>Service Details</CardTitle>
               <CardDescription>
-                Provide information to customize the script
+                Provide onboarding form information to customize the script
               </CardDescription>
             </CardHeader>
             <CardContent>
-              <Tabs defaultValue="form" className="w-full">
-                <TabsList className="grid w-full grid-cols-2 mb-4">
-                  <TabsTrigger value="form">Onboarding Form</TabsTrigger>
-                  <TabsTrigger value="transcript">Call Transcript</TabsTrigger>
-                </TabsList>
-                
-                <TabsContent value="form">
-                  <Textarea
-                    placeholder="Paste onboarding form data here..."
-                    className="min-h-[200px] font-mono text-sm"
-                    value={onboardingForm}
-                    onChange={(e) => setOnboardingForm(e.target.value)}
-                  />
-                </TabsContent>
-                
-                <TabsContent value="transcript">
-                  <Textarea
-                    placeholder="Paste call transcript here..."
-                    className="min-h-[200px] font-mono text-sm"
-                    value={transcript}
-                    onChange={(e) => setTranscript(e.target.value)}
-                  />
-                </TabsContent>
-              </Tabs>
+              <Textarea
+                placeholder="Paste onboarding form data here..."
+                className="min-h-[200px] font-mono text-sm"
+                value={onboardingForm}
+                onChange={(e) => setOnboardingForm(e.target.value)}
+              />
             </CardContent>
           </Card>
 
