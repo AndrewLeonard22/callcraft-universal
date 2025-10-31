@@ -208,15 +208,19 @@ export default function ClientScripts() {
           <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
             {scripts.map((script) => (
               <Card key={script.id} className="group hover:border-primary/50 transition-all overflow-hidden">
-                {script.image_url && (
-                  <div className="w-full h-40 bg-muted/20 overflow-hidden border-b border-border/50">
+                <div className="w-full h-40 bg-muted/20 overflow-hidden border-b border-border/50 relative">
+                  {script.image_url ? (
                     <img 
                       src={script.image_url} 
                       alt={script.service_name}
                       className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300"
                     />
-                  </div>
-                )}
+                  ) : (
+                    <div className="w-full h-full flex items-center justify-center bg-gradient-to-br from-primary/10 to-accent/10">
+                      <FileText className="h-16 w-16 text-muted-foreground/40" />
+                    </div>
+                  )}
+                </div>
                 <CardHeader className="pb-3">
                   <div className="flex items-start justify-between gap-2">
                     <div className="flex-1 min-w-0">
