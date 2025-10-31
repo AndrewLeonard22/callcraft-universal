@@ -4,6 +4,16 @@ import { Plus, FileText, Calendar, Search, Settings, Trash2, Sparkles } from "lu
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from "@/components/ui/alert-dialog";
 import { supabase } from "@/integrations/supabase/client";
 import { format } from "date-fns";
 import { useToast } from "@/hooks/use-toast";
@@ -57,6 +67,8 @@ export default function Dashboard() {
   const [clients, setClients] = useState<ClientWithScripts[]>([]);
   const [loading, setLoading] = useState(true);
   const [searchQuery, setSearchQuery] = useState("");
+  const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
+  const [clientToDelete, setClientToDelete] = useState<{ id: string; name: string } | null>(null);
   const { toast } = useToast();
 
   useEffect(() => {
@@ -151,24 +163,29 @@ export default function Dashboard() {
     }
   };
 
-  const handleDeleteClient = async (clientId: string, clientName: string) => {
-    if (!confirm(`Are you sure you want to delete ${clientName}? This will also delete all associated scripts.`)) {
-      return;
-    }
+  const openDeleteDialog = (clientId: string, clientName: string) => {
+    setClientToDelete({ id: clientId, name: clientName });
+    setDeleteDialogOpen(true);
+  };
+
+  const handleDeleteClient = async () => {
+    if (!clientToDelete) return;
 
     try {
       const { error } = await supabase
         .from("clients")
         .delete()
-        .eq("id", clientId);
+        .eq("id", clientToDelete.id);
 
       if (error) throw error;
 
       toast({
         title: "Company deleted",
-        description: `${clientName} has been deleted successfully.`,
+        description: `${clientToDelete.name} has been deleted successfully.`,
       });
 
+      setDeleteDialogOpen(false);
+      setClientToDelete(null);
       loadClients();
     } catch (error) {
       console.error("Error deleting client:", error);
@@ -361,7 +378,7 @@ export default function Dashboard() {
                       className="h-8 w-8 opacity-0 group-hover:opacity-100 transition-opacity duration-200 hover:bg-destructive/10 hover:text-destructive"
                       onClick={(e) => {
                         e.preventDefault();
-                        handleDeleteClient(client.id, client.business_name || client.name);
+                        openDeleteDialog(client.id, client.business_name || client.name);
                       }}
                     >
                       <Trash2 className="h-4 w-4" />
@@ -430,6 +447,27 @@ export default function Dashboard() {
           </div>
         )}
       </div>
+
+      {/* Delete Confirmation Dialog */}
+      <AlertDialog open={deleteDialogOpen} onOpenChange={setDeleteDialogOpen}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Delete Company?</AlertDialogTitle>
+            <AlertDialogDescription>
+              Are you sure you want to delete <strong>{clientToDelete?.name}</strong>? This will permanently delete the company and all associated scripts. This action cannot be undone.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel>Cancel</AlertDialogCancel>
+            <AlertDialogAction
+              onClick={handleDeleteClient}
+              className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
+            >
+              Delete Company
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </div>
   );
 }
