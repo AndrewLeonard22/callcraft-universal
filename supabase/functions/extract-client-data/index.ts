@@ -249,7 +249,7 @@ Make it natural, conversational, and specific to their business. Include specifi
           .from("client_details")
           .delete()
           .eq("client_id", client_id)
-          .not("field_name", "in", '("_original_onboarding_form","_original_transcript","website","facebook_page","instagram","crm_account_link","appointment_calendar","reschedule_calendar","business_name","owners_name","sales_rep_phone","address","service_area","google_map_link","other_key_info")');
+          .not("field_name", "in", '("_original_onboarding_form","_original_transcript","website","facebook_page","instagram","crm_account_link","appointment_calendar","reschedule_calendar","business_name","owners_name","sales_rep_phone","address","service_area","other_key_info")');
 
         // Insert new details
         const detailsToInsert = Object.entries(extractedInfo)
@@ -315,7 +315,6 @@ Make it natural, conversational, and specific to their business. Include specifi
             { name: "sales_rep_phone", value: business_info.sales_rep_phone },
             { name: "address", value: business_info.address },
             { name: "service_area", value: business_info.service_area },
-            { name: "google_map_link", value: business_info.google_map_link },
             { name: "other_key_info", value: business_info.other_key_info },
           ];
 
@@ -408,7 +407,6 @@ Make it natural, conversational, and specific to their business. Include specifi
           { name: "sales_rep_phone", value: business_info.sales_rep_phone },
           { name: "address", value: business_info.address },
           { name: "service_area", value: business_info.service_area },
-          { name: "google_map_link", value: business_info.google_map_link },
           { name: "other_key_info", value: business_info.other_key_info },
         ];
 

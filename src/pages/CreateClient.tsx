@@ -12,7 +12,6 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 
 export default function CreateClient() {
   const navigate = useNavigate();
-  const [transcript, setTranscript] = useState("");
   const [scriptTemplate, setScriptTemplate] = useState("");
   const [loading, setLoading] = useState(false);
   const [isScriptDragging, setIsScriptDragging] = useState(false);
@@ -23,7 +22,6 @@ export default function CreateClient() {
   const [salesRepPhone, setSalesRepPhone] = useState("");
   const [address, setAddress] = useState("");
   const [serviceArea, setServiceArea] = useState("");
-  const [googleMapLink, setGoogleMapLink] = useState("");
   const [otherKeyInfo, setOtherKeyInfo] = useState("");
   
   // Links
@@ -70,11 +68,6 @@ export default function CreateClient() {
   };
 
   const handleGenerate = async () => {
-    if (!transcript.trim()) {
-      toast.error("Please provide transcript data");
-      return;
-    }
-
     if (!scriptTemplate.trim()) {
       toast.error("Please provide a script template");
       return;
@@ -84,7 +77,6 @@ export default function CreateClient() {
     try {
       const { data, error } = await supabase.functions.invoke("extract-client-data", {
         body: { 
-          transcript: transcript,
           use_template: true,
           template_script: scriptTemplate,
           business_info: {
@@ -93,7 +85,6 @@ export default function CreateClient() {
             sales_rep_phone: salesRepPhone,
             address,
             service_area: serviceArea,
-            google_map_link: googleMapLink,
             other_key_info: otherKeyInfo,
           },
           links: {
@@ -200,7 +191,7 @@ export default function CreateClient() {
               <Tabs defaultValue="business" className="w-full">
                 <TabsList className="grid w-full grid-cols-3 mb-4">
                   <TabsTrigger value="business">Business Info</TabsTrigger>
-                  <TabsTrigger value="transcript">Call Transcript</TabsTrigger>
+                  <TabsTrigger value="additional">Additional Info</TabsTrigger>
                   <TabsTrigger value="links">Links</TabsTrigger>
                 </TabsList>
                 
@@ -253,36 +244,20 @@ export default function CreateClient() {
                         onChange={(e) => setServiceArea(e.target.value)}
                       />
                     </div>
-                    <div>
-                      <Label htmlFor="google-map-link">Google Map Link</Label>
-                      <Input
-                        id="google-map-link"
-                        type="url"
-                        placeholder="https://goo.gl/maps/..."
-                        value={googleMapLink}
-                        onChange={(e) => setGoogleMapLink(e.target.value)}
-                      />
-                    </div>
-                    <div>
-                      <Label htmlFor="other-info">Other Key Information</Label>
-                      <Textarea
-                        id="other-info"
-                        placeholder="Any other important information about the business..."
-                        value={otherKeyInfo}
-                        onChange={(e) => setOtherKeyInfo(e.target.value)}
-                        className="min-h-[100px]"
-                      />
-                    </div>
                   </div>
                 </TabsContent>
                 
-                <TabsContent value="transcript">
-                  <Textarea
-                    placeholder="Paste call transcript here..."
-                    className="min-h-[200px] font-mono text-sm"
-                    value={transcript}
-                    onChange={(e) => setTranscript(e.target.value)}
-                  />
+                <TabsContent value="additional">
+                  <div>
+                    <Label htmlFor="other-info">Additional Information</Label>
+                    <Textarea
+                      id="other-info"
+                      placeholder="Any other important information about the business..."
+                      value={otherKeyInfo}
+                      onChange={(e) => setOtherKeyInfo(e.target.value)}
+                      className="min-h-[200px]"
+                    />
+                  </div>
                 </TabsContent>
 
                 <TabsContent value="links">
