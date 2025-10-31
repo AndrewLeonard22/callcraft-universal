@@ -21,6 +21,7 @@ export default function CreateClient() {
   const [address, setAddress] = useState("");
   const [serviceArea, setServiceArea] = useState("");
   const [otherKeyInfo, setOtherKeyInfo] = useState("");
+  const [serviceRadiusMiles, setServiceRadiusMiles] = useState<string>("");
   
   // Links
   const [website, setWebsite] = useState("");
@@ -58,7 +59,19 @@ export default function CreateClient() {
       if (error) throw error;
 
       toast.success("Client created successfully!");
-      navigate(`/client/${data.client_id}`);
+      const newClientId = data.client_id as string;
+
+      // Save numeric service radius for accurate map rendering
+      const radiusNumber = parseFloat(serviceRadiusMiles);
+      if (!isNaN(radiusNumber)) {
+        await supabase.from("client_details").insert({
+          client_id: newClientId,
+          field_name: "service_radius_miles",
+          field_value: String(radiusNumber),
+        });
+      }
+
+      navigate(`/client/${newClientId}`);
     } catch (error: any) {
       console.error("Error generating script:", error);
       toast.error(error.message || "Failed to generate script");
@@ -139,13 +152,24 @@ export default function CreateClient() {
                       />
                     </div>
                     <div>
-                      <Label htmlFor="service-area">Service Area (miles radius)</Label>
+                      <Label htmlFor="service-area">Service Area (description)</Label>
                       <Input
                         id="service-area"
                         type="text"
-                        placeholder="e.g., 50 miles, 30-mile radius, Entire county"
+                        placeholder="e.g., Entire county, key neighborhoods"
                         value={serviceArea}
                         onChange={(e) => setServiceArea(e.target.value)}
+                      />
+                    </div>
+                    <div>
+                      <Label htmlFor="service-radius">Service Radius (miles)</Label>
+                      <Input
+                        id="service-radius"
+                        type="number"
+                        min={1}
+                        placeholder="e.g., 30"
+                        value={serviceRadiusMiles}
+                        onChange={(e) => setServiceRadiusMiles(e.target.value)}
                       />
                     </div>
                     <div>

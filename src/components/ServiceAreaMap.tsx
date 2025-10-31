@@ -11,6 +11,7 @@ interface ServiceAreaMapProps {
   city?: string;
   serviceArea?: string;
   address?: string;
+  radiusMiles?: number;
 }
 
 // Convert "221 83% 53%" to hex like #3b82f6 for Mapbox compatibility
@@ -68,7 +69,7 @@ const extractRadius = (serviceArea?: string): number => {
   return 30; // Default 30 miles if no radius found
 };
 
-export default function ServiceAreaMap({ city, serviceArea, address }: ServiceAreaMapProps) {
+export default function ServiceAreaMap({ city, serviceArea, address, radiusMiles }: ServiceAreaMapProps) {
   const mapContainer = useRef<HTMLDivElement>(null);
   const map = useRef<mapboxgl.Map | null>(null);
   const [mapboxToken, setMapboxToken] = useState<string>('');
@@ -93,7 +94,7 @@ export default function ServiceAreaMap({ city, serviceArea, address }: ServiceAr
     mapboxgl.accessToken = mapboxToken;
 
     const searchLocation = address || city || serviceArea || 'United States';
-    const radius = extractRadius(serviceArea);
+    const radius = typeof radiusMiles === 'number' && !isNaN(radiusMiles) ? radiusMiles : extractRadius(serviceArea);
     setServiceRadius(radius);
     
     fetch(`https://api.mapbox.com/geocoding/v5/mapbox.places/${encodeURIComponent(searchLocation)}.json?access_token=${mapboxToken}`)

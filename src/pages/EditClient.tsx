@@ -29,6 +29,7 @@ export default function EditClient() {
   const [salesRepPhone, setSalesRepPhone] = useState("");
   const [address, setAddress] = useState("");
   const [otherKeyInfo, setOtherKeyInfo] = useState("");
+  const [serviceRadiusMiles, setServiceRadiusMiles] = useState("");
   
   // Links
   const [website, setWebsite] = useState("");
@@ -60,8 +61,6 @@ export default function EditClient() {
       setClientName(clientResult.data.name);
       setServiceType(clientResult.data.service_type);
       setCity(clientResult.data.city || "");
-
-      // Extract business info and links from client details
       if (detailsResult.data) {
         detailsResult.data.forEach((detail) => {
           if (detail.field_name === "logo_url") {
@@ -178,7 +177,7 @@ export default function EditClient() {
         .eq("client_id", clientId)
         .not("field_name", "in", '("_original_onboarding_form","_original_transcript")');
       
-      const detailsArray = [];
+      const detailsArray = [] as { client_id: string; field_name: string; field_value: string }[];
 
       // Add business info
       const businessFields = [
@@ -192,7 +191,7 @@ export default function EditClient() {
       businessFields.forEach(({ name, value }) => {
         if (value) {
           detailsArray.push({
-            client_id: clientId,
+            client_id: clientId as string,
             field_name: name,
             field_value: value,
           });
@@ -212,7 +211,7 @@ export default function EditClient() {
       linkFields.forEach(({ name, value }) => {
         if (value) {
           detailsArray.push({
-            client_id: clientId,
+            client_id: clientId as string,
             field_name: name,
             field_value: value,
           });
@@ -222,9 +221,19 @@ export default function EditClient() {
       // Add logo URL
       if (logoUrl) {
         detailsArray.push({
-          client_id: clientId,
+          client_id: clientId as string,
           field_name: "logo_url",
           field_value: logoUrl,
+        });
+      }
+
+      // Add numeric service radius
+      const radiusNumber = parseFloat(serviceRadiusMiles);
+      if (!isNaN(radiusNumber)) {
+        detailsArray.push({
+          client_id: clientId as string,
+          field_name: "service_radius_miles",
+          field_value: String(radiusNumber),
         });
       }
 
@@ -352,7 +361,7 @@ export default function EditClient() {
               </CardDescription>
             </CardHeader>
             <CardContent>
-              <ServiceAreaMap city={city} serviceArea={serviceType} address={address} />
+              <ServiceAreaMap city={city} serviceArea={serviceType} address={address} radiusMiles={parseFloat(serviceRadiusMiles) || undefined} />
             </CardContent>
           </Card>
 
@@ -399,6 +408,17 @@ export default function EditClient() {
                         value={salesRepPhone}
                         onChange={(e) => setSalesRepPhone(e.target.value)}
                       />
+                </div>
+                <div>
+                  <Label htmlFor="service-radius">Service Radius (miles)</Label>
+                  <Input
+                    id="service-radius"
+                    type="number"
+                    min={1}
+                    placeholder="e.g., 30"
+                    value={serviceRadiusMiles}
+                    onChange={(e) => setServiceRadiusMiles(e.target.value)}
+                  />
                     </div>
                     <div>
                       <Label htmlFor="address">Address</Label>
@@ -407,16 +427,6 @@ export default function EditClient() {
                         placeholder="123 Main St, City, State ZIP"
                         value={address}
                         onChange={(e) => setAddress(e.target.value)}
-                      />
-                    </div>
-                    <div>
-                      <Label htmlFor="other-info">Other Key Information</Label>
-                      <Textarea
-                        id="other-info"
-                        placeholder="Any other important information about the business..."
-                        value={otherKeyInfo}
-                        onChange={(e) => setOtherKeyInfo(e.target.value)}
-                        className="min-h-[100px]"
                       />
                     </div>
                   </div>

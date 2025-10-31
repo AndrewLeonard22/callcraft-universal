@@ -347,6 +347,7 @@ export default function ScriptViewer() {
                       city={client.city} 
                       serviceArea={getDetailValue("service_area")}
                       address={getDetailValue("address")}
+                      radiusMiles={Number(getDetailValue("service_radius_miles")) || undefined}
                     />
                     {getDetailValue("service_area") !== "N/A" && (
                       <p className="text-xs text-muted-foreground mt-3">
@@ -358,27 +359,29 @@ export default function ScriptViewer() {
               )}
 
               {/* Service Details Card */}
-              {(getDetailValue("project_min_price") !== "N/A" || 
-                getDetailValue("project_min_size") !== "N/A" || 
+              {(
+                getDetailValue("project_min_price") !== "N/A" || getDetailValue("starting_price") !== "N/A" ||
+                getDetailValue("project_min_size") !== "N/A" || getDetailValue("minimum_size") !== "N/A" ||
                 getDetailValue("price_per_sq_ft") !== "N/A" || 
-                getDetailValue("warranties") !== "N/A" || 
+                getDetailValue("warranties") !== "N/A" || getDetailValue("warranty") !== "N/A" || getDetailValue("guarantee") !== "N/A" ||
                 getDetailValue("financing_options") !== "N/A" ||
                 getDetailValue("video_of_service") !== "N/A" ||
-                getDetailValue("avg_install_time") !== "N/A") && (
+                getDetailValue("avg_install_time") !== "N/A"
+              ) && (
                 <Card className="border border-border shadow-sm">
                   <CardContent className="p-6">
                     <h2 className="text-base font-semibold mb-4 text-foreground">Service Details</h2>
                     <div className="space-y-3">
-                      {getDetailValue("project_min_price") !== "N/A" && (
+                      {(getDetailValue("project_min_price") !== "N/A" || getDetailValue("starting_price") !== "N/A") && (
                         <div className="space-y-1">
                           <div className="text-xs font-medium text-muted-foreground">Minimum Price</div>
-                          <div className="text-sm text-foreground">{getDetailValue("project_min_price")}</div>
+                          <div className="text-sm text-foreground">{getDetailValue("project_min_price") !== "N/A" ? getDetailValue("project_min_price") : getDetailValue("starting_price")}</div>
                         </div>
                       )}
-                      {getDetailValue("project_min_size") !== "N/A" && (
+                      {(getDetailValue("project_min_size") !== "N/A" || getDetailValue("minimum_size") !== "N/A") && (
                         <div className="space-y-1">
                           <div className="text-xs font-medium text-muted-foreground">Minimum Size</div>
-                          <div className="text-sm text-foreground">{getDetailValue("project_min_size")}</div>
+                          <div className="text-sm text-foreground">{getDetailValue("project_min_size") !== "N/A" ? getDetailValue("project_min_size") : getDetailValue("minimum_size")}</div>
                         </div>
                       )}
                       {getDetailValue("price_per_sq_ft") !== "N/A" && (
@@ -387,10 +390,10 @@ export default function ScriptViewer() {
                           <div className="text-sm text-foreground">{getDetailValue("price_per_sq_ft")}</div>
                         </div>
                       )}
-                      {getDetailValue("warranties") !== "N/A" && (
+                      {(getDetailValue("warranties") !== "N/A" || getDetailValue("warranty") !== "N/A" || getDetailValue("guarantee") !== "N/A") && (
                         <div className="space-y-1">
                           <div className="text-xs font-medium text-muted-foreground">Warranties</div>
-                          <div className="text-sm text-foreground whitespace-pre-wrap">{getDetailValue("warranties")}</div>
+                          <div className="text-sm text-foreground whitespace-pre-wrap">{getDetailValue("warranties") !== "N/A" ? getDetailValue("warranties") : (getDetailValue("warranty") !== "N/A" ? getDetailValue("warranty") : getDetailValue("guarantee"))}</div>
                         </div>
                       )}
                       {getDetailValue("financing_options") !== "N/A" && (
