@@ -50,6 +50,7 @@ export default function Templates() {
   const [objectionServiceName, setObjectionServiceName] = useState("");
   const [objectionContent, setObjectionContent] = useState("");
   const [saving, setSaving] = useState(false);
+  const [templateImageFile, setTemplateImageFile] = useState<File | null>(null);
 
   useEffect(() => {
     loadTemplates();
@@ -105,40 +106,65 @@ export default function Templates() {
 
     setSaving(true);
     try {
+      let uploadedImageUrl: string | null = null;
+
+      // If a new image was selected, upload it first
+      if (templateImageFile) {
+        const ext = templateImageFile.name.split('.').pop() || 'png';
+        const safeName = serviceName.trim().toLowerCase().replace(/[^a-z0-9]+/g, '-');
+        const filePath = `${safeName}-${Date.now()}.${ext}`;
+
+        const { error: uploadError } = await supabase.storage
+          .from('template-images')
+          .upload(filePath, templateImageFile, { cacheControl: '3600', upsert: false });
+
+        if (uploadError) throw uploadError;
+
+        const { data } = supabase.storage.from('template-images').getPublicUrl(filePath);
+        uploadedImageUrl = data.publicUrl;
+      }
+
       if (editingTemplate) {
         // Update existing template
+        const updatePayload: any = {
+          service_name: serviceName,
+          script_content: scriptContent,
+        };
+        if (uploadedImageUrl) updatePayload.image_url = uploadedImageUrl;
+
         const { error } = await supabase
-          .from("scripts")
-          .update({
-            service_name: serviceName,
-            script_content: scriptContent,
-          })
-          .eq("id", editingTemplate.id);
+          .from('scripts')
+          .update(updatePayload)
+          .eq('id', editingTemplate.id);
 
         if (error) throw error;
-        toast.success("Template updated successfully!");
+        toast.success('Template updated successfully!');
       } else {
         // Create new template
-        const { error } = await supabase.from("scripts").insert({
-          client_id: "00000000-0000-0000-0000-000000000001",
+        const insertPayload: any = {
+          client_id: '00000000-0000-0000-0000-000000000001',
           service_name: serviceName,
           script_content: scriptContent,
           is_template: true,
           version: 1,
-        });
+        };
+        if (uploadedImageUrl) insertPayload.image_url = uploadedImageUrl;
+
+        const { error } = await supabase.from('scripts').insert(insertPayload);
 
         if (error) throw error;
-        toast.success("Template created successfully!");
+        toast.success('Template created successfully!');
       }
 
-      setServiceName("");
-      setScriptContent("");
+      setServiceName('');
+      setScriptContent('');
+      setTemplateImageFile(null);
       setShowCreateForm(false);
       setEditingTemplate(null);
       loadTemplates();
     } catch (error: any) {
-      console.error("Error saving template:", error);
-      toast.error(error.message || "Failed to save template");
+      console.error('Error saving template:', error);
+      toast.error(error.message || 'Failed to save template');
     } finally {
       setSaving(false);
     }
@@ -297,6 +323,17 @@ export default function Templates() {
                   onChange={(e) => setScriptContent(e.target.value)}
                 />
               </div>
+              <div>
+                <Label htmlFor="template-image">Template Image (optional)</Label>
+                <input
+                  id="template-image"
+                  type="file"
+                  accept="image/*"
+                  onChange={(e) => setTemplateImageFile(e.target.files?.[0] || null)}
+                  className="mt-2 block w-full text-sm text-muted-foreground file:mr-4 file:py-2 file:px-4 file:rounded-md file:border file:border-border file:bg-background file:text-foreground hover:file:bg-muted"
+                />
+                <p className="text-xs text-muted-foreground mt-1">Used as the preview image when scripts are created from this template.</p>
+              </div>
               <div className="flex gap-3">
                 <Button onClick={handleCreate} disabled={saving}>
                   {saving ? (editingTemplate ? "Updating..." : "Creating...") : (editingTemplate ? "Update Template" : "Create Template")}
@@ -306,6 +343,7 @@ export default function Templates() {
                   setEditingTemplate(null);
                   setServiceName("");
                   setScriptContent("");
+                  setTemplateImageFile(null);
                 }}>
                   Cancel
                 </Button>
@@ -346,8 +384,12 @@ export default function Templates() {
                 <CardHeader>
                     <div className="flex items-start gap-4 justify-between">
                       <div className="flex items-start gap-3 flex-1">
-                        <div className="h-12 w-12 rounded-lg bg-muted border border-border flex-shrink-0 flex items-center justify-center">
-                          <FileText className="h-5 w-5 text-muted-foreground" />
+                        <div className="h-12 w-12 rounded-lg bg-muted border border-border overflow-hidden flex-shrink-0 flex items-center justify-center">
+                          {template.image_url ? (
+                            <img src={template.image_url} alt="Template preview" className="h-full w-full object-cover" onError={(e) => { (e.currentTarget as HTMLImageElement).src = '/placeholder.svg'; }} />
+                          ) : (
+                            <FileText className="h-5 w-5 text-muted-foreground" />
+                          )}
                         </div>
                         <div className="flex-1 min-w-0">
                           <CardTitle className="text-lg">{template.service_name}</CardTitle>

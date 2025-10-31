@@ -116,10 +116,19 @@ export default function ClientScripts() {
         .order("created_at", { ascending: false });
 
       if (scriptsError) throw scriptsError;
-      const mapped = (scriptsData || []).map((s) => ({
-        ...s,
-        image_url: resolveStoragePublicUrl(s.image_url) || s.image_url,
-      }));
+
+      // Load template images for fallback
+      const { data: tmplData } = await supabase
+        .from('scripts')
+        .select('service_name, image_url')
+        .eq('is_template', true);
+      const tmplMap = new Map<string, string | undefined>((tmplData || []).map(t => [t.service_name, t.image_url || undefined]));
+
+      const mapped = (scriptsData || []).map((s) => {
+        const fallback = tmplMap.get(s.service_name);
+        const resolved = resolveStoragePublicUrl(s.image_url) || resolveStoragePublicUrl(fallback) || s.image_url || fallback;
+        return { ...s, image_url: resolved };
+      });
       setScripts(mapped);
     } catch (error) {
       console.error("Error loading data:", error);
