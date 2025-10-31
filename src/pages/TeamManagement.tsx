@@ -53,6 +53,19 @@ interface OrganizationMember {
   } | null;
 }
 
+interface PendingInvitation {
+  id: string;
+  email: string;
+  role: "admin" | "member";
+  created_at: string;
+  expires_at: string;
+  status: string;
+  invited_by: string;
+  inviter_profile?: {
+    display_name: string | null;
+  } | null;
+}
+
 interface Organization {
   id: string;
   name: string;
@@ -64,6 +77,7 @@ export default function TeamManagement() {
   const [user, setUser] = useState<User | null>(null);
   const [organization, setOrganization] = useState<Organization | null>(null);
   const [members, setMembers] = useState<OrganizationMember[]>([]);
+  const [pendingInvitations, setPendingInvitations] = useState<PendingInvitation[]>([]);
   const [loading, setLoading] = useState(true);
   const [inviteLoading, setInviteLoading] = useState(false);
   const [inviteEmail, setInviteEmail] = useState("");
@@ -71,6 +85,8 @@ export default function TeamManagement() {
   const [inviteError, setInviteError] = useState("");
   const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
   const [memberToDelete, setMemberToDelete] = useState<OrganizationMember | null>(null);
+  const [invitationToCancel, setInvitationToCancel] = useState<PendingInvitation | null>(null);
+  const [cancelDialogOpen, setCancelDialogOpen] = useState(false);
   const [userRole, setUserRole] = useState<"owner" | "admin" | "member" | null>(null);
 
   useEffect(() => {
@@ -160,6 +176,33 @@ export default function TeamManagement() {
       );
       
       setMembers(membersWithProfiles as OrganizationMember[]);
+
+      // Load pending invitations
+      const { data: invitationsData, error: invitationsError } = await supabase
+        .from("team_invitations")
+        .select("id, email, role, created_at, expires_at, status, invited_by")
+        .eq("organization_id", membershipData.organization_id)
+        .eq("status", "pending")
+        .order("created_at", { ascending: false });
+
+      if (!invitationsError && invitationsData) {
+        // Load inviter profiles
+        const invitationsWithProfiles = await Promise.all(
+          invitationsData.map(async (invitation) => {
+            const { data: inviterProfile } = await supabase
+              .from("profiles")
+              .select("display_name")
+              .eq("id", invitation.invited_by)
+              .single();
+
+            return {
+              ...invitation,
+              inviter_profile: inviterProfile,
+            };
+          })
+        );
+        setPendingInvitations(invitationsWithProfiles as PendingInvitation[]);
+      }
     } catch (error) {
       console.error("Error loading data:", error);
       toast({
@@ -196,7 +239,20 @@ export default function TeamManagement() {
         .eq("id", user.id)
         .single();
 
-      const { error } = await supabase.functions.invoke("send-team-invitation", {
+      // Insert invitation record
+      const { error: inviteError } = await supabase
+        .from("team_invitations")
+        .insert({
+          organization_id: organization.id,
+          email: inviteEmail.toLowerCase(),
+          role: inviteRole,
+          invited_by: user.id,
+        });
+
+      if (inviteError) throw inviteError;
+
+      // Send invitation email via edge function
+      const { error: emailError } = await supabase.functions.invoke("send-team-invitation", {
         body: {
           email: inviteEmail,
           organizationId: organization.id,
@@ -206,22 +262,35 @@ export default function TeamManagement() {
         },
       });
 
-      if (error) throw error;
+      if (emailError) {
+        console.error("Email sending failed:", emailError);
+        // Don't fail the whole operation if email fails
+      }
 
       toast({
         title: "Invitation sent!",
-        description: `An invitation email has been sent to ${inviteEmail}`,
+        description: `An invitation has been sent to ${inviteEmail}`,
       });
 
       setInviteEmail("");
       setInviteRole("member");
+      loadData(); // Reload to show new pending invitation
     } catch (error: any) {
       console.error("Error sending invitation:", error);
-      toast({
-        title: "Failed to send invitation",
-        description: error.message || "Please try again later",
-        variant: "destructive",
-      });
+      
+      if (error.code === '23505') { // Unique constraint violation
+        toast({
+          title: "Invitation already exists",
+          description: "This email already has a pending invitation",
+          variant: "destructive",
+        });
+      } else {
+        toast({
+          title: "Failed to send invitation",
+          description: error.message || "Please try again later",
+          variant: "destructive",
+        });
+      }
     } finally {
       setInviteLoading(false);
     }
@@ -282,6 +351,40 @@ export default function TeamManagement() {
       console.error("Error deleting member:", error);
       toast({
         title: "Failed to remove member",
+        description: "Please try again later",
+        variant: "destructive",
+      });
+    }
+  };
+
+  const confirmCancelInvitation = (invitation: PendingInvitation) => {
+    setInvitationToCancel(invitation);
+    setCancelDialogOpen(true);
+  };
+
+  const handleCancelInvitation = async () => {
+    if (!invitationToCancel) return;
+
+    try {
+      const { error } = await supabase
+        .from("team_invitations")
+        .delete()
+        .eq("id", invitationToCancel.id);
+
+      if (error) throw error;
+
+      toast({
+        title: "Invitation cancelled",
+        description: "The invitation has been cancelled",
+      });
+
+      setCancelDialogOpen(false);
+      setInvitationToCancel(null);
+      loadData();
+    } catch (error) {
+      console.error("Error cancelling invitation:", error);
+      toast({
+        title: "Failed to cancel invitation",
         description: "Please try again later",
         variant: "destructive",
       });
@@ -397,12 +500,78 @@ export default function TeamManagement() {
           </CardContent>
         </Card>
 
+        {/* Pending Invitations */}
+        {pendingInvitations.length > 0 && (
+          <Card className="shadow-medium border-yellow-500/20">
+            <CardHeader>
+              <CardTitle className="flex items-center gap-2">
+                <Badge variant="secondary">{pendingInvitations.length}</Badge>
+                Pending Invitations
+              </CardTitle>
+              <CardDescription>
+                These invitations are waiting for acceptance
+              </CardDescription>
+            </CardHeader>
+            <CardContent>
+              <Table>
+                <TableHeader>
+                  <TableRow>
+                    <TableHead>Email</TableHead>
+                    <TableHead>Role</TableHead>
+                    <TableHead>Invited By</TableHead>
+                    <TableHead>Expires</TableHead>
+                    <TableHead className="text-right">Actions</TableHead>
+                  </TableRow>
+                </TableHeader>
+                <TableBody>
+                  {pendingInvitations.map((invitation) => (
+                    <TableRow key={invitation.id}>
+                      <TableCell>
+                        <div className="flex items-center gap-2">
+                          <span className="font-medium">{invitation.email}</span>
+                          <Badge variant="outline" className="text-xs">Pending</Badge>
+                        </div>
+                      </TableCell>
+                      <TableCell>
+                        <Badge variant={invitation.role === "admin" ? "secondary" : "outline"}>
+                          {invitation.role === "admin" && <Shield className="h-3 w-3 mr-1" />}
+                          {invitation.role === "member" && <UserIcon className="h-3 w-3 mr-1" />}
+                          <span className="capitalize">{invitation.role}</span>
+                        </Badge>
+                      </TableCell>
+                      <TableCell>
+                        <span className="text-sm text-muted-foreground">
+                          {invitation.inviter_profile?.display_name || "Unknown"}
+                        </span>
+                      </TableCell>
+                      <TableCell>
+                        <span className="text-sm text-muted-foreground">
+                          {new Date(invitation.expires_at).toLocaleDateString()}
+                        </span>
+                      </TableCell>
+                      <TableCell className="text-right">
+                        <Button
+                          variant="outline"
+                          size="sm"
+                          onClick={() => confirmCancelInvitation(invitation)}
+                        >
+                          Cancel
+                        </Button>
+                      </TableCell>
+                    </TableRow>
+                  ))}
+                </TableBody>
+              </Table>
+            </CardContent>
+          </Card>
+        )}
+
         {/* Team Members List */}
         <Card className="shadow-medium">
           <CardHeader>
-            <CardTitle>Team Members ({members.length})</CardTitle>
+            <CardTitle>Active Team Members ({members.length})</CardTitle>
             <CardDescription>
-              Manage your team members and their roles
+              Members who have accepted invitations and have access
             </CardDescription>
           </CardHeader>
           <CardContent>
@@ -493,6 +662,24 @@ export default function TeamManagement() {
             <AlertDialogCancel>Cancel</AlertDialogCancel>
             <AlertDialogAction onClick={handleDeleteMember}>
               Remove Member
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
+
+      <AlertDialog open={cancelDialogOpen} onOpenChange={setCancelDialogOpen}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Cancel Invitation</AlertDialogTitle>
+            <AlertDialogDescription>
+              Are you sure you want to cancel the invitation for{" "}
+              {invitationToCancel?.email}? They will not be able to join the team using this invitation.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel>Keep Invitation</AlertDialogCancel>
+            <AlertDialogAction onClick={handleCancelInvitation}>
+              Cancel Invitation
             </AlertDialogAction>
           </AlertDialogFooter>
         </AlertDialogContent>

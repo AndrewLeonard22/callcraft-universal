@@ -87,19 +87,29 @@ export default function Auth() {
       });
 
       if (error) {
+        // Enhanced error handling with specific messages
+        let errorTitle = "Login failed";
+        let errorDescription = "Please try again.";
+
         if (error.message.includes("Invalid login credentials")) {
-          toast({
-            title: "Login failed",
-            description: "Invalid email or password. Please try again.",
-            variant: "destructive",
-          });
+          errorDescription = "The email or password you entered is incorrect. Please check and try again.";
+        } else if (error.message.includes("Email not confirmed")) {
+          errorTitle = "Email not verified";
+          errorDescription = "Please check your email and verify your account before logging in.";
+        } else if (error.message.includes("User not found")) {
+          errorDescription = "No account found with this email. Please sign up first.";
+        } else if (error.message.includes("Too many requests")) {
+          errorTitle = "Too many attempts";
+          errorDescription = "Please wait a few minutes before trying again.";
         } else {
-          toast({
-            title: "Login failed",
-            description: error.message,
-            variant: "destructive",
-          });
+          errorDescription = error.message;
         }
+
+        toast({
+          title: errorTitle,
+          description: errorDescription,
+          variant: "destructive",
+        });
         return;
       }
 
@@ -181,25 +191,34 @@ export default function Auth() {
       });
 
       if (error) {
+        // Enhanced signup error handling
+        let errorTitle = "Signup failed";
+        let errorDescription = "Please try again.";
+
         if (error.message.includes("User already registered")) {
-          toast({
-            title: "Account exists",
-            description: "An account with this email already exists. Please login instead.",
-            variant: "destructive",
-          });
+          errorTitle = "Account already exists";
+          errorDescription = "An account with this email already exists. Please use the login tab instead.";
         } else if (error.message.includes("duplicate key")) {
-          toast({
-            title: "Username taken",
-            description: "This username is already in use. Please choose a different one.",
-            variant: "destructive",
-          });
+          errorTitle = "Username unavailable";
+          errorDescription = "This username is already taken. Please choose a different one.";
+        } else if (error.message.includes("Password should be at least")) {
+          errorTitle = "Weak password";
+          errorDescription = "Please use a stronger password with at least 6 characters.";
+        } else if (error.message.includes("invalid email")) {
+          errorTitle = "Invalid email";
+          errorDescription = "Please enter a valid email address.";
+        } else if (error.message.includes("rate limit")) {
+          errorTitle = "Too many attempts";
+          errorDescription = "Please wait a few minutes before trying again.";
         } else {
-          toast({
-            title: "Signup failed",
-            description: error.message,
-            variant: "destructive",
-          });
+          errorDescription = error.message;
         }
+
+        toast({
+          title: errorTitle,
+          description: errorDescription,
+          variant: "destructive",
+        });
         return;
       }
 

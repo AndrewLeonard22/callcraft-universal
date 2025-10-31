@@ -259,7 +259,9 @@ export default function ScriptViewer() {
       
       // Process the text to find and replace patterns
       while (remaining.length > 0) {
-        // Color formatting: {red:text}, {blue:text}, {green:text}, {yellow:text}
+        let matched = false;
+
+        // Priority 1: Color formatting (most specific) - {red:text}
         const colorMatch = remaining.match(/\{(red|blue|green|yellow|purple|orange):([^}]+)\}/);
         if (colorMatch && colorMatch.index !== undefined) {
           if (colorMatch.index > 0) {
@@ -279,117 +281,133 @@ export default function ScriptViewer() {
             </span>
           );
           remaining = remaining.substring(colorMatch.index + colorMatch[0].length);
-          continue;
+          matched = true;
         }
         
-        // Large text: ^text^
-        const largeMatch = remaining.match(/\^([^^]+)\^/);
-        if (largeMatch && largeMatch.index !== undefined) {
-          if (largeMatch.index > 0) {
-            parts.push(remaining.substring(0, largeMatch.index));
+        if (!matched) {
+          // Priority 2: Large text - ^text^
+          const largeMatch = remaining.match(/\^([^^]+)\^/);
+          if (largeMatch && largeMatch.index !== undefined) {
+            if (largeMatch.index > 0) {
+              parts.push(remaining.substring(0, largeMatch.index));
+            }
+            parts.push(
+              <span key={`large-${key++}`} className="text-lg font-semibold">
+                {largeMatch[1]}
+              </span>
+            );
+            remaining = remaining.substring(largeMatch.index + largeMatch[0].length);
+            matched = true;
           }
-          parts.push(
-            <span key={`large-${key++}`} className="text-lg font-semibold">
-              {largeMatch[1]}
-            </span>
-          );
-          remaining = remaining.substring(largeMatch.index + largeMatch[0].length);
-          continue;
         }
         
-        // Small text: ~text~
-        const smallMatch = remaining.match(/~([^~]+)~/);
-        if (smallMatch && smallMatch.index !== undefined) {
-          if (smallMatch.index > 0) {
-            parts.push(remaining.substring(0, smallMatch.index));
+        if (!matched) {
+          // Priority 3: Small text - ~text~
+          const smallMatch = remaining.match(/~([^~]+)~/);
+          if (smallMatch && smallMatch.index !== undefined) {
+            if (smallMatch.index > 0) {
+              parts.push(remaining.substring(0, smallMatch.index));
+            }
+            parts.push(
+              <span key={`small-${key++}`} className="text-xs">
+                {smallMatch[1]}
+              </span>
+            );
+            remaining = remaining.substring(smallMatch.index + smallMatch[0].length);
+            matched = true;
           }
-          parts.push(
-            <span key={`small-${key++}`} className="text-xs">
-              {smallMatch[1]}
-            </span>
-          );
-          remaining = remaining.substring(smallMatch.index + smallMatch[0].length);
-          continue;
         }
         
-        // Check for [bracketed text]
-        const bracketMatch = remaining.match(/\[([^\]]+)\]/);
-        if (bracketMatch && bracketMatch.index !== undefined) {
-          if (bracketMatch.index > 0) {
-            parts.push(remaining.substring(0, bracketMatch.index));
+        if (!matched) {
+          // Priority 4: Bracket highlights - [text]
+          const bracketMatch = remaining.match(/\[([^\]]+)\]/);
+          if (bracketMatch && bracketMatch.index !== undefined) {
+            if (bracketMatch.index > 0) {
+              parts.push(remaining.substring(0, bracketMatch.index));
+            }
+            parts.push(
+              <span key={`bracket-${key++}`} className="bg-yellow-500/20 text-yellow-700 dark:text-yellow-400 font-medium px-2 py-0.5 rounded">
+                {bracketMatch[1]}
+              </span>
+            );
+            remaining = remaining.substring(bracketMatch.index + bracketMatch[0].length);
+            matched = true;
           }
-          parts.push(
-            <span key={`bracket-${key++}`} className="bg-yellow-500/20 text-yellow-700 dark:text-yellow-400 font-medium px-2 py-0.5 rounded">
-              {bracketMatch[1]}
-            </span>
-          );
-          remaining = remaining.substring(bracketMatch.index + bracketMatch[0].length);
-          continue;
         }
         
-        // Check for "quoted text"
-        const quoteMatch = remaining.match(/"([^"]+)"/);
-        if (quoteMatch && quoteMatch.index !== undefined) {
-          if (quoteMatch.index > 0) {
-            parts.push(remaining.substring(0, quoteMatch.index));
+        if (!matched) {
+          // Priority 5: Quote formatting - "text"
+          const quoteMatch = remaining.match(/"([^"]+)"/);
+          if (quoteMatch && quoteMatch.index !== undefined) {
+            if (quoteMatch.index > 0) {
+              parts.push(remaining.substring(0, quoteMatch.index));
+            }
+            parts.push(
+              <span key={`quote-${key++}`} className="bg-blue-500/20 text-blue-700 dark:text-blue-400 font-medium px-1.5 rounded italic">
+                "{quoteMatch[1]}"
+              </span>
+            );
+            remaining = remaining.substring(quoteMatch.index + quoteMatch[0].length);
+            matched = true;
           }
-          parts.push(
-            <span key={`quote-${key++}`} className="bg-blue-500/20 text-blue-700 dark:text-blue-400 font-medium px-1.5 rounded italic">
-              "{quoteMatch[1]}"
-            </span>
-          );
-          remaining = remaining.substring(quoteMatch.index + quoteMatch[0].length);
-          continue;
         }
         
-        // Check for **bold text**
-        const boldMatch = remaining.match(/\*\*([^*]+)\*\*/);
-        if (boldMatch && boldMatch.index !== undefined) {
-          if (boldMatch.index > 0) {
-            parts.push(remaining.substring(0, boldMatch.index));
+        if (!matched) {
+          // Priority 6: Bold with ** (must check before single *)
+          const boldMatch = remaining.match(/\*\*([^*]+)\*\*/);
+          if (boldMatch && boldMatch.index !== undefined) {
+            if (boldMatch.index > 0) {
+              parts.push(remaining.substring(0, boldMatch.index));
+            }
+            parts.push(
+              <strong key={`bold-${key++}`} className="font-bold">
+                {boldMatch[1]}
+              </strong>
+            );
+            remaining = remaining.substring(boldMatch.index + boldMatch[0].length);
+            matched = true;
           }
-          parts.push(
-            <strong key={`bold-${key++}`} className="font-bold">
-              {boldMatch[1]}
-            </strong>
-          );
-          remaining = remaining.substring(boldMatch.index + boldMatch[0].length);
-          continue;
         }
         
-        // Check for __bold text__
-        const underscoreMatch = remaining.match(/__([^_]+)__/);
-        if (underscoreMatch && underscoreMatch.index !== undefined) {
-          if (underscoreMatch.index > 0) {
-            parts.push(remaining.substring(0, underscoreMatch.index));
+        if (!matched) {
+          // Priority 7: Bold with __ (underscore)
+          const underscoreMatch = remaining.match(/__([^_]+)__/);
+          if (underscoreMatch && underscoreMatch.index !== undefined) {
+            if (underscoreMatch.index > 0) {
+              parts.push(remaining.substring(0, underscoreMatch.index));
+            }
+            parts.push(
+              <strong key={`underscore-${key++}`} className="font-bold">
+                {underscoreMatch[1]}
+              </strong>
+            );
+            remaining = remaining.substring(underscoreMatch.index + underscoreMatch[0].length);
+            matched = true;
           }
-          parts.push(
-            <strong key={`underscore-${key++}`} className="font-bold">
-              {underscoreMatch[1]}
-            </strong>
-          );
-          remaining = remaining.substring(underscoreMatch.index + underscoreMatch[0].length);
-          continue;
         }
         
-        // Check for *italic/semibold text*
-        const italicMatch = remaining.match(/\*([^*]+)\*/);
-        if (italicMatch && italicMatch.index !== undefined) {
-          if (italicMatch.index > 0) {
-            parts.push(remaining.substring(0, italicMatch.index));
+        if (!matched) {
+          // Priority 8: Single * for semibold (last to avoid conflicts)
+          const italicMatch = remaining.match(/\*([^*]+)\*/);
+          if (italicMatch && italicMatch.index !== undefined) {
+            if (italicMatch.index > 0) {
+              parts.push(remaining.substring(0, italicMatch.index));
+            }
+            parts.push(
+              <strong key={`semi-${key++}`} className="font-semibold">
+                {italicMatch[1]}
+              </strong>
+            );
+            remaining = remaining.substring(italicMatch.index + italicMatch[0].length);
+            matched = true;
           }
-          parts.push(
-            <strong key={`semi-${key++}`} className="font-semibold">
-              {italicMatch[1]}
-            </strong>
-          );
-          remaining = remaining.substring(italicMatch.index + italicMatch[0].length);
-          continue;
         }
         
-        // No more matches, add remaining text
-        parts.push(remaining);
-        break;
+        // If nothing matched, add the rest and break
+        if (!matched) {
+          parts.push(remaining);
+          break;
+        }
       }
       
       return parts.length > 0 ? parts : text;
