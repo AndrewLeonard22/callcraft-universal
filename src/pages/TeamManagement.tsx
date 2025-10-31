@@ -86,10 +86,10 @@ export default function TeamManagement() {
       }
       setUser(user);
 
-      // Get user's organization
+      // Get user's organization membership
       const { data: membershipData, error: membershipError } = await supabase
         .from("organization_members")
-        .select("organization_id, role, organizations(id, name)")
+        .select("organization_id, role")
         .eq("user_id", user.id)
         .single();
 
@@ -103,8 +103,24 @@ export default function TeamManagement() {
         return;
       }
 
-      const org = membershipData.organizations as unknown as Organization;
-      setOrganization(org);
+      // Get organization details
+      const { data: orgData, error: orgError } = await supabase
+        .from("organizations")
+        .select("id, name")
+        .eq("id", membershipData.organization_id)
+        .single();
+
+      if (orgError || !orgData) {
+        toast({
+          title: "Error",
+          description: "Could not load organization details",
+          variant: "destructive",
+        });
+        navigate("/");
+        return;
+      }
+
+      setOrganization(orgData);
       setUserRole(membershipData.role);
 
       // Only owners and admins can manage team
@@ -122,7 +138,7 @@ export default function TeamManagement() {
       const { data: membersData, error: membersError } = await supabase
         .from("organization_members")
         .select("id, user_id, role, created_at")
-        .eq("organization_id", org.id)
+        .eq("organization_id", membershipData.organization_id)
         .order("created_at", { ascending: true });
 
       if (membersError) throw membersError;
