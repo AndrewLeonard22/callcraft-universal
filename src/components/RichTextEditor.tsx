@@ -109,7 +109,6 @@ export function RichTextEditor({
   minHeight = "150px" 
 }: RichTextEditorProps) {
   const textareaRef = useRef<HTMLTextAreaElement>(null);
-  const [showPreview, setShowPreview] = useState(false);
 
   const applyFormat = (formatType: 'bold' | 'highlight' | 'quote' | 'uppercase') => {
     const textarea = textareaRef.current;
@@ -152,81 +151,67 @@ export function RichTextEditor({
       {label && <Label>{label}</Label>}
       
       <div className="border rounded-lg overflow-hidden bg-background">
-        <div className="flex items-center justify-between gap-2 px-3 py-2 bg-muted/50 border-b">
-          <div className="flex gap-1">
-            <Button
-              type="button"
-              variant="ghost"
-              size="sm"
-              className="h-8 px-3 hover:bg-background"
-              onClick={() => applyFormat('bold')}
-              title="Bold (wraps text with **)"
-            >
-              <Bold className="h-4 w-4 mr-1.5" />
-              <span className="text-xs">Bold</span>
-            </Button>
-            <Button
-              type="button"
-              variant="ghost"
-              size="sm"
-              className="h-8 px-3 hover:bg-background"
-              onClick={() => applyFormat('highlight')}
-              title="Highlight (wraps text with [])"
-            >
-              <Highlighter className="h-4 w-4 mr-1.5" />
-              <span className="text-xs">Highlight</span>
-            </Button>
-            <Button
-              type="button"
-              variant="ghost"
-              size="sm"
-              className="h-8 px-3 hover:bg-background"
-              onClick={() => applyFormat('quote')}
-              title="Quote (wraps text with quotes)"
-            >
-              <Quote className="h-4 w-4 mr-1.5" />
-              <span className="text-xs">Quote</span>
-            </Button>
-            <Button
-              type="button"
-              variant="ghost"
-              size="sm"
-              className="h-8 px-3 hover:bg-background"
-              onClick={() => applyFormat('uppercase')}
-              title="Bold Alt (wraps text with __)"
-            >
-              <Type className="h-4 w-4 mr-1.5" />
-              <span className="text-xs">Bold Alt</span>
-            </Button>
-          </div>
+        <div className="flex items-center gap-2 px-3 py-2 bg-muted/50 border-b">
           <Button
             type="button"
             variant="ghost"
             size="sm"
-            className="h-8 px-3 text-xs hover:bg-background"
-            onClick={() => setShowPreview(!showPreview)}
+            className="h-8 px-3 hover:bg-background"
+            onClick={() => applyFormat('bold')}
+            title="Bold (wraps text with **)"
           >
-            {showPreview ? 'Edit' : 'Preview'}
+            <Bold className="h-4 w-4 mr-1.5" />
+            <span className="text-xs">Bold</span>
+          </Button>
+          <Button
+            type="button"
+            variant="ghost"
+            size="sm"
+            className="h-8 px-3 hover:bg-background"
+            onClick={() => applyFormat('highlight')}
+            title="Highlight (wraps text with [])"
+          >
+            <Highlighter className="h-4 w-4 mr-1.5" />
+            <span className="text-xs">Highlight</span>
+          </Button>
+          <Button
+            type="button"
+            variant="ghost"
+            size="sm"
+            className="h-8 px-3 hover:bg-background"
+            onClick={() => applyFormat('quote')}
+            title="Quote (wraps text with quotes)"
+          >
+            <Quote className="h-4 w-4 mr-1.5" />
+            <span className="text-xs">Quote</span>
+          </Button>
+          <Button
+            type="button"
+            variant="ghost"
+            size="sm"
+            className="h-8 px-3 hover:bg-background"
+            onClick={() => applyFormat('uppercase')}
+            title="Bold Alt (wraps text with __)"
+          >
+            <Type className="h-4 w-4 mr-1.5" />
+            <span className="text-xs">Bold Alt</span>
           </Button>
         </div>
         
-        {showPreview ? (
-          <div className="p-4 min-h-[150px] bg-muted/20">
-            {value ? (
-              <FormattedPreview content={value} />
-            ) : (
-              <p className="text-sm text-muted-foreground italic">No content to preview</p>
-            )}
+        <Textarea
+          ref={textareaRef}
+          value={value}
+          onChange={(e) => onChange(e.target.value)}
+          placeholder={placeholder}
+          className="border-0 rounded-none focus-visible:ring-0 resize-none"
+          style={{ minHeight }}
+        />
+        
+        {value && (
+          <div className="px-4 py-3 bg-muted/20 border-t">
+            <p className="text-xs font-medium text-muted-foreground mb-2">Live Preview:</p>
+            <FormattedPreview content={value} />
           </div>
-        ) : (
-          <Textarea
-            ref={textareaRef}
-            value={value}
-            onChange={(e) => onChange(e.target.value)}
-            placeholder={placeholder}
-            className="border-0 rounded-none focus-visible:ring-0 resize-none"
-            style={{ minHeight }}
-          />
         )}
       </div>
       
