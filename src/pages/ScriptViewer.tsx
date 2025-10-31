@@ -884,7 +884,7 @@ export default function ScriptViewer() {
 
             {/* FAQs Panel */}
             {showFaqs && (
-              <div className="fixed bottom-42 right-6 w-96 max-h-[500px] bg-background border border-border rounded-lg shadow-2xl z-30 overflow-hidden flex flex-col">
+              <div className="fixed bottom-40 right-6 w-96 max-h-[500px] bg-background border border-border rounded-lg shadow-2xl z-30 overflow-hidden flex flex-col">
                 <div className="p-4 border-b border-border bg-muted/50">
                   <h3 className="font-semibold text-lg">FAQs</h3>
                   <p className="text-xs text-muted-foreground mt-1">Frequently asked questions</p>
