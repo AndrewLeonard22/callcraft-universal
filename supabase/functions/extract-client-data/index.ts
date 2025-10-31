@@ -92,7 +92,7 @@ serve(async (req) => {
 
   try {
     const requestBody = await req.json();
-    const { onboarding_form, transcript, client_id, service_name, service_type_id, use_template, template_script, regenerate, links, business_info, service_details } = requestBody;
+    const { onboarding_form, transcript, client_id, service_name, service_type_id, use_template, template_script, regenerate, links, business_info, service_details, script_id } = requestBody;
 
     const LOVABLE_API_KEY = Deno.env.get("LOVABLE_API_KEY");
     const SUPABASE_URL = Deno.env.get("SUPABASE_URL");
@@ -439,65 +439,77 @@ Make it natural, conversational, and specific to their business. Include specifi
 
       // If regenerating, update client details
       if (regenerate && Object.keys(extractedInfo).length > 0) {
-        // Keep original source data
-        const { data: originalData } = await supabase
-          .from("client_details")
-          .select("*")
-          .eq("client_id", client_id)
-          .in("field_name", ["_original_onboarding_form", "_original_transcript"]);
-
-        // Delete existing details except original source data, links, and business info
-        await supabase
-          .from("client_details")
-          .delete()
-          .eq("client_id", client_id)
-          .not("field_name", "in", '("_original_onboarding_form","_original_transcript","website","facebook_page","instagram","crm_account_link","business_name","owners_name","sales_rep_phone","address","service_area","other_key_info")');
-
-        // Insert new details
-        const detailsToInsert = Object.entries(extractedInfo)
+        // When regenerating, we DON'T delete any existing client details
+        // We only add/update new ones, preserving everything else
+        
+        // Upsert new details (update if exists, insert if not)
+        const detailsToUpsert = Object.entries(extractedInfo)
           .filter(([key]) => !["company_name", "service_type", "city"].includes(key))
-          .map(([key, value]) => ({
-            client_id: client_id,
-            field_name: key,
-            field_value: typeof value === "string" ? value : JSON.stringify(value),
+          .map(([field_name, field_value]) => ({
+            client_id,
+            field_name,
+            field_value: String(field_value),
           }));
 
-        // Re-add original data if it exists
-        if (originalData && originalData.length > 0) {
-          detailsToInsert.push(...originalData.map(d => ({
-            client_id: client_id,
-            field_name: d.field_name,
-            field_value: d.field_value || "",
-          })));
-        }
-
-        // Add new source data if provided
-        if (onboarding_form && !originalData?.some(d => d.field_name === "_original_onboarding_form")) {
-          detailsToInsert.push({
-            client_id: client_id,
-            field_name: "_original_onboarding_form",
-            field_value: onboarding_form,
-          });
-        }
-        if (transcript && !originalData?.some(d => d.field_name === "_original_transcript")) {
-          detailsToInsert.push({
-            client_id: client_id,
-            field_name: "_original_transcript",
-            field_value: transcript,
-          });
-        }
-
-        // Add service details, links, and business info using helpers
-        detailsToInsert.push(...processServiceDetails(service_details, client_id));
-        detailsToInsert.push(...processLinks(links, client_id));
-        detailsToInsert.push(...processBusinessInfo(business_info, client_id));
-
-        if (detailsToInsert.length > 0) {
-          const { error: detailsError } = await supabase
+        // Check which fields already exist
+        if (detailsToUpsert.length > 0) {
+          const fieldNames = detailsToUpsert.map(d => d.field_name);
+          const { data: existingDetails } = await supabase
             .from("client_details")
-            .insert(detailsToInsert);
+            .select("field_name")
+            .eq("client_id", client_id)
+            .in("field_name", fieldNames);
 
-          if (detailsError) throw detailsError;
+          const existingFieldNames = new Set(existingDetails?.map(d => d.field_name) || []);
+
+          // Update existing fields or insert new ones
+          for (const detail of detailsToUpsert) {
+            if (existingFieldNames.has(detail.field_name)) {
+              await supabase
+                .from("client_details")
+                .update({ field_value: detail.field_value })
+                .eq("client_id", client_id)
+                .eq("field_name", detail.field_name);
+            } else {
+              await supabase
+                .from("client_details")
+                .insert(detail);
+            }
+          }
+        }
+        
+        // Add service details, links, and business info if provided
+        const additionalDetails = [
+          ...processServiceDetails(service_details, client_id),
+          ...processLinks(links, client_id),
+          ...processBusinessInfo(business_info, client_id)
+        ];
+        
+        if (additionalDetails.length > 0) {
+          // Check for existing fields
+          const additionalFieldNames = additionalDetails.map(d => d.field_name);
+          const { data: existingAdditional } = await supabase
+            .from("client_details")
+            .select("field_name")
+            .eq("client_id", client_id)
+            .in("field_name", additionalFieldNames);
+
+          const existingAdditionalNames = new Set(existingAdditional?.map(d => d.field_name) || []);
+
+          // Update existing or insert new
+          for (const detail of additionalDetails) {
+            if (existingAdditionalNames.has(detail.field_name)) {
+              await supabase
+                .from("client_details")
+                .update({ field_value: detail.field_value })
+                .eq("client_id", client_id)
+                .eq("field_name", detail.field_name);
+            } else {
+              await supabase
+                .from("client_details")
+                .insert(detail);
+            }
+          }
         }
       }
     } else {
@@ -554,28 +566,73 @@ Make it natural, conversational, and specific to their business. Include specifi
       }
     }
 
-    // Insert script with service name (no fallback to "General Service")
-    if (!service_name && !extractedInfo.service_type) {
-      throw new Error("Service name is required to create a script");
+    // Create or update script
+    let scriptData;
+    if (script_id) {
+      // Update existing script - preserve all client details
+      const { data, error: scriptError } = await supabase
+        .from("scripts")
+        .update({
+          script_content: scriptContent,
+          version: regenerate ? (supabase as any).sql`version + 1` : undefined,
+          service_name: service_name || extractedInfo.service_type,
+          service_type_id: service_type_id || null,
+        })
+        .eq("id", script_id)
+        .select()
+        .single();
+
+      if (scriptError) throw scriptError;
+      scriptData = data;
+      
+      // If service details were provided for this specific script, save them with script prefix
+      if (service_details && Object.keys(service_details).some(key => service_details[key])) {
+        const scriptPrefix = `script_${script_id}_`;
+        
+        // Delete only script-specific details (those with the prefix)
+        await supabase
+          .from("client_details")
+          .delete()
+          .eq("client_id", clientData.id)
+          .like("field_name", `${scriptPrefix}%`);
+        
+        // Insert new script-specific details
+        const scriptDetailsArray = processServiceDetails(service_details, clientData.id)
+          .map(detail => ({
+            ...detail,
+            field_name: `${scriptPrefix}${detail.field_name}`
+          }));
+        
+        if (scriptDetailsArray.length > 0) {
+          await supabase.from("client_details").insert(scriptDetailsArray);
+        }
+      }
+    } else {
+      // Create new script
+      const { data, error: scriptError } = await supabase
+        .from("scripts")
+        .insert({
+          client_id: clientData.id,
+          script_content: scriptContent,
+          service_name: service_name || extractedInfo.service_type,
+          version: 1,
+          is_template: false,
+          service_type_id: service_type_id || null,
+        })
+        .select()
+        .single();
+
+      if (scriptError) throw scriptError;
+      scriptData = data;
     }
 
-    const { error: scriptError } = await supabase.from("scripts").insert({
-      client_id: clientData.id,
-      script_content: scriptContent,
-      service_name: service_name || extractedInfo.service_type,
-      version: 1,
-      is_template: false,
-      service_type_id: service_type_id || null,
-    });
-
-    if (scriptError) throw scriptError;
-
-    console.log("Successfully created client and script");
+    console.log("Successfully created/updated client and script");
 
     return new Response(
       JSON.stringify({
         success: true,
         client_id: clientData.id,
+        script_id: scriptData?.id,
         extracted_data: extractedInfo,
       }),
       {
