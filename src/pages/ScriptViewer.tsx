@@ -543,6 +543,75 @@ export default function ScriptViewer() {
                   </div>
                 </CardContent>
               </Card>
+
+              {/* Service Information Section */}
+              {(getDetailValue("project_min_price") !== "N/A" || 
+                getDetailValue("project_min_size") !== "N/A" || 
+                getDetailValue("price_per_sq_ft") !== "N/A" || 
+                getDetailValue("warranties") !== "N/A" || 
+                getDetailValue("financing_options") !== "N/A" || 
+                getDetailValue("video_of_service") !== "N/A" || 
+                getDetailValue("avg_install_time") !== "N/A") && (
+                <Card className="border border-border shadow-sm">
+                  <CardContent className="p-6">
+                    <h2 className="text-base font-semibold mb-4 text-foreground">Service Information</h2>
+                    
+                    <div className="space-y-4">
+                      {getDetailValue("project_min_price") !== "N/A" && (
+                        <div className="space-y-1">
+                          <div className="text-xs font-medium text-muted-foreground uppercase tracking-wide">Project Minimum Price</div>
+                          <div className="text-sm font-medium text-foreground">{getDetailValue("project_min_price")}</div>
+                        </div>
+                      )}
+
+                      {getDetailValue("project_min_size") !== "N/A" && (
+                        <div className="space-y-1">
+                          <div className="text-xs font-medium text-muted-foreground uppercase tracking-wide">Project Minimum Size</div>
+                          <div className="text-sm font-medium text-foreground">{getDetailValue("project_min_size")}</div>
+                        </div>
+                      )}
+
+                      {getDetailValue("price_per_sq_ft") !== "N/A" && (
+                        <div className="space-y-1">
+                          <div className="text-xs font-medium text-muted-foreground uppercase tracking-wide">Price Per Square Foot</div>
+                          <div className="text-sm font-medium text-foreground">{getDetailValue("price_per_sq_ft")}</div>
+                        </div>
+                      )}
+
+                      {getDetailValue("warranties") !== "N/A" && (
+                        <div className="space-y-1">
+                          <div className="text-xs font-medium text-muted-foreground uppercase tracking-wide">Warranties/Guarantees</div>
+                          <div className="text-sm text-foreground whitespace-pre-wrap">{getDetailValue("warranties")}</div>
+                        </div>
+                      )}
+
+                      {getDetailValue("financing_options") !== "N/A" && (
+                        <div className="space-y-1">
+                          <div className="text-xs font-medium text-muted-foreground uppercase tracking-wide">Financing Options</div>
+                          <div className="text-sm text-foreground whitespace-pre-wrap">{getDetailValue("financing_options")}</div>
+                        </div>
+                      )}
+
+                      {getDetailValue("video_of_service") !== "N/A" && (
+                        <div className="space-y-1">
+                          <div className="text-xs font-medium text-muted-foreground uppercase tracking-wide">Video of Service</div>
+                          <a href={getDetailValue("video_of_service")} target="_blank" rel="noopener noreferrer" 
+                             className="text-sm text-primary hover:text-primary/80 break-all transition-colors block">
+                            Watch Video
+                          </a>
+                        </div>
+                      )}
+
+                      {getDetailValue("avg_install_time") !== "N/A" && (
+                        <div className="space-y-1">
+                          <div className="text-xs font-medium text-muted-foreground uppercase tracking-wide">Average Install Time After Booking</div>
+                          <div className="text-sm font-medium text-foreground">{getDetailValue("avg_install_time")}</div>
+                        </div>
+                      )}
+                    </div>
+                  </CardContent>
+                </Card>
+              )}
             </div>
           </div>
 
