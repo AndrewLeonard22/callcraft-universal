@@ -1,6 +1,6 @@
 import { useEffect, useState } from "react";
 import { Link } from "react-router-dom";
-import { Plus, FileText, Calendar, Search, Settings, Image as ImageIcon } from "lucide-react";
+import { Plus, FileText, Calendar, Search, Settings } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
@@ -12,6 +12,20 @@ import logoHvac from "@/assets/logo-hvac.png";
 import logoSolar from "@/assets/logo-solar.png";
 import logoLandscaping from "@/assets/logo-landscaping.png";
 
+interface ServiceType {
+  id: string;
+  name: string;
+  icon_url?: string;
+}
+
+interface ScriptWithType {
+  id: string;
+  service_name: string;
+  created_at: string;
+  service_type_id?: string;
+  service_type?: ServiceType;
+}
+
 interface ClientWithScripts {
   id: string;
   name: string;
@@ -19,12 +33,7 @@ interface ClientWithScripts {
   city: string;
   logo_url?: string;
   created_at: string;
-  scripts: Array<{
-    id: string;
-    service_name: string;
-    created_at: string;
-    image_url?: string;
-  }>;
+  scripts: ScriptWithType[];
 }
 
 // Helper to get logo based on service type
@@ -61,14 +70,25 @@ export default function Dashboard() {
 
       if (clientsError) throw clientsError;
 
-      // Get all non-template scripts with image_url
+      // Get all non-template scripts with service_type_id
       const { data: scriptsData, error: scriptsError } = await supabase
         .from("scripts")
-        .select("id, service_name, created_at, client_id, image_url")
+        .select("id, service_name, created_at, client_id, service_type_id")
         .eq("is_template", false)
         .order("created_at", { ascending: false });
 
       if (scriptsError) throw scriptsError;
+
+      // Get all service types
+      const { data: serviceTypesData, error: serviceTypesError } = await supabase
+        .from("service_types")
+        .select("*");
+
+      if (serviceTypesError) throw serviceTypesError;
+
+      const serviceTypesMap = new Map(
+        (serviceTypesData || []).map(st => [st.id, st])
+      );
 
       // Get logo URLs for all clients
       const { data: logosData } = await supabase
@@ -83,13 +103,14 @@ export default function Dashboard() {
       // Group scripts by client
       const clientsWithScripts: ClientWithScripts[] = (clientsData || [])
         .map((client) => {
-          const clientScripts = (scriptsData || [])
+          const clientScripts: ScriptWithType[] = (scriptsData || [])
             .filter(s => s.client_id === client.id)
             .map(s => ({
               id: s.id,
               service_name: s.service_name,
               created_at: s.created_at,
-              image_url: s.image_url,
+              service_type_id: s.service_type_id,
+              service_type: s.service_type_id ? serviceTypesMap.get(s.service_type_id) : undefined,
             }));
 
           return {
@@ -136,9 +157,15 @@ export default function Dashboard() {
               </p>
             </div>
             <div className="flex gap-3">
-              <Link to="/templates">
+              <Link to="/service-types">
                 <Button variant="outline">
                   <Settings className="mr-2 h-4 w-4" />
+                  Services
+                </Button>
+              </Link>
+              <Link to="/templates">
+                <Button variant="outline">
+                  <FileText className="mr-2 h-4 w-4" />
                   Templates
                 </Button>
               </Link>
@@ -249,13 +276,13 @@ export default function Dashboard() {
                       Scripts ({client.scripts.length})
                     </div>
                     <div className="flex flex-wrap gap-1.5">
-                      {client.scripts.map((script) => (
+                      {client.scripts.map((script: ScriptWithType) => (
                         <Link key={script.id} to={`/script/${script.id}`}>
                           <Button variant="outline" size="sm" className="h-7 text-xs px-2 gap-1.5">
-                            {script.image_url ? (
+                            {script.service_type?.icon_url ? (
                               <div className="h-3.5 w-3.5 rounded overflow-hidden flex-shrink-0">
                                 <img 
-                                  src={script.image_url} 
+                                  src={script.service_type.icon_url} 
                                   alt=""
                                   className="h-full w-full object-cover"
                                 />

@@ -82,6 +82,7 @@ export type Database = {
           is_template: boolean
           script_content: string
           service_name: string
+          service_type_id: string | null
           version: number | null
         }
         Insert: {
@@ -92,6 +93,7 @@ export type Database = {
           is_template?: boolean
           script_content: string
           service_name?: string
+          service_type_id?: string | null
           version?: number | null
         }
         Update: {
@@ -102,6 +104,7 @@ export type Database = {
           is_template?: boolean
           script_content?: string
           service_name?: string
+          service_type_id?: string | null
           version?: number | null
         }
         Relationships: [
@@ -112,7 +115,35 @@ export type Database = {
             referencedRelation: "clients"
             referencedColumns: ["id"]
           },
+          {
+            foreignKeyName: "scripts_service_type_id_fkey"
+            columns: ["service_type_id"]
+            isOneToOne: false
+            referencedRelation: "service_types"
+            referencedColumns: ["id"]
+          },
         ]
+      }
+      service_types: {
+        Row: {
+          created_at: string
+          icon_url: string | null
+          id: string
+          name: string
+        }
+        Insert: {
+          created_at?: string
+          icon_url?: string | null
+          id?: string
+          name: string
+        }
+        Update: {
+          created_at?: string
+          icon_url?: string | null
+          id?: string
+          name?: string
+        }
+        Relationships: []
       }
     }
     Views: {

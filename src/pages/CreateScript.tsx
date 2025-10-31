@@ -25,13 +25,20 @@ interface Template {
   image_url?: string;
 }
 
+interface ServiceType {
+  id: string;
+  name: string;
+  icon_url?: string;
+}
+
 export default function CreateScript() {
   const navigate = useNavigate();
   const { clientId } = useParams();
   const [client, setClient] = useState<Client | null>(null);
   const [templates, setTemplates] = useState<Template[]>([]);
+  const [serviceTypes, setServiceTypes] = useState<ServiceType[]>([]);
   const [selectedTemplateId, setSelectedTemplateId] = useState<string>("");
-  const [serviceName, setServiceName] = useState("");
+  const [selectedServiceTypeId, setSelectedServiceTypeId] = useState<string>("");
   const [loading, setLoading] = useState(false);
   
   // Service-specific fields
@@ -48,6 +55,7 @@ export default function CreateScript() {
   useEffect(() => {
     loadClient();
     loadTemplates();
+    loadServiceTypes();
   }, [clientId]);
 
   const loadClient = async () => {
@@ -82,17 +90,28 @@ export default function CreateScript() {
     }
   };
 
-  const handleTemplateSelect = (templateId: string) => {
-    setSelectedTemplateId(templateId);
-    const template = templates.find(t => t.id === templateId);
-    if (template) {
-      setServiceName(template.service_name);
+  const loadServiceTypes = async () => {
+    try {
+      const { data, error } = await supabase
+        .from("service_types")
+        .select("*")
+        .order("name");
+
+      if (error) throw error;
+      setServiceTypes(data || []);
+    } catch (error) {
+      console.error("Error loading service types:", error);
+      toast.error("Failed to load service types");
     }
   };
 
+  const handleTemplateSelect = (templateId: string) => {
+    setSelectedTemplateId(templateId);
+  };
+
   const handleGenerate = async () => {
-    if (!serviceName.trim()) {
-      toast.error("Please enter a service name");
+    if (!selectedServiceTypeId) {
+      toast.error("Please select a service type");
       return;
     }
 
@@ -107,15 +126,21 @@ export default function CreateScript() {
       return;
     }
 
+    const selectedServiceType = serviceTypes.find(t => t.id === selectedServiceTypeId);
+    if (!selectedServiceType) {
+      toast.error("Invalid service type selected");
+      return;
+    }
+
     setLoading(true);
     try {
       const { data, error } = await supabase.functions.invoke("extract-client-data", {
         body: {
           client_id: clientId,
-          service_name: serviceName,
+          service_name: selectedServiceType.name,
+          service_type_id: selectedServiceTypeId,
           use_template: true,
           template_script: selectedTemplate.script_content,
-          template_image_url: selectedTemplate.image_url,
           service_details: {
             project_min_price: projectMinPrice,
             project_min_size: projectMinSize,
@@ -170,17 +195,50 @@ export default function CreateScript() {
         <div className="space-y-6">
           <Card>
             <CardHeader>
-              <CardTitle>Service Name</CardTitle>
-              <CardDescription>
-                What service is this script for?
-              </CardDescription>
+              <div className="flex items-center justify-between">
+                <div>
+                  <CardTitle>Service Type</CardTitle>
+                  <CardDescription>
+                    What service is this script for?
+                  </CardDescription>
+                </div>
+                <Button
+                  variant="outline"
+                  size="sm"
+                  onClick={() => navigate("/service-types")}
+                >
+                  Manage Services
+                </Button>
+              </div>
             </CardHeader>
             <CardContent>
-              <Input
-                placeholder="e.g., Lawn Care, Pool Installation, Deck Building"
-                value={serviceName}
-                onChange={(e) => setServiceName(e.target.value)}
-              />
+              <Select value={selectedServiceTypeId} onValueChange={setSelectedServiceTypeId}>
+                <SelectTrigger>
+                  <SelectValue placeholder="Select a service type..." />
+                </SelectTrigger>
+                <SelectContent className="bg-background z-50">
+                  {serviceTypes.length === 0 ? (
+                    <div className="p-4 text-sm text-muted-foreground text-center">
+                      No service types available. Create one first.
+                    </div>
+                  ) : (
+                    serviceTypes.map((serviceType) => (
+                      <SelectItem key={serviceType.id} value={serviceType.id}>
+                        <div className="flex items-center gap-2">
+                          {serviceType.icon_url && (
+                            <img 
+                              src={serviceType.icon_url} 
+                              alt="" 
+                              className="h-4 w-4 rounded object-cover"
+                            />
+                          )}
+                          {serviceType.name}
+                        </div>
+                      </SelectItem>
+                    ))
+                  )}
+                </SelectContent>
+              </Select>
             </CardContent>
           </Card>
 
