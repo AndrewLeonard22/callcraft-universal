@@ -386,10 +386,10 @@ export default function Dashboard() {
                             <Button 
                               variant="outline" 
                               size="sm" 
-                              className="h-9 text-xs px-3 gap-2 hover:bg-primary/5 hover:border-primary/30 transition-colors shadow-sm group/script"
+                              className="h-10 text-xs px-3 gap-2.5 hover:bg-primary/5 hover:border-primary/30 transition-colors shadow-sm group/script"
                             >
                               {script.image_url ? (
-                                <div className="h-5 w-5 rounded overflow-hidden flex-shrink-0 bg-muted ring-1 ring-border/50">
+                                <div className="h-6 w-6 rounded-md overflow-hidden flex-shrink-0 bg-muted ring-1 ring-border/50 group-hover/script:ring-primary/30 transition-all">
                                   <img 
                                     src={script.image_url} 
                                     alt=""
@@ -397,7 +397,7 @@ export default function Dashboard() {
                                   />
                                 </div>
                               ) : script.service_type?.icon_url ? (
-                                <div className="h-5 w-5 rounded overflow-hidden flex-shrink-0 bg-muted ring-1 ring-border/50">
+                                <div className="h-6 w-6 rounded-md overflow-hidden flex-shrink-0 bg-muted/50 ring-1 ring-border/50 group-hover/script:ring-primary/30 transition-all p-0.5">
                                   <img 
                                     src={script.service_type.icon_url} 
                                     alt=""
@@ -405,9 +405,9 @@ export default function Dashboard() {
                                   />
                                 </div>
                               ) : (
-                                <FileText className="h-3.5 w-3.5 flex-shrink-0" />
+                                <FileText className="h-4 w-4 flex-shrink-0 text-muted-foreground" />
                               )}
-                              <span className="truncate max-w-[120px]">{script.service_name}</span>
+                              <span className="truncate max-w-[100px] font-medium">{script.service_name}</span>
                             </Button>
                           </Link>
                         ))}
