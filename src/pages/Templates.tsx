@@ -1,6 +1,6 @@
 import { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
-import { Plus, Trash2, FileText, Edit2, MessageSquare } from "lucide-react";
+import { Plus, Trash2, FileText, Edit2, MessageSquare, HelpCircle } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
@@ -18,6 +18,7 @@ import {
   AlertDialogTitle,
   AlertDialogTrigger,
 } from "@/components/ui/alert-dialog";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
 
@@ -157,25 +158,48 @@ interface ObjectionTemplate {
   created_at: string;
 }
 
+interface FAQ {
+  id: string;
+  service_type_id: string;
+  question: string;
+  answer: string;
+  created_at: string;
+}
+
+interface ServiceType {
+  id: string;
+  name: string;
+  icon_url?: string;
+}
+
 export default function Templates() {
   const navigate = useNavigate();
   const [templates, setTemplates] = useState<Template[]>([]);
   const [objectionTemplates, setObjectionTemplates] = useState<ObjectionTemplate[]>([]);
+  const [faqs, setFaqs] = useState<FAQ[]>([]);
+  const [serviceTypes, setServiceTypes] = useState<ServiceType[]>([]);
   const [loading, setLoading] = useState(true);
   const [showCreateForm, setShowCreateForm] = useState(false);
   const [showObjectionForm, setShowObjectionForm] = useState(false);
+  const [showFaqForm, setShowFaqForm] = useState(false);
   const [editingTemplate, setEditingTemplate] = useState<Template | null>(null);
   const [editingObjection, setEditingObjection] = useState<ObjectionTemplate | null>(null);
+  const [editingFaq, setEditingFaq] = useState<FAQ | null>(null);
   const [serviceName, setServiceName] = useState("");
   const [scriptContent, setScriptContent] = useState("");
   const [objectionServiceName, setObjectionServiceName] = useState("");
   const [objectionContent, setObjectionContent] = useState("");
+  const [faqServiceTypeId, setFaqServiceTypeId] = useState("");
+  const [faqQuestion, setFaqQuestion] = useState("");
+  const [faqAnswer, setFaqAnswer] = useState("");
   const [saving, setSaving] = useState(false);
   const [templateImageFile, setTemplateImageFile] = useState<File | null>(null);
 
   useEffect(() => {
     loadTemplates();
     loadObjectionTemplates();
+    loadFaqs();
+    loadServiceTypes();
   }, []);
 
   const loadTemplates = async () => {
@@ -208,6 +232,36 @@ export default function Templates() {
     } catch (error) {
       console.error("Error loading objection templates:", error);
       toast.error("Failed to load objection handling templates");
+    }
+  };
+
+  const loadFaqs = async () => {
+    try {
+      const { data, error } = await supabase
+        .from("faqs")
+        .select("*")
+        .order("created_at", { ascending: false });
+
+      if (error) throw error;
+      setFaqs(data || []);
+    } catch (error) {
+      console.error("Error loading FAQs:", error);
+      toast.error("Failed to load FAQs");
+    }
+  };
+
+  const loadServiceTypes = async () => {
+    try {
+      const { data, error } = await supabase
+        .from("service_types")
+        .select("*")
+        .order("name");
+
+      if (error) throw error;
+      setServiceTypes(data || []);
+    } catch (error) {
+      console.error("Error loading service types:", error);
+      toast.error("Failed to load service types");
     }
   };
 
@@ -376,6 +430,78 @@ export default function Templates() {
     }
   };
 
+  const handleEditFaq = (faq: FAQ) => {
+    setEditingFaq(faq);
+    setFaqServiceTypeId(faq.service_type_id);
+    setFaqQuestion(faq.question);
+    setFaqAnswer(faq.answer);
+    setShowFaqForm(true);
+  };
+
+  const handleCreateFaq = async () => {
+    if (!faqServiceTypeId || !faqQuestion.trim() || !faqAnswer.trim()) {
+      toast.error("Please fill in all fields");
+      return;
+    }
+
+    setSaving(true);
+    try {
+      if (editingFaq) {
+        const { error } = await supabase
+          .from("faqs")
+          .update({
+            service_type_id: faqServiceTypeId,
+            question: faqQuestion,
+            answer: faqAnswer,
+          })
+          .eq("id", editingFaq.id);
+
+        if (error) throw error;
+        toast.success("FAQ updated successfully!");
+      } else {
+        const { error } = await supabase
+          .from("faqs")
+          .insert({
+            service_type_id: faqServiceTypeId,
+            question: faqQuestion,
+            answer: faqAnswer,
+          });
+
+        if (error) throw error;
+        toast.success("FAQ created successfully!");
+      }
+
+      setFaqServiceTypeId("");
+      setFaqQuestion("");
+      setFaqAnswer("");
+      setShowFaqForm(false);
+      setEditingFaq(null);
+      loadFaqs();
+    } catch (error: any) {
+      console.error("Error saving FAQ:", error);
+      toast.error(error.message || "Failed to save FAQ");
+    } finally {
+      setSaving(false);
+    }
+  };
+
+  const handleDeleteFaq = async (faqId: string) => {
+    try {
+      const { error } = await supabase
+        .from("faqs")
+        .delete()
+        .eq("id", faqId);
+
+      if (error) throw error;
+
+      toast.success("FAQ deleted successfully!");
+      loadFaqs();
+    } catch (error: any) {
+      console.error("Error deleting FAQ:", error);
+      toast.error(error.message || "Failed to delete FAQ");
+    }
+  };
+
   return (
     <div className="min-h-screen bg-background">
       <div className="container mx-auto px-6 py-8 max-w-5xl">
@@ -383,7 +509,7 @@ export default function Templates() {
           <div>
             <h1 className="text-3xl font-bold mb-1">Templates</h1>
             <p className="text-sm text-muted-foreground">
-              Manage reusable script and objection handling templates
+              Manage reusable scripts, objection handling, and FAQs
             </p>
           </div>
           <Button variant="outline" onClick={() => navigate("/")}>
@@ -392,14 +518,18 @@ export default function Templates() {
         </div>
 
         <Tabs defaultValue="scripts" className="w-full">
-          <TabsList className="grid w-full max-w-md grid-cols-2 mb-6">
+          <TabsList className="grid w-full max-w-2xl grid-cols-3 mb-6">
             <TabsTrigger value="scripts">
               <FileText className="mr-2 h-4 w-4" />
               Scripts
             </TabsTrigger>
             <TabsTrigger value="objections">
               <MessageSquare className="mr-2 h-4 w-4" />
-              Objection Handling
+              Objections
+            </TabsTrigger>
+            <TabsTrigger value="faqs">
+              <HelpCircle className="mr-2 h-4 w-4" />
+              FAQs
             </TabsTrigger>
           </TabsList>
 
@@ -696,6 +826,165 @@ export default function Templates() {
                     </CardHeader>
                   </Card>
                 ))}
+              </div>
+            )}
+          </TabsContent>
+
+          <TabsContent value="faqs" className="space-y-6">
+            <div className="flex justify-end">
+              <Button onClick={() => setShowFaqForm(!showFaqForm)}>
+                <Plus className="mr-2 h-4 w-4" />
+                New FAQ
+              </Button>
+            </div>
+
+            {showFaqForm && (
+              <Card>
+                <CardHeader>
+                  <CardTitle>{editingFaq ? "Edit FAQ" : "Create FAQ"}</CardTitle>
+                  <CardDescription>
+                    {editingFaq 
+                      ? "Update this frequently asked question"
+                      : "Create a FAQ for a specific service type"}
+                  </CardDescription>
+                </CardHeader>
+                <CardContent className="space-y-4">
+                  <div>
+                    <Label htmlFor="faq-service-type">Service Type</Label>
+                    <Select value={faqServiceTypeId} onValueChange={setFaqServiceTypeId}>
+                      <SelectTrigger id="faq-service-type">
+                        <SelectValue placeholder="Select service type" />
+                      </SelectTrigger>
+                      <SelectContent>
+                        {serviceTypes.map((type) => (
+                          <SelectItem key={type.id} value={type.id}>
+                            {type.name}
+                          </SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
+                  </div>
+                  <div>
+                    <Label htmlFor="faq-question">Question</Label>
+                    <Input
+                      id="faq-question"
+                      placeholder="e.g., How long does installation take?"
+                      value={faqQuestion}
+                      onChange={(e) => setFaqQuestion(e.target.value)}
+                    />
+                  </div>
+                  <div>
+                    <Label htmlFor="faq-answer">Answer</Label>
+                    <Textarea
+                      id="faq-answer"
+                      placeholder="Enter the answer..."
+                      className="min-h-[150px]"
+                      value={faqAnswer}
+                      onChange={(e) => setFaqAnswer(e.target.value)}
+                    />
+                  </div>
+                  <div className="flex gap-3">
+                    <Button onClick={handleCreateFaq} disabled={saving}>
+                      {saving ? (editingFaq ? "Updating..." : "Creating...") : (editingFaq ? "Update FAQ" : "Create FAQ")}
+                    </Button>
+                    <Button variant="outline" onClick={() => {
+                      setShowFaqForm(false);
+                      setEditingFaq(null);
+                      setFaqServiceTypeId("");
+                      setFaqQuestion("");
+                      setFaqAnswer("");
+                    }}>
+                      Cancel
+                    </Button>
+                  </div>
+                </CardContent>
+              </Card>
+            )}
+
+            {loading ? (
+              <div className="space-y-4">
+                {[1, 2, 3].map((i) => (
+                  <Card key={i} className="animate-pulse">
+                    <CardHeader>
+                      <div className="h-5 bg-muted rounded w-1/3 mb-2" />
+                      <div className="h-3 bg-muted rounded w-1/2" />
+                    </CardHeader>
+                  </Card>
+                ))}
+              </div>
+            ) : faqs.length === 0 ? (
+              <Card>
+                <CardContent className="flex flex-col items-center justify-center py-12">
+                  <HelpCircle className="h-12 w-12 text-muted-foreground/50 mb-3" />
+                  <h3 className="text-lg font-semibold mb-1">No FAQs yet</h3>
+                  <p className="text-sm text-muted-foreground mb-4 text-center max-w-sm">
+                    Create FAQs for your service types to help answer common questions
+                  </p>
+                  <Button onClick={() => setShowFaqForm(true)}>
+                    <Plus className="mr-2 h-4 w-4" />
+                    Create FAQ
+                  </Button>
+                </CardContent>
+              </Card>
+            ) : (
+              <div className="space-y-4">
+                {faqs.map((faq) => {
+                  const serviceType = serviceTypes.find(st => st.id === faq.service_type_id);
+                  return (
+                    <Card key={faq.id}>
+                      <CardHeader>
+                        <div className="flex items-start gap-4 justify-between">
+                          <div className="flex items-start gap-3 flex-1">
+                            <div className="h-12 w-12 rounded-lg bg-muted border border-border flex-shrink-0 flex items-center justify-center">
+                              <HelpCircle className="h-5 w-5 text-muted-foreground" />
+                            </div>
+                            <div className="flex-1 min-w-0">
+                              <CardTitle className="text-lg">{faq.question}</CardTitle>
+                              <CardDescription className="mt-1 line-clamp-2">
+                                {serviceType?.name && <span className="font-medium">{serviceType.name} • </span>}
+                                <FormattedContent content={faq.answer} />
+                              </CardDescription>
+                            </div>
+                          </div>
+                          <div className="flex gap-2 flex-shrink-0">
+                            <Button
+                              variant="ghost"
+                              size="icon"
+                              onClick={() => handleEditFaq(faq)}
+                            >
+                              <Edit2 className="h-4 w-4" />
+                            </Button>
+                            <AlertDialog>
+                              <AlertDialogTrigger asChild>
+                                <Button variant="ghost" size="icon" className="text-destructive">
+                                  <Trash2 className="h-4 w-4" />
+                                </Button>
+                              </AlertDialogTrigger>
+                              <AlertDialogContent>
+                                <AlertDialogHeader>
+                                  <AlertDialogTitle>Delete FAQ?</AlertDialogTitle>
+                                  <AlertDialogDescription>
+                                    This will permanently delete this FAQ.
+                                    This action cannot be undone.
+                                  </AlertDialogDescription>
+                                </AlertDialogHeader>
+                                <AlertDialogFooter>
+                                  <AlertDialogCancel>Cancel</AlertDialogCancel>
+                                  <AlertDialogAction
+                                    onClick={() => handleDeleteFaq(faq.id)}
+                                    className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
+                                  >
+                                    Delete
+                                  </AlertDialogAction>
+                                </AlertDialogFooter>
+                              </AlertDialogContent>
+                            </AlertDialog>
+                          </div>
+                        </div>
+                      </CardHeader>
+                    </Card>
+                  );
+                })}
               </div>
             )}
           </TabsContent>

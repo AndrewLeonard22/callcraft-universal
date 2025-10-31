@@ -29,12 +29,20 @@ interface ClientDetail {
 interface Script {
   script_content: string;
   version: number;
+  service_type_id?: string;
 }
 
 interface ObjectionTemplate {
   id: string;
   service_name: string;
   content: string;
+}
+
+interface FAQ {
+  id: string;
+  service_type_id: string;
+  question: string;
+  answer: string;
 }
 
 // Helper to get logo based on service type
@@ -62,7 +70,9 @@ export default function ScriptViewer() {
   const [loading, setLoading] = useState(true);
   const [desiredSqFt, setDesiredSqFt] = useState("");
   const [objectionTemplates, setObjectionTemplates] = useState<ObjectionTemplate[]>([]);
+  const [faqs, setFaqs] = useState<FAQ[]>([]);
   const [showObjections, setShowObjections] = useState(false);
+  const [showFaqs, setShowFaqs] = useState(false);
 
   useEffect(() => {
     if (scriptId) {
@@ -76,12 +86,25 @@ export default function ScriptViewer() {
       // First load the script to get the client_id
       const scriptResult = await supabase
         .from("scripts")
-        .select("*, client_id, service_name")
+        .select("*, client_id, service_name, service_type_id")
         .eq("id", scriptId)
         .single();
 
       if (scriptResult.error) throw scriptResult.error;
       setScript(scriptResult.data);
+
+      // Load FAQs if service_type_id exists
+      if (scriptResult.data.service_type_id) {
+        const { data: faqData, error: faqError } = await supabase
+          .from("faqs")
+          .select("*")
+          .eq("service_type_id", scriptResult.data.service_type_id)
+          .order("created_at", { ascending: false });
+
+        if (!faqError) {
+          setFaqs(faqData || []);
+        }
+      }
 
       // Then load client and details
       const [clientResult, detailsResult] = await Promise.all([
@@ -785,7 +808,10 @@ export default function ScriptViewer() {
         {objectionTemplates.length > 0 && (
           <>
             <Button
-              onClick={() => setShowObjections(!showObjections)}
+              onClick={() => {
+                setShowObjections(!showObjections);
+                if (!showObjections) setShowFaqs(false);
+              }}
               className="fixed bottom-6 right-6 h-14 rounded-full shadow-lg z-40"
               size="lg"
             >
@@ -797,7 +823,7 @@ export default function ScriptViewer() {
               ) : (
                 <>
                   <MessageSquare className="mr-2 h-5 w-5" />
-                  Objection Handling
+                  Objections
                 </>
               )}
             </Button>
@@ -816,6 +842,54 @@ export default function ScriptViewer() {
                         <h4 className="font-semibold text-sm mb-2">{template.service_name}</h4>
                         <div className="text-sm whitespace-pre-wrap">
                           <FormattedScript content={template.content} />
+                        </div>
+                      </CardContent>
+                    </Card>
+                  ))}
+                </div>
+              </div>
+            )}
+          </>
+        )}
+
+        {/* FAQs Toggle Button */}
+        {faqs.length > 0 && (
+          <>
+            <Button
+              onClick={() => {
+                setShowFaqs(!showFaqs);
+                if (!showFaqs) setShowObjections(false);
+              }}
+              className="fixed bottom-6 right-28 h-14 rounded-full shadow-lg z-40"
+              size="lg"
+            >
+              {showFaqs ? (
+                <>
+                  <X className="mr-2 h-5 w-5" />
+                  Close
+                </>
+              ) : (
+                <>
+                  <MessageSquare className="mr-2 h-5 w-5" />
+                  FAQs
+                </>
+              )}
+            </Button>
+
+            {/* FAQs Panel */}
+            {showFaqs && (
+              <div className="fixed bottom-24 right-28 w-96 max-h-[500px] bg-background border border-border rounded-lg shadow-2xl z-30 overflow-hidden flex flex-col">
+                <div className="p-4 border-b border-border bg-muted/50">
+                  <h3 className="font-semibold text-lg">FAQs</h3>
+                  <p className="text-xs text-muted-foreground mt-1">Frequently asked questions</p>
+                </div>
+                <div className="overflow-y-auto flex-1 p-4 space-y-4">
+                  {faqs.map((faq) => (
+                    <Card key={faq.id} className="border border-border">
+                      <CardContent className="p-4">
+                        <h4 className="font-semibold text-sm mb-2">{faq.question}</h4>
+                        <div className="text-sm whitespace-pre-wrap">
+                          <FormattedScript content={faq.answer} />
                         </div>
                       </CardContent>
                     </Card>
