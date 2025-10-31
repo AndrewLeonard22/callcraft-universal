@@ -45,6 +45,10 @@ export default function EditClient() {
   const [crmAccountLink, setCrmAccountLink] = useState("");
   const [appointmentCalendar, setAppointmentCalendar] = useState("");
   const [rescheduleCalendar, setRescheduleCalendar] = useState("");
+  
+  // Logo
+  const [logoUrl, setLogoUrl] = useState("");
+  const [uploading, setUploading] = useState(false);
 
   useEffect(() => {
     if (clientId) {
@@ -74,6 +78,8 @@ export default function EditClient() {
         detailsResult.data.forEach((detail) => {
           if (detail.field_name === "_original_transcript") {
             originalTranscript = detail.field_value || "";
+          } else if (detail.field_name === "logo_url") {
+            setLogoUrl(detail.field_value || "");
           } else if (detail.field_name === "business_name") {
             setBusinessName(detail.field_value || "");
           } else if (detail.field_name === "owners_name") {
@@ -130,6 +136,54 @@ export default function EditClient() {
     } catch (error) {
       console.error("Error reading file:", error);
       toast.error("Failed to read file");
+    }
+  };
+
+  const handleLogoUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file || !clientId) return;
+
+    // Validate file type
+    if (!file.type.startsWith('image/')) {
+      toast.error("Please upload an image file");
+      return;
+    }
+
+    // Validate file size (max 2MB)
+    if (file.size > 2 * 1024 * 1024) {
+      toast.error("Image must be less than 2MB");
+      return;
+    }
+
+    setUploading(true);
+    try {
+      // Create unique filename
+      const fileExt = file.name.split('.').pop();
+      const fileName = `${clientId}-${Date.now()}.${fileExt}`;
+      const filePath = `${fileName}`;
+
+      // Upload to Supabase Storage
+      const { error: uploadError, data } = await supabase.storage
+        .from('client-logos')
+        .upload(filePath, file, {
+          cacheControl: '3600',
+          upsert: true
+        });
+
+      if (uploadError) throw uploadError;
+
+      // Get public URL
+      const { data: { publicUrl } } = supabase.storage
+        .from('client-logos')
+        .getPublicUrl(filePath);
+
+      setLogoUrl(publicUrl);
+      toast.success("Logo uploaded successfully!");
+    } catch (error) {
+      console.error("Error uploading logo:", error);
+      toast.error("Failed to upload logo");
+    } finally {
+      setUploading(false);
     }
   };
 
@@ -201,12 +255,12 @@ export default function EditClient() {
             .eq("client_id", clientId)
             .in("field_name", ["_original_onboarding_form", "_original_transcript"]);
           
-          // Delete existing details except original source data, links, and business info
+          // Delete existing details except original source data, links, business info, and logo
           await supabase
             .from("client_details")
             .delete()
             .eq("client_id", clientId)
-            .not("field_name", "in", '("_original_transcript","website","facebook_page","instagram","crm_account_link","appointment_calendar","reschedule_calendar","business_name","owners_name","sales_rep_phone","address","google_map_link","other_key_info")');
+            .not("field_name", "in", '("_original_transcript","website","facebook_page","instagram","crm_account_link","appointment_calendar","reschedule_calendar","business_name","owners_name","sales_rep_phone","address","google_map_link","other_key_info","logo_url")');
           
           // Insert updated details
           const detailsArray = Object.entries(detailsObj).map(([key, value]) => ({
@@ -263,6 +317,15 @@ export default function EditClient() {
               });
             }
           });
+
+          // Add logo URL
+          if (logoUrl) {
+            detailsArray.push({
+              client_id: clientId,
+              field_name: "logo_url",
+              field_value: logoUrl,
+            });
+          }
 
           const { error: detailsError } = await supabase
             .from("client_details")
@@ -397,6 +460,39 @@ export default function EditClient() {
                   onChange={(e) => setCity(e.target.value)}
                   placeholder="City"
                 />
+              </div>
+              <div>
+                <Label>Company Logo</Label>
+                <div className="flex items-center gap-4">
+                  {logoUrl && (
+                    <div className="h-20 w-20 rounded-lg overflow-hidden bg-muted border border-border">
+                      <img 
+                        src={logoUrl} 
+                        alt="Company logo"
+                        className="h-full w-full object-cover"
+                      />
+                    </div>
+                  )}
+                  <Label htmlFor="logo-upload" className="cursor-pointer">
+                    <div className="flex items-center gap-2 px-4 py-2 border border-input rounded-lg hover:bg-accent transition-colors">
+                      <Upload className="h-4 w-4" />
+                      <span className="text-sm font-medium">
+                        {uploading ? "Uploading..." : logoUrl ? "Change Logo" : "Upload Logo"}
+                      </span>
+                    </div>
+                    <input
+                      id="logo-upload"
+                      type="file"
+                      accept="image/*"
+                      onChange={handleLogoUpload}
+                      className="hidden"
+                      disabled={uploading}
+                    />
+                  </Label>
+                </div>
+                <p className="text-xs text-muted-foreground mt-2">
+                  Upload a company logo (max 2MB, JPG/PNG)
+                </p>
               </div>
             </CardContent>
           </Card>

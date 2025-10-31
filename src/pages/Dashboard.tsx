@@ -18,10 +18,15 @@ interface Client {
   service_type: string;
   city: string;
   created_at: string;
+  logo_url?: string;
 }
 
 // Helper to get logo based on service type
-const getClientLogo = (serviceType: string): string => {
+const getClientLogo = (serviceType: string, customLogoUrl?: string): string => {
+  // If custom logo exists, use it
+  if (customLogoUrl) return customLogoUrl;
+  
+  // Otherwise fall back to default logos based on service type
   const type = serviceType.toLowerCase();
   
   if (type.includes("pergola")) return logoPergola;
@@ -50,8 +55,25 @@ export default function Dashboard() {
 
     if (error) {
       console.error("Error loading clients:", error);
+      setClients([]);
     } else {
-      setClients(data || []);
+      // Load logo URLs from client_details for each client
+      const clientsWithLogos = await Promise.all(
+        (data || []).map(async (client) => {
+          const { data: details } = await supabase
+            .from("client_details")
+            .select("field_value")
+            .eq("client_id", client.id)
+            .eq("field_name", "logo_url")
+            .maybeSingle();
+          
+          return {
+            ...client,
+            logo_url: details?.field_value || undefined
+          };
+        })
+      );
+      setClients(clientsWithLogos);
     }
     setLoading(false);
   };
@@ -156,7 +178,7 @@ export default function Dashboard() {
                     <div className="flex items-start gap-3">
                       <div className="h-12 w-12 rounded-lg overflow-hidden bg-muted flex-shrink-0 border border-border">
                         <img 
-                          src={getClientLogo(client.service_type)} 
+                          src={getClientLogo(client.service_type, client.logo_url)} 
                           alt={`${client.name} logo`}
                           className="h-full w-full object-cover"
                         />

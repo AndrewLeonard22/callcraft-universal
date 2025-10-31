@@ -35,10 +35,15 @@ interface Client {
   name: string;
   service_type: string;
   city: string;
+  logo_url?: string;
 }
 
 // Helper to get logo based on service type
-const getClientLogo = (serviceType: string): string => {
+const getClientLogo = (serviceType: string, customLogoUrl?: string): string => {
+  // If custom logo exists, use it
+  if (customLogoUrl) return customLogoUrl;
+  
+  // Otherwise fall back to default logos based on service type
   const type = serviceType.toLowerCase();
   
   if (type.includes("pergola")) return logoPergola;
@@ -70,7 +75,19 @@ export default function ClientScripts() {
         .single();
 
       if (clientError) throw clientError;
-      setClient(clientData);
+      
+      // Load logo URL from client_details
+      const { data: logoData } = await supabase
+        .from("client_details")
+        .select("field_value")
+        .eq("client_id", clientId)
+        .eq("field_name", "logo_url")
+        .maybeSingle();
+      
+      setClient({
+        ...clientData,
+        logo_url: logoData?.field_value || undefined
+      });
 
       // Load scripts for this client
       const { data: scriptsData, error: scriptsError } = await supabase
@@ -142,7 +159,7 @@ export default function ClientScripts() {
           <div className="flex items-start gap-4">
             <div className="h-16 w-16 rounded-lg overflow-hidden bg-muted flex-shrink-0 border border-border shadow-sm">
               <img 
-                src={getClientLogo(client.service_type)} 
+                src={getClientLogo(client.service_type, client.logo_url)} 
                 alt={`${client.name} logo`}
                 className="h-full w-full object-cover"
               />

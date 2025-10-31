@@ -30,7 +30,11 @@ interface Script {
 }
 
 // Helper to get logo based on service type
-const getClientLogo = (serviceType: string): string => {
+const getClientLogo = (serviceType: string, customLogoUrl?: string): string => {
+  // If custom logo exists, use it
+  if (customLogoUrl) return customLogoUrl;
+  
+  // Otherwise fall back to default logos based on service type
   const type = serviceType.toLowerCase();
   
   if (type.includes("pergola")) return logoPergola;
@@ -284,7 +288,7 @@ export default function ScriptViewer() {
             <div className="flex items-start gap-4 flex-1">
               <div className="h-16 w-16 rounded-lg overflow-hidden bg-muted flex-shrink-0 border border-border shadow-sm">
                 <img 
-                  src={getClientLogo(client.service_type)} 
+                  src={getClientLogo(client.service_type, getDetailValue("logo_url") !== "N/A" ? getDetailValue("logo_url") : undefined)} 
                   alt={`${client.name} logo`}
                   className="h-full w-full object-cover"
                 />
