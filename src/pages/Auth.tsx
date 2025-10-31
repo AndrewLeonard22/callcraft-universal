@@ -122,15 +122,49 @@ export default function Auth() {
       if (invitationOrgId && invitationRole) {
         const { data: { user } } = await supabase.auth.getUser();
         if (user) {
-          await supabase.from("organization_members").insert({
-            organization_id: invitationOrgId,
-            user_id: user.id,
-            role: invitationRole,
-          });
-          toast({
-            title: "Organization joined!",
-            description: "You've been added to the team.",
-          });
+          // Check if user is already a member
+          const { data: existingMember } = await supabase
+            .from("organization_members")
+            .select("id")
+            .eq("organization_id", invitationOrgId)
+            .eq("user_id", user.id)
+            .single();
+
+          if (!existingMember) {
+            const { error: insertError } = await supabase
+              .from("organization_members")
+              .insert({
+                organization_id: invitationOrgId,
+                user_id: user.id,
+                role: invitationRole,
+              });
+
+            if (insertError) {
+              console.error("Error adding user to organization:", insertError);
+              toast({
+                title: "Note",
+                description: "You've logged in successfully. Please contact the team admin to complete your invitation.",
+                variant: "default",
+              });
+            } else {
+              // Update invitation status to accepted
+              await supabase
+                .from("team_invitations")
+                .update({ status: "accepted" })
+                .eq("organization_id", invitationOrgId)
+                .eq("email", user.email);
+
+              toast({
+                title: "Organization joined!",
+                description: "You've been added to the team.",
+              });
+            }
+          } else {
+            toast({
+              title: "Already a member",
+              description: "You're already part of this organization.",
+            });
+          }
         }
       }
       
@@ -238,15 +272,49 @@ export default function Auth() {
         if (invitationOrgId && invitationRole) {
           const { data: { user } } = await supabase.auth.getUser();
           if (user) {
-            await supabase.from("organization_members").insert({
-              organization_id: invitationOrgId,
-              user_id: user.id,
-              role: invitationRole,
-            });
-            toast({
-              title: "Welcome to the team!",
-              description: "You've been added to the organization.",
-            });
+            // Check if user is already a member
+            const { data: existingMember } = await supabase
+              .from("organization_members")
+              .select("id")
+              .eq("organization_id", invitationOrgId)
+              .eq("user_id", user.id)
+              .single();
+
+            if (!existingMember) {
+              const { error: insertError } = await supabase
+                .from("organization_members")
+                .insert({
+                  organization_id: invitationOrgId,
+                  user_id: user.id,
+                  role: invitationRole,
+                });
+
+              if (insertError) {
+                console.error("Error adding user to organization:", insertError);
+                toast({
+                  title: "Note",
+                  description: "Your account was created successfully. Please contact the team admin to complete your invitation.",
+                  variant: "default",
+                });
+              } else {
+                // Update invitation status to accepted
+                await supabase
+                  .from("team_invitations")
+                  .update({ status: "accepted" })
+                  .eq("organization_id", invitationOrgId)
+                  .eq("email", user.email);
+
+                toast({
+                  title: "Welcome to the team!",
+                  description: "You've been added to the organization.",
+                });
+              }
+            } else {
+              toast({
+                title: "Already a member",
+                description: "You're already part of this organization.",
+              });
+            }
           }
         }
         navigate("/");
