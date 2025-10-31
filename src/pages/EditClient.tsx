@@ -87,6 +87,8 @@ export default function EditClient() {
             setAppointmentCalendar(detail.field_value || "");
           } else if (detail.field_name === "reschedule_calendar") {
             setRescheduleCalendar(detail.field_value || "");
+          } else if (detail.field_name === "service_radius_miles") {
+            setServiceRadiusMiles(detail.field_value || "");
           }
         });
       }
@@ -170,12 +172,27 @@ export default function EditClient() {
       if (clientError) throw clientError;
 
       // Update client details
-      // Delete existing details except original source data
+      // Delete only fields managed here to preserve script-specific details
+      const managedFields = [
+        "logo_url",
+        "business_name",
+        "owners_name",
+        "sales_rep_phone",
+        "address",
+        "other_key_info",
+        "website",
+        "facebook_page",
+        "instagram",
+        "crm_account_link",
+        "appointment_calendar",
+        "reschedule_calendar",
+        "service_radius_miles",
+      ];
       await supabase
         .from("client_details")
         .delete()
         .eq("client_id", clientId)
-        .not("field_name", "in", '("_original_onboarding_form","_original_transcript")');
+        .in("field_name", managedFields);
       
       const detailsArray = [] as { client_id: string; field_name: string; field_value: string }[];
 
