@@ -7,6 +7,7 @@ import { Textarea } from "@/components/ui/textarea";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Label } from "@/components/ui/label";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { RichTextEditor } from "@/components/RichTextEditor";
 import {
   AlertDialog,
   AlertDialogAction,
@@ -719,76 +720,13 @@ export default function Templates() {
                       onChange={(e) => setObjectionServiceName(e.target.value)}
                     />
                   </div>
-                  <div>
-                    <div className="flex items-center justify-between mb-2">
-                      <Label htmlFor="objection-content">Objection Handling Content</Label>
-                      <div className="flex gap-1">
-                        <Button
-                          type="button"
-                          variant="outline"
-                          size="sm"
-                          className="h-7 px-2 text-xs"
-                          onClick={() => {
-                            const textarea = document.getElementById('objection-content') as HTMLTextAreaElement;
-                            const start = textarea.selectionStart;
-                            const end = textarea.selectionEnd;
-                            const selectedText = objectionContent.substring(start, end) || 'text';
-                            const newText = objectionContent.substring(0, start) + `**${selectedText}**` + objectionContent.substring(end);
-                            setObjectionContent(newText);
-                          }}
-                        >
-                          <strong>B</strong>
-                        </Button>
-                        <Button
-                          type="button"
-                          variant="outline"
-                          size="sm"
-                          className="h-7 px-2 text-xs bg-primary/5"
-                          onClick={() => {
-                            const textarea = document.getElementById('objection-content') as HTMLTextAreaElement;
-                            const start = textarea.selectionStart;
-                            const end = textarea.selectionEnd;
-                            const selectedText = objectionContent.substring(start, end) || 'highlight';
-                            const newText = objectionContent.substring(0, start) + `[${selectedText}]` + objectionContent.substring(end);
-                            setObjectionContent(newText);
-                          }}
-                        >
-                          [H]
-                        </Button>
-                        <Button
-                          type="button"
-                          variant="outline"
-                          size="sm"
-                          className="h-7 px-2 text-xs bg-accent/5"
-                          onClick={() => {
-                            const textarea = document.getElementById('objection-content') as HTMLTextAreaElement;
-                            const start = textarea.selectionStart;
-                            const end = textarea.selectionEnd;
-                            const selectedText = objectionContent.substring(start, end) || 'quote';
-                            const newText = objectionContent.substring(0, start) + `"${selectedText}"` + objectionContent.substring(end);
-                            setObjectionContent(newText);
-                          }}
-                        >
-                          "Q"
-                        </Button>
-                      </div>
-                    </div>
-                    <Textarea
-                      id="objection-content"
-                      placeholder="Enter objection handling responses... Use **bold**, [highlight], or &quot;quotes&quot; for formatting"
-                      className="min-h-[200px] font-mono text-sm"
-                      value={objectionContent}
-                      onChange={(e) => setObjectionContent(e.target.value)}
-                    />
-                    {objectionContent && (
-                      <div className="mt-3 p-3 border rounded-lg bg-muted/30">
-                        <Label className="text-xs text-muted-foreground mb-2 block">Preview:</Label>
-                        <div className="text-sm">
-                          <FormattedContent content={objectionContent} />
-                        </div>
-                      </div>
-                    )}
-                  </div>
+                  <RichTextEditor
+                    label="Objection Handling Content"
+                    value={objectionContent}
+                    onChange={setObjectionContent}
+                    placeholder="Enter objection handling responses..."
+                    minHeight="200px"
+                  />
                   <div className="flex gap-3">
                     <Button onClick={handleCreateObjection} disabled={saving}>
                       {saving ? (editingObjection ? "Updating..." : "Creating...") : (editingObjection ? "Update Template" : "Create Template")}
@@ -933,76 +871,13 @@ export default function Templates() {
                       onChange={(e) => setFaqQuestion(e.target.value)}
                     />
                   </div>
-                  <div>
-                    <div className="flex items-center justify-between mb-2">
-                      <Label htmlFor="faq-answer">Answer</Label>
-                      <div className="flex gap-1">
-                        <Button
-                          type="button"
-                          variant="outline"
-                          size="sm"
-                          className="h-7 px-2 text-xs"
-                          onClick={() => {
-                            const textarea = document.getElementById('faq-answer') as HTMLTextAreaElement;
-                            const start = textarea.selectionStart;
-                            const end = textarea.selectionEnd;
-                            const selectedText = faqAnswer.substring(start, end) || 'text';
-                            const newText = faqAnswer.substring(0, start) + `**${selectedText}**` + faqAnswer.substring(end);
-                            setFaqAnswer(newText);
-                          }}
-                        >
-                          <strong>B</strong>
-                        </Button>
-                        <Button
-                          type="button"
-                          variant="outline"
-                          size="sm"
-                          className="h-7 px-2 text-xs bg-primary/5"
-                          onClick={() => {
-                            const textarea = document.getElementById('faq-answer') as HTMLTextAreaElement;
-                            const start = textarea.selectionStart;
-                            const end = textarea.selectionEnd;
-                            const selectedText = faqAnswer.substring(start, end) || 'highlight';
-                            const newText = faqAnswer.substring(0, start) + `[${selectedText}]` + faqAnswer.substring(end);
-                            setFaqAnswer(newText);
-                          }}
-                        >
-                          [H]
-                        </Button>
-                        <Button
-                          type="button"
-                          variant="outline"
-                          size="sm"
-                          className="h-7 px-2 text-xs bg-accent/5"
-                          onClick={() => {
-                            const textarea = document.getElementById('faq-answer') as HTMLTextAreaElement;
-                            const start = textarea.selectionStart;
-                            const end = textarea.selectionEnd;
-                            const selectedText = faqAnswer.substring(start, end) || 'quote';
-                            const newText = faqAnswer.substring(0, start) + `"${selectedText}"` + faqAnswer.substring(end);
-                            setFaqAnswer(newText);
-                          }}
-                        >
-                          "Q"
-                        </Button>
-                      </div>
-                    </div>
-                    <Textarea
-                      id="faq-answer"
-                      placeholder="Enter the answer... Use **bold**, [highlight], or &quot;quotes&quot; for formatting"
-                      className="min-h-[150px]"
-                      value={faqAnswer}
-                      onChange={(e) => setFaqAnswer(e.target.value)}
-                    />
-                    {faqAnswer && (
-                      <div className="mt-3 p-3 border rounded-lg bg-muted/30">
-                        <Label className="text-xs text-muted-foreground mb-2 block">Preview:</Label>
-                        <div className="text-sm">
-                          <FormattedContent content={faqAnswer} />
-                        </div>
-                      </div>
-                    )}
-                  </div>
+                  <RichTextEditor
+                    label="Answer"
+                    value={faqAnswer}
+                    onChange={setFaqAnswer}
+                    placeholder="Enter the answer..."
+                    minHeight="150px"
+                  />
                   <div className="flex gap-3">
                     <Button onClick={handleCreateFaq} disabled={saving}>
                       {saving ? (editingFaq ? "Updating..." : "Creating...") : (editingFaq ? "Update FAQ" : "Create FAQ")}
