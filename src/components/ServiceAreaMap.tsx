@@ -147,40 +147,35 @@ export default function ServiceAreaMap({ city, serviceArea, address }: ServiceAr
               },
             });
 
-            // Add distance markers at cardinal directions and diagonals for better visibility
+            // Add clean distance markers at cardinal directions only
             const distanceX = radius / (69 * Math.cos((coordinates[1] * Math.PI) / 180));
             const distanceY = radius / 69;
             
             const directions = [
-              { angle: 0, label: `${radius} mi E`, offset: [10, 0] },
-              { angle: Math.PI / 4, label: `${radius} mi NE`, offset: [8, -8] },
-              { angle: Math.PI / 2, label: `${radius} mi N`, offset: [0, -10] },
-              { angle: 3 * Math.PI / 4, label: `${radius} mi NW`, offset: [-8, -8] },
-              { angle: Math.PI, label: `${radius} mi W`, offset: [-10, 0] },
-              { angle: 5 * Math.PI / 4, label: `${radius} mi SW`, offset: [-8, 8] },
-              { angle: 3 * Math.PI / 2, label: `${radius} mi S`, offset: [0, 10] },
-              { angle: 7 * Math.PI / 4, label: `${radius} mi SE`, offset: [8, 8] }
+              { angle: 0, label: `${radius} mi`, position: 'right' },           // East
+              { angle: Math.PI / 2, label: `${radius} mi`, position: 'top' },   // North
+              { angle: Math.PI, label: `${radius} mi`, position: 'left' },      // West
+              { angle: 3 * Math.PI / 2, label: `${radius} mi`, position: 'bottom' } // South
             ];
 
-            directions.forEach(({ angle, label, offset }) => {
+            directions.forEach(({ angle, label, position }) => {
               const x = distanceX * Math.cos(angle);
               const y = distanceY * Math.sin(angle);
               const markerCoords: [number, number] = [coordinates[0] + x, coordinates[1] + y];
               
-              // Create a custom element for the distance marker
+              // Create a minimal distance marker
               const el = document.createElement('div');
               el.className = 'distance-marker';
               el.style.cssText = `
-                background: rgba(0, 0, 0, 0.75);
-                color: white;
-                padding: 6px 10px;
-                border-radius: 6px;
-                font-size: 12px;
-                font-weight: 700;
-                box-shadow: 0 2px 8px rgba(0,0,0,0.3);
+                background: white;
+                color: hsl(var(--primary));
+                padding: 4px 10px;
+                border-radius: 12px;
+                font-size: 11px;
+                font-weight: 600;
+                box-shadow: 0 2px 6px rgba(0,0,0,0.15);
                 white-space: nowrap;
-                border: 2px solid white;
-                pointer-events: none;
+                border: 1.5px solid hsl(var(--primary));
               `;
               el.textContent = label;
               
