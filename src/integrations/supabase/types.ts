@@ -87,6 +87,7 @@ export type Database = {
       faqs: {
         Row: {
           answer: string
+          client_id: string | null
           created_at: string
           id: string
           question: string
@@ -94,6 +95,7 @@ export type Database = {
         }
         Insert: {
           answer: string
+          client_id?: string | null
           created_at?: string
           id?: string
           question: string
@@ -101,12 +103,20 @@ export type Database = {
         }
         Update: {
           answer?: string
+          client_id?: string | null
           created_at?: string
           id?: string
           question?: string
           service_type_id?: string | null
         }
         Relationships: [
+          {
+            foreignKeyName: "faqs_client_id_fkey"
+            columns: ["client_id"]
+            isOneToOne: false
+            referencedRelation: "clients"
+            referencedColumns: ["id"]
+          },
           {
             foreignKeyName: "faqs_service_type_id_fkey"
             columns: ["service_type_id"]
