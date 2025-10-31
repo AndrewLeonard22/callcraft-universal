@@ -416,10 +416,10 @@ export default function Dashboard() {
                   ) : (
                     <div className="text-center py-4">
                       <p className="text-sm text-muted-foreground">No scripts yet</p>
-                      <Link to={`/client/${client.id}/create-script`}>
+                      <Link to={`/client/${client.id}`}>
                         <Button variant="ghost" size="sm" className="mt-2 gap-2 text-xs">
                           <Plus className="h-3 w-3" />
-                          Add Script
+                          View Details
                         </Button>
                       </Link>
                     </div>
