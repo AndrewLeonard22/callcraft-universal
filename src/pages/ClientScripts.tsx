@@ -29,6 +29,7 @@ interface Script {
   created_at: string;
   is_template: boolean;
   image_url?: string;
+  service_type_id?: string;
 }
 
 interface Client {
@@ -110,7 +111,7 @@ export default function ClientScripts() {
       // Load scripts for this client
       const { data: scriptsData, error: scriptsError } = await supabase
         .from("scripts")
-        .select("id, service_name, version, created_at, is_template, image_url")
+        .select("id, service_name, version, created_at, is_template, image_url, service_type_id")
         .eq("client_id", clientId)
         .eq("is_template", false)
         .order("created_at", { ascending: false });
@@ -124,9 +125,22 @@ export default function ClientScripts() {
         .eq('is_template', true);
       const tmplMap = new Map<string, string | undefined>((tmplData || []).map(t => [t.service_name, t.image_url || undefined]));
 
+      // Load service type icons for fallback
+      const { data: typesData } = await supabase
+        .from('service_types')
+        .select('id, icon_url');
+      const typeMap = new Map<string, string | undefined>((typesData || []).map(t => [t.id, t.icon_url || undefined]));
+
       const mapped = (scriptsData || []).map((s) => {
-        const fallback = tmplMap.get(s.service_name);
-        const resolved = resolveStoragePublicUrl(s.image_url) || resolveStoragePublicUrl(fallback) || s.image_url || fallback;
+        const tmplFallback = tmplMap.get(s.service_name);
+        const typeFallback = s.service_type_id ? typeMap.get(s.service_type_id) : undefined;
+        const resolved =
+          resolveStoragePublicUrl(s.image_url) ||
+          resolveStoragePublicUrl(tmplFallback) ||
+          resolveStoragePublicUrl(typeFallback) ||
+          s.image_url ||
+          tmplFallback ||
+          typeFallback;
         return { ...s, image_url: resolved };
       });
       setScripts(mapped);
