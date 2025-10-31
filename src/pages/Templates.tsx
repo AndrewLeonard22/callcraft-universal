@@ -1,6 +1,6 @@
 import { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
-import { Plus, Trash2, FileText } from "lucide-react";
+import { Plus, Trash2, FileText, Edit2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
@@ -33,6 +33,7 @@ export default function Templates() {
   const [templates, setTemplates] = useState<Template[]>([]);
   const [loading, setLoading] = useState(true);
   const [showCreateForm, setShowCreateForm] = useState(false);
+  const [editingTemplate, setEditingTemplate] = useState<Template | null>(null);
   const [serviceName, setServiceName] = useState("");
   const [scriptContent, setScriptContent] = useState("");
   const [saving, setSaving] = useState(false);
@@ -60,6 +61,13 @@ export default function Templates() {
   };
 
 
+  const handleEdit = (template: Template) => {
+    setEditingTemplate(template);
+    setServiceName(template.service_name);
+    setScriptContent(template.script_content);
+    setShowCreateForm(true);
+  };
+
   const handleCreate = async () => {
     if (!serviceName.trim() || !scriptContent.trim()) {
       toast.error("Please fill in all fields");
@@ -68,24 +76,40 @@ export default function Templates() {
 
     setSaving(true);
     try {
-      const { error } = await supabase.from("scripts").insert({
-        client_id: "00000000-0000-0000-0000-000000000001", // Template placeholder
-        service_name: serviceName,
-        script_content: scriptContent,
-        is_template: true,
-        version: 1,
-      });
+      if (editingTemplate) {
+        // Update existing template
+        const { error } = await supabase
+          .from("scripts")
+          .update({
+            service_name: serviceName,
+            script_content: scriptContent,
+          })
+          .eq("id", editingTemplate.id);
 
-      if (error) throw error;
+        if (error) throw error;
+        toast.success("Template updated successfully!");
+      } else {
+        // Create new template
+        const { error } = await supabase.from("scripts").insert({
+          client_id: "00000000-0000-0000-0000-000000000001",
+          service_name: serviceName,
+          script_content: scriptContent,
+          is_template: true,
+          version: 1,
+        });
 
-      toast.success("Template created successfully!");
+        if (error) throw error;
+        toast.success("Template created successfully!");
+      }
+
       setServiceName("");
       setScriptContent("");
       setShowCreateForm(false);
+      setEditingTemplate(null);
       loadTemplates();
     } catch (error: any) {
-      console.error("Error creating template:", error);
-      toast.error(error.message || "Failed to create template");
+      console.error("Error saving template:", error);
+      toast.error(error.message || "Failed to save template");
     } finally {
       setSaving(false);
     }
@@ -132,9 +156,11 @@ export default function Templates() {
         {showCreateForm && (
           <Card className="mb-6">
             <CardHeader>
-              <CardTitle>Create New Template</CardTitle>
+              <CardTitle>{editingTemplate ? "Edit Template" : "Create New Template"}</CardTitle>
               <CardDescription>
-                Create a reusable script template that can be customized for different clients
+                {editingTemplate 
+                  ? "Update this template to change all scripts that use it"
+                  : "Create a reusable script template that can be customized for different clients"}
               </CardDescription>
             </CardHeader>
             <CardContent className="space-y-4">
@@ -162,9 +188,14 @@ export default function Templates() {
               </div>
               <div className="flex gap-3">
                 <Button onClick={handleCreate} disabled={saving}>
-                  {saving ? "Creating..." : "Create Template"}
+                  {saving ? (editingTemplate ? "Updating..." : "Creating...") : (editingTemplate ? "Update Template" : "Create Template")}
                 </Button>
-                <Button variant="outline" onClick={() => setShowCreateForm(false)}>
+                <Button variant="outline" onClick={() => {
+                  setShowCreateForm(false);
+                  setEditingTemplate(null);
+                  setServiceName("");
+                  setScriptContent("");
+                }}>
                   Cancel
                 </Button>
               </div>
@@ -202,19 +233,27 @@ export default function Templates() {
             {templates.map((template) => (
               <Card key={template.id}>
                 <CardHeader>
-                  <div className="flex items-start gap-4 justify-between">
-                    <div className="flex items-start gap-3 flex-1">
-                      <div className="h-12 w-12 rounded-lg bg-muted border border-border flex-shrink-0 flex items-center justify-center">
-                        <FileText className="h-5 w-5 text-muted-foreground" />
+                    <div className="flex items-start gap-4 justify-between">
+                      <div className="flex items-start gap-3 flex-1">
+                        <div className="h-12 w-12 rounded-lg bg-muted border border-border flex-shrink-0 flex items-center justify-center">
+                          <FileText className="h-5 w-5 text-muted-foreground" />
+                        </div>
+                        <div className="flex-1 min-w-0">
+                          <CardTitle className="text-lg">{template.service_name}</CardTitle>
+                          <CardDescription className="mt-1">
+                            Universal template • {template.script_content.substring(0, 120)}...
+                          </CardDescription>
+                        </div>
                       </div>
-                      <div className="flex-1 min-w-0">
-                        <CardTitle className="text-lg">{template.service_name}</CardTitle>
-                        <CardDescription className="mt-1">
-                          Universal template • {template.script_content.substring(0, 120)}...
-                        </CardDescription>
-                      </div>
-                    </div>
-                    <AlertDialog>
+                      <div className="flex gap-2 flex-shrink-0">
+                        <Button
+                          variant="ghost"
+                          size="icon"
+                          onClick={() => handleEdit(template)}
+                        >
+                          <Edit2 className="h-4 w-4" />
+                        </Button>
+                        <AlertDialog>
                       <AlertDialogTrigger asChild>
                         <Button variant="ghost" size="icon" className="text-destructive flex-shrink-0">
                           <Trash2 className="h-4 w-4" />
@@ -237,9 +276,10 @@ export default function Templates() {
                             Delete
                           </AlertDialogAction>
                         </AlertDialogFooter>
-                      </AlertDialogContent>
-                    </AlertDialog>
-                  </div>
+                       </AlertDialogContent>
+                        </AlertDialog>
+                      </div>
+                    </div>
                 </CardHeader>
               </Card>
             ))}

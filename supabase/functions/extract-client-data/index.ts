@@ -231,19 +231,27 @@ Return ONLY valid JSON with at least company_name and service_type. No markdown 
 
 CRITICAL RULES:
 1. Copy the script WORD-FOR-WORD as your baseline
-2. Replace bracketed placeholders like [COMPANY_NAME], [SERVICE_TYPE] with actual data
-3. ALSO replace generic references when client data is available:
+2. PRESERVE ALL FORMATTING - if headings are bold and capitalized in the template, keep them bold and capitalized
+3. PRESERVE ALL STRUCTURE - maintain section numbering (1., 2., 3.), bullet points, and spacing
+4. Replace bracketed placeholders like [COMPANY_NAME], [SERVICE_TYPE] with actual data
+5. ALSO replace generic references when client data is available:
    - "your company" → actual company name
    - "our service" → actual service type
    - "your area" → actual city/location
    - Generic prices → actual prices if provided
    - Generic warranties → actual warranty terms if provided
-4. DO NOT add new sections, explanations, or tangents
-5. DO NOT change the flow, structure, or core messaging
-6. Keep all formatting, tone, and style exactly as written
-7. Only make replacements that flow naturally and make sense in context
+6. DO NOT add new sections, explanations, or tangents
+7. DO NOT change the flow, structure, or core messaging
+8. Keep all formatting markers (**bold**, *emphasis*, headings) exactly as written
+9. Only make replacements that flow naturally and make sense in context
 
-This is intelligent find-and-replace, not rewriting.`,
+FORMATTING PRESERVATION:
+- If a heading is "**1. OPENING**" keep it as "**1. OPENING**"
+- If text uses **bold** markers, preserve them
+- If sections are numbered, maintain the numbering
+- If there are line breaks, keep them
+
+This is intelligent find-and-replace with strict format preservation, not rewriting.`,
             },
             {
               role: "user",

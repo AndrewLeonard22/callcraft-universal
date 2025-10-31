@@ -634,7 +634,6 @@ export default function ScriptViewer() {
           <div className="lg:col-span-2">
             <Card className="border border-border shadow-sm">
               <CardContent className="p-8">
-                <h2 className="text-lg font-semibold mb-6 text-foreground">Additional Info</h2>
                 <div className="max-w-none">
                   <FormattedScript content={script.script_content} />
                 </div>
