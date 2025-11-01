@@ -147,6 +147,18 @@ export function RichTextEditor({
     orange: 'rgb(249, 115, 22)',
   };
 
+  // Get current color if any
+  const getCurrentColor = () => {
+    const currentColor = editor.getAttributes('textStyle').color;
+    if (!currentColor) return 'default';
+    
+    // Find matching color name from RGB value
+    for (const [name, rgb] of Object.entries(colorMap)) {
+      if (rgb === currentColor) return name;
+    }
+    return 'default';
+  };
+
   return (
     <div className="space-y-3">
       {label && <Label>{label}</Label>}
@@ -191,37 +203,60 @@ export function RichTextEditor({
             
             <div className="flex items-center gap-1.5">
               <Select 
-                value="none"
+                value={getCurrentColor()}
                 onValueChange={(color) => {
-                  if (color === 'none') {
+                  if (color === 'default') {
                     editor.chain().focus().unsetColor().run();
                   } else {
                     editor.chain().focus().setColor(colorMap[color]).run();
                   }
                 }}
               >
-                <SelectTrigger className="h-8 w-[90px] text-xs">
-                  <SelectValue placeholder="Color" />
+                <SelectTrigger className="h-8 w-[100px] text-xs">
+                  <SelectValue placeholder="Text Color" />
                 </SelectTrigger>
                 <SelectContent className="bg-background z-50">
-                  <SelectItem value="none">Default</SelectItem>
+                  <SelectItem value="default">
+                    <span className="flex items-center gap-2">
+                      <span className="w-4 h-4 rounded border border-border bg-background"></span>
+                      Default
+                    </span>
+                  </SelectItem>
                   <SelectItem value="red">
-                    <span style={{ color: colorMap.red }}>Red</span>
+                    <span className="flex items-center gap-2">
+                      <span className="w-4 h-4 rounded" style={{ backgroundColor: colorMap.red }}></span>
+                      <span style={{ color: colorMap.red }}>Red</span>
+                    </span>
                   </SelectItem>
                   <SelectItem value="blue">
-                    <span style={{ color: colorMap.blue }}>Blue</span>
+                    <span className="flex items-center gap-2">
+                      <span className="w-4 h-4 rounded" style={{ backgroundColor: colorMap.blue }}></span>
+                      <span style={{ color: colorMap.blue }}>Blue</span>
+                    </span>
                   </SelectItem>
                   <SelectItem value="green">
-                    <span style={{ color: colorMap.green }}>Green</span>
+                    <span className="flex items-center gap-2">
+                      <span className="w-4 h-4 rounded" style={{ backgroundColor: colorMap.green }}></span>
+                      <span style={{ color: colorMap.green }}>Green</span>
+                    </span>
                   </SelectItem>
                   <SelectItem value="yellow">
-                    <span style={{ color: colorMap.yellow }}>Yellow</span>
+                    <span className="flex items-center gap-2">
+                      <span className="w-4 h-4 rounded" style={{ backgroundColor: colorMap.yellow }}></span>
+                      <span style={{ color: colorMap.yellow }}>Yellow</span>
+                    </span>
                   </SelectItem>
                   <SelectItem value="purple">
-                    <span style={{ color: colorMap.purple }}>Purple</span>
+                    <span className="flex items-center gap-2">
+                      <span className="w-4 h-4 rounded" style={{ backgroundColor: colorMap.purple }}></span>
+                      <span style={{ color: colorMap.purple }}>Purple</span>
+                    </span>
                   </SelectItem>
                   <SelectItem value="orange">
-                    <span style={{ color: colorMap.orange }}>Orange</span>
+                    <span className="flex items-center gap-2">
+                      <span className="w-4 h-4 rounded" style={{ backgroundColor: colorMap.orange }}></span>
+                      <span style={{ color: colorMap.orange }}>Orange</span>
+                    </span>
                   </SelectItem>
                 </SelectContent>
               </Select>
