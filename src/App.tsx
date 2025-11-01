@@ -15,6 +15,7 @@ import ScriptViewer from "./pages/ScriptViewer";
 import Templates from "./pages/Templates";
 import ServiceTypes from "./pages/ServiceTypes";
 import TeamManagement from "./pages/TeamManagement";
+import ImageGenerator from "./pages/ImageGenerator";
 import NotFound from "./pages/NotFound";
 
 const queryClient = new QueryClient();
@@ -37,6 +38,7 @@ const App = () => (
           <Route path="/templates" element={<ProtectedRoute><Templates /></ProtectedRoute>} />
           <Route path="/service-types" element={<ProtectedRoute><ServiceTypes /></ProtectedRoute>} />
           <Route path="/team" element={<ProtectedRoute><TeamManagement /></ProtectedRoute>} />
+          <Route path="/image-generator" element={<ProtectedRoute><ImageGenerator /></ProtectedRoute>} />
           {/* ADD ALL CUSTOM ROUTES ABOVE THE CATCH-ALL "*" ROUTE */}
           <Route path="*" element={<NotFound />} />
         </Routes>
