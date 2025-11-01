@@ -173,10 +173,10 @@ export default function Dashboard() {
 
       if (serviceTypesError) throw serviceTypesError;
 
-      // Fetch generated images for all organizations
+      // Fetch generated images for all clients
       const { data: generatedImagesData, error: generatedImagesError } = await supabase
         .from("generated_images")
-        .select("id, organization_id, image_url, features, feature_size, created_at")
+        .select("id, client_id, image_url, features, feature_size, created_at")
         .order("created_at", { ascending: false });
 
       if (generatedImagesError) throw generatedImagesError;
@@ -224,7 +224,7 @@ export default function Dashboard() {
             }));
 
           const clientGeneratedImages: GeneratedImage[] = (generatedImagesData || [])
-            .filter(img => img.organization_id === client.organization_id)
+            .filter(img => img.client_id === client.id)
             .map(img => ({
               id: img.id,
               image_url: img.image_url,

@@ -118,6 +118,7 @@ export type Database = {
       }
       generated_images: {
         Row: {
+          client_id: string | null
           created_at: string
           created_by: string
           feature_options: Json | null
@@ -129,6 +130,7 @@ export type Database = {
           updated_at: string
         }
         Insert: {
+          client_id?: string | null
           created_at?: string
           created_by: string
           feature_options?: Json | null
@@ -140,6 +142,7 @@ export type Database = {
           updated_at?: string
         }
         Update: {
+          client_id?: string | null
           created_at?: string
           created_by?: string
           feature_options?: Json | null
@@ -151,6 +154,13 @@ export type Database = {
           updated_at?: string
         }
         Relationships: [
+          {
+            foreignKeyName: "generated_images_client_id_fkey"
+            columns: ["client_id"]
+            isOneToOne: false
+            referencedRelation: "clients"
+            referencedColumns: ["id"]
+          },
           {
             foreignKeyName: "generated_images_organization_id_fkey"
             columns: ["organization_id"]

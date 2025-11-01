@@ -102,36 +102,50 @@ export default function ImageGenerator() {
   const [featureSize, setFeatureSize] = useState<string>("medium");
   const [isGenerating, setIsGenerating] = useState(false);
   const [generatedImageUrl, setGeneratedImageUrl] = useState<string | null>(null);
-  const [organizations, setOrganizations] = useState<Array<{ id: string; name: string }>>([]);
-  const [selectedOrgId, setSelectedOrgId] = useState<string>("");
+  const [clients, setClients] = useState<Array<{ id: string; name: string; business_name?: string }>>([]);
+  const [selectedClientId, setSelectedClientId] = useState<string>("");
   const [isSaving, setIsSaving] = useState(false);
 
   useEffect(() => {
-    fetchOrganizations();
+    fetchClients();
   }, []);
 
-  const fetchOrganizations = async () => {
+  const fetchClients = async () => {
     try {
       const { data: { user } } = await supabase.auth.getUser();
       if (!user) return;
 
-      const { data, error } = await supabase
-        .from('organization_members')
-        .select('organization_id, organizations(id, name)')
-        .eq('user_id', user.id);
+      // Fetch clients
+      const { data: clientsData, error: clientsError } = await supabase
+        .from('clients')
+        .select('id, name')
+        .neq('id', '00000000-0000-0000-0000-000000000001')
+        .order('created_at', { ascending: false });
 
-      if (error) throw error;
+      if (clientsError) throw clientsError;
 
-      const orgs = data
-        .map(item => item.organizations)
-        .filter((org): org is { id: string; name: string } => org !== null);
+      // Fetch business names from client_details
+      const { data: businessNamesData } = await supabase
+        .from('client_details')
+        .select('client_id, field_value')
+        .eq('field_name', 'business_name');
+
+      const businessNamesMap = new Map(
+        (businessNamesData || []).map(d => [d.client_id, d.field_value])
+      );
+
+      const clientsWithNames = (clientsData || []).map(client => ({
+        id: client.id,
+        name: client.name,
+        business_name: businessNamesMap.get(client.id),
+      }));
       
-      setOrganizations(orgs);
-      if (orgs.length > 0) {
-        setSelectedOrgId(orgs[0].id);
+      setClients(clientsWithNames);
+      if (clientsWithNames.length > 0) {
+        setSelectedClientId(clientsWithNames[0].id);
       }
     } catch (error: any) {
-      console.error("Error fetching organizations:", error);
+      console.error("Error fetching clients:", error);
       toast.error("Failed to load companies");
     }
   };
@@ -240,7 +254,7 @@ export default function ImageGenerator() {
       return;
     }
 
-    if (!selectedOrgId) {
+    if (!selectedClientId) {
       toast.error("Please select a company");
       return;
     }
@@ -255,7 +269,7 @@ export default function ImageGenerator() {
       const blob = await fetch(`data:image/png;base64,${base64Data}`).then(res => res.blob());
       
       // Upload to storage
-      const fileName = `${selectedOrgId}/${Date.now()}.png`;
+      const fileName = `${selectedClientId}/${Date.now()}.png`;
       const { data: uploadData, error: uploadError } = await supabase.storage
         .from('generated-backyards')
         .upload(fileName, blob);
@@ -271,7 +285,7 @@ export default function ImageGenerator() {
       const { error: dbError } = await supabase
         .from('generated_images')
         .insert({
-          organization_id: selectedOrgId,
+          client_id: selectedClientId,
           image_url: publicUrl,
           features: selectedFeatures,
           feature_options: featureOptions,
@@ -491,21 +505,21 @@ export default function ImageGenerator() {
                         Save to Company
                       </Label>
                       <div className="flex gap-2">
-                        <Select value={selectedOrgId} onValueChange={setSelectedOrgId}>
+                        <Select value={selectedClientId} onValueChange={setSelectedClientId}>
                           <SelectTrigger id="company-select" className="flex-1">
                             <SelectValue placeholder="Select a company" />
                           </SelectTrigger>
                           <SelectContent>
-                            {organizations.map((org) => (
-                              <SelectItem key={org.id} value={org.id}>
-                                {org.name}
+                            {clients.map((client) => (
+                              <SelectItem key={client.id} value={client.id}>
+                                {client.business_name || client.name}
                               </SelectItem>
                             ))}
                           </SelectContent>
                         </Select>
                         <Button
                           onClick={handleSaveImage}
-                          disabled={!selectedOrgId || isSaving}
+                          disabled={!selectedClientId || isSaving}
                           size="default"
                         >
                           {isSaving ? (
