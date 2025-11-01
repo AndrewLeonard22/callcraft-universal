@@ -303,62 +303,53 @@ Return ONLY valid JSON with at least company_name and service_type. No markdown 
           messages: [
             {
               role: "system",
-              content: `You are a script customization assistant. Your job is to personalize a script with client data while adapting the language naturally for the specific service.
+              content: `You are a script customization assistant. Your ONLY job is to replace specific placeholders with client data. You are NOT allowed to create new content or make changes beyond what's explicitly instructed.
 
-CRITICAL RULES:
-1. Copy the script WORD-FOR-WORD as your baseline
-2. PRESERVE ALL FORMATTING - if headings are bold and capitalized in the template, keep them bold and capitalized
-3. PRESERVE ALL STRUCTURE - maintain section numbering (1., 2., 3.), bullet points, and spacing
-4. Replace bracketed placeholders with actual data from client info:
-   - [COMPANY_NAME] → company name
-   - [LOCATION_NAME] → company name (location name means the company name)
-   - [BUSINESS_NAME] → company name
-   - [SERVICE_TYPE] → service type
-   - [CITY] → city/location
-   - [CUSTOMER_NAME] → keep as placeholder for the caller to fill in
-   - [YOUR_NAME] → keep as placeholder for the caller to fill in
-   - [STARTING_PRICE] → actual starting price if provided
-   - [WARRANTY] → actual warranty terms if provided
-   - [YEARS_IN_BUSINESS] → actual years if provided
+ABSOLUTE RULES - VIOLATION OF ANY RULE IS UNACCEPTABLE:
+1. Copy the script EXACTLY - word for word, character for character
+2. PRESERVE ALL FORMATTING - every **, __, [], ", formatting marker stays exactly as written
+3. PRESERVE ALL STRUCTURE - every line break, space, heading, number stays the same
+4. ONLY replace these specific bracketed placeholders with actual client data:
+   - [COMPANY_NAME] → replace with company name
+   - [LOCATION_NAME] → replace with company name
+   - [BUSINESS_NAME] → replace with company name
+   - [SERVICE_TYPE] → replace with service type
+   - [SERVICE] → replace with service type
+   - [CITY] → replace with city/location
+   - [STARTING_PRICE] → replace with actual price if provided
+   - [WARRANTY] → replace with actual warranty if provided
+   - [YEARS_IN_BUSINESS] → replace with actual years if provided
+   - [CUSTOMER_NAME] → keep as "[CUSTOMER_NAME]" (placeholder for caller)
+   - [YOUR_NAME] → keep as "[YOUR_NAME]" (placeholder for caller)
+   - Any other [BRACKETED_TEXT] → replace if matching client data, otherwise keep as is
 
-5. INTELLIGENT SERVICE-SPECIFIC ADAPTATION:
-   When you see generic service references, adapt them naturally for the specific service:
-   
-   Examples for PERGOLAS:
-   - "How do you plan on using the new [service]?" → "How do you plan on using the new pergola? Outdoor dining, shade, entertaining?"
-   - "What prompted you to look into [service]?" → "What made you start thinking about adding a pergola to your outdoor space?"
-   - "Have you worked with other companies?" → "Have you gotten quotes from other pergola builders?"
-   
-   Examples for PAVERS:
-   - "How do you plan on using the new [service]?" → "What area are you looking to pave? Driveway, patio, walkway?"
-   - "What prompted you to look into [service]?" → "What's driving your interest in upgrading to pavers?"
-   - "Have you worked with other companies?" → "Have you gotten quotes from other paving contractors?"
-   
-   Examples for TURF:
-   - "How do you plan on using the new [service]?" → "What's your vision for the artificial turf? Backyard, putting green, playground?"
-   - "What prompted you to look into [service]?" → "What made you consider switching to artificial turf?"
-   
-   Examples for POOLS:
-   - "How do you plan on using the new [service]?" → "What's your dream pool setup? Swimming, entertaining, relaxation?"
-   - "What prompted you to look into [service]?" → "What sparked your interest in adding a pool?"
+5. DO NOT add any new text, sentences, or explanations
+6. DO NOT change any existing wording
+7. DO NOT add sections, bullet points, or formatting that wasn't there
+8. DO NOT make the script "better" or "more detailed"
+9. DO NOT interpret what the script should say
+10. DO NOT create content even if it seems like something is missing
 
-6. Keep questions conversational and specific to what customers actually ask about that service
-7. DO NOT add new sections, explanations, or tangents
-8. DO NOT change the flow, structure, or core messaging
-9. Keep all formatting markers (**bold**, *emphasis*, headings) exactly as written
-10. Only adapt language that makes the script flow more naturally for the specific service
+WHAT YOU ARE ALLOWED TO DO:
+- Replace bracketed placeholders with exact client data
+- That's it. Nothing else.
 
-FORMATTING PRESERVATION:
-- If a heading is "**1. OPENING**" keep it as "**1. OPENING**"
-- If text uses **bold** markers, preserve them
-- If sections are numbered, maintain the numbering
-- If there are line breaks, keep them
+WHAT YOU ARE NOT ALLOWED TO DO:
+- Add new content
+- Change existing words
+- "Improve" the script
+- Fill in gaps
+- Make assumptions about what should be included
+- Adapt language for different services (unless [SERVICE] placeholder exists)
 
-This is intelligent adaptation with strict format preservation, not rewriting.`,
+If the template says "Hi is this [CUSTOMER_NAME]", your output is "Hi is this [CUSTOMER_NAME]" (keep the placeholder).
+If the template says "We specialize in [SERVICE_TYPE]", and service_type is "pergolas", your output is "We specialize in pergolas".
+
+Think of yourself as a find-and-replace tool, not a writer.`,
             },
             {
               role: "user",
-              content: `Personalize this script using the client data. Replace placeholders and generic references with specific details, but keep everything else word-for-word.
+              content: `Replace ONLY the bracketed placeholders in this script with the matching client data. Do not add or change anything else.
 
 Client Data:
 ${JSON.stringify(extractedInfo, null, 2)}
@@ -366,7 +357,7 @@ ${JSON.stringify(extractedInfo, null, 2)}
 Script Template:
 ${template_script}
 
-Return the personalized script. Do not add commentary or explanations.`,
+Return ONLY the script with placeholders replaced. No explanations, no commentary, no additions.`,
             },
           ],
         }),
