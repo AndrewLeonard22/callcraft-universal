@@ -32,51 +32,51 @@ serve(async (req) => {
       throw new Error('LOVABLE_API_KEY is not configured');
     }
 
-    // Create prompt based on selected features and their options
+    // Create detailed prompt based on selected features and their options
     const featureLabels = features.map((id: string) => {
       const option = featureOptions[id];
       
       const labels: Record<string, Record<string, string>> = {
         'pergola': {
-          'wood': 'a beautiful wooden pergola',
-          'aluminum': 'a modern aluminum pergola',
-          'vinyl': 'a white vinyl pergola'
+          'wood': 'a beautifully crafted wooden pergola with rich grain texture, precise joinery, and natural wood finish',
+          'aluminum': 'a sleek modern aluminum pergola with clean lines, powder-coated finish, and contemporary design',
+          'vinyl': 'a pristine white vinyl pergola with smooth finish, professional installation, and classic styling'
         },
         'pavers': {
-          'concrete': 'elegant concrete pavers',
-          'brick': 'classic brick pavers',
-          'natural-stone': 'natural stone pavers',
-          'travertine': 'travertine pavers'
+          'concrete': 'professionally installed concrete pavers with precise spacing, uniform coloring, and proper edge restraints',
+          'brick': 'classic brick pavers in traditional patterns with tight joints, consistent color, and professional masonry',
+          'natural-stone': 'high-end natural stone pavers with varied textures, natural color variations, and expert placement',
+          'travertine': 'premium travertine pavers with distinctive texture, warm earth tones, and professional installation'
         },
         'outdoor-kitchen': {
-          'basic': 'a basic outdoor kitchen with grill',
-          'standard': 'an outdoor kitchen with grill and counter',
-          'premium': 'a premium full outdoor kitchen'
+          'basic': 'a well-designed basic outdoor kitchen featuring a built-in grill with stone or brick surround, proper clearances, and quality materials',
+          'standard': 'a complete outdoor kitchen with built-in grill, granite countertops, stone veneer base, proper spacing, and professional finishes',
+          'premium': 'a luxury outdoor kitchen featuring built-in grill, extensive granite countertops, stone veneer, stainless steel appliances, proper proportions, and high-end architectural details'
         },
         'fire-pit': {
-          'round': 'a round fire pit',
-          'square': 'a square fire pit',
-          'linear': 'a linear fire pit'
+          'round': 'a professionally built round fire pit with stone or brick construction, proper dimensions, safe clearances, and integrated seating area',
+          'square': 'a contemporary square fire pit with clean edges, quality masonry, proper scale, and modern design elements',
+          'linear': 'a sleek linear fire pit with precise dimensions, modern materials, proper proportions, and contemporary styling'
         },
         'pool': {
-          'rectangular': 'a rectangular swimming pool',
-          'freeform': 'a freeform swimming pool',
-          'lap': 'a lap pool'
+          'rectangular': 'a stunning rectangular swimming pool with crystal-clear water, professional tiling, proper coping, accurate dimensions, and realistic reflections',
+          'freeform': 'a beautifully designed freeform swimming pool with natural curves, sparkling water, quality finishes, and organic integration',
+          'lap': 'a properly proportioned lap pool with straight edges, professional finish, clear water, and functional dimensions'
         },
         'deck': {
-          'wood': 'a wooden deck',
-          'composite': 'a composite deck',
-          'pvc': 'a PVC deck'
+          'wood': 'a beautifully constructed wooden deck with consistent board spacing, natural grain patterns, proper railings, and professional carpentry',
+          'composite': 'a modern composite deck with uniform board placement, clean lines, consistent color, and contemporary railing system',
+          'pvc': 'a pristine PVC deck with flawless finish, precise installation, proper proportions, and low-maintenance materials'
         },
         'landscaping': {
-          'tropical': 'tropical landscaping',
-          'desert': 'desert xeriscaping',
-          'traditional': 'traditional landscaping'
+          'tropical': 'lush tropical landscaping with palm trees, vibrant foliage, proper plant spacing, natural layering, and professional design',
+          'desert': 'professionally designed desert xeriscaping with native plants, decorative rock, proper spacing, and water-wise arrangement',
+          'traditional': 'classic traditional landscaping with manicured lawns, shaped shrubs, flowering plants, proper proportions, and timeless design'
         },
         'lighting': {
-          'path': 'path lighting',
-          'ambient': 'ambient string lights',
-          'accent': 'accent uplighting'
+          'path': 'professionally installed path lighting with proper spacing, subtle illumination, and quality fixtures',
+          'ambient': 'elegant ambient string lights with proper hanging, warm glow, professional installation, and decorative appeal',
+          'accent': 'strategic accent uplighting highlighting architectural features, proper placement, and professional-grade fixtures'
         }
       };
       
@@ -85,30 +85,51 @@ serve(async (req) => {
         return labels[id][option];
       }
       
-      // Fallback to generic labels
+      // Fallback to detailed generic labels
       const genericLabels: Record<string, string> = {
-        'pergola': 'a beautiful pergola',
-        'pavers': 'elegant pavers',
-        'outdoor-kitchen': 'an outdoor kitchen',
-        'fire-pit': 'a fire pit',
-        'pool': 'a swimming pool',
-        'deck': 'a deck',
-        'landscaping': 'professional landscaping',
-        'lighting': 'outdoor lighting'
+        'pergola': 'a beautifully constructed pergola with quality materials and professional craftsmanship',
+        'pavers': 'professionally installed pavers with precise spacing and quality materials',
+        'outdoor-kitchen': 'a well-designed outdoor kitchen with quality appliances and professional finishes',
+        'fire-pit': 'a professionally built fire pit with quality masonry and proper construction',
+        'pool': 'a beautifully designed swimming pool with crystal-clear water and professional finishes',
+        'deck': 'a professionally constructed deck with quality materials and expert carpentry',
+        'landscaping': 'professionally designed landscaping with proper plant selection and expert arrangement',
+        'lighting': 'professionally installed outdoor lighting with quality fixtures and proper placement'
       };
       
       return genericLabels[id] || id;
     });
 
-    // Size descriptions for prompt
+    // Detailed size descriptions for prompt
     const sizeDescriptions: Record<string, string> = {
-      small: 'compact and space-efficient',
-      medium: 'standard, balanced sizing',
-      large: 'spacious and prominent, taking up significant space'
+      small: 'appropriately compact yet functional, maintaining proper proportions and realistic scale without overwhelming the space',
+      medium: 'well-proportioned with standard dimensions, balanced sizing that feels natural and realistic in the space',
+      large: 'generously sized and prominently featured, taking up significant space while maintaining architectural accuracy and realistic proportions'
     };
     const sizeDescription = sizeDescriptions[featureSize as keyof typeof sizeDescriptions] || sizeDescriptions.medium;
 
-    const prompt = `Add ${featureLabels.join(', ')} to this backyard image. All features should be ${sizeDescription} in scale and proportion. Keep the existing backyard structure and style, seamlessly integrate the new features in a realistic and professional way at the specified ${featureSize} size. Make it look like a high-quality architectural rendering.`;
+    const prompt = `CRITICAL: Create a photorealistic, architecturally accurate design. Add ${featureLabels.join('; ')} to this backyard image. 
+
+QUALITY REQUIREMENTS:
+- Ultra-high resolution photorealistic rendering
+- Precise architectural accuracy and realistic proportions
+- Professional construction details and proper materials
+- Accurate shadows, lighting, and reflections matching the original image
+- Seamless integration preserving the existing backyard structure
+- All features should be ${sizeDescription}
+- Maintain consistent perspective and viewing angle
+- Include proper depth, texture, and material details
+- No distortions, artifacts, or unrealistic elements
+
+TECHNICAL SPECIFICATIONS:
+- Match existing lighting conditions exactly
+- Preserve original image quality and resolution
+- Ensure proper scale relationships between all elements
+- Add realistic weathering and material textures
+- Include accurate ground shadows and ambient occlusion
+- Maintain color harmony with existing environment
+
+This must look like a professional architectural visualization that could be used for client presentations.`;
 
     console.log('Generating image with prompt:', prompt);
     console.log('Selected features:', features);
