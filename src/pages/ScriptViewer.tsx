@@ -78,6 +78,36 @@ export default function ScriptViewer() {
     if (scriptId) {
       loadClientData();
       loadObjectionTemplates();
+
+      // Set up real-time subscriptions
+      const scriptChannel = supabase
+        .channel('script-viewer-changes')
+        .on('postgres_changes', { event: 'UPDATE', schema: 'public', table: 'scripts' }, (payload) => {
+          if ((payload.new as any).id === scriptId) {
+            loadClientData();
+          }
+        })
+        .subscribe();
+
+      const objectionChannel = supabase
+        .channel('script-objections-changes')
+        .on('postgres_changes', { event: '*', schema: 'public', table: 'objection_handling_templates' }, () => {
+          loadObjectionTemplates();
+        })
+        .subscribe();
+
+      const faqsChannel = supabase
+        .channel('script-faqs-changes')
+        .on('postgres_changes', { event: '*', schema: 'public', table: 'faqs' }, () => {
+          loadClientData();
+        })
+        .subscribe();
+
+      return () => {
+        supabase.removeChannel(scriptChannel);
+        supabase.removeChannel(objectionChannel);
+        supabase.removeChannel(faqsChannel);
+      };
     }
   }, [scriptId]);
 

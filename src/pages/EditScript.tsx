@@ -66,6 +66,36 @@ export default function EditScript() {
     loadScriptData();
     loadTemplates();
     loadServiceTypes();
+
+    // Set up real-time subscriptions
+    const templatesChannel = supabase
+      .channel('edit-script-templates')
+      .on('postgres_changes', { event: '*', schema: 'public', table: 'scripts' }, () => {
+        loadTemplates();
+      })
+      .subscribe();
+
+    const serviceTypesChannel = supabase
+      .channel('edit-script-service-types')
+      .on('postgres_changes', { event: '*', schema: 'public', table: 'service_types' }, () => {
+        loadServiceTypes();
+      })
+      .subscribe();
+
+    const scriptChannel = supabase
+      .channel('edit-script-changes')
+      .on('postgres_changes', { event: 'UPDATE', schema: 'public', table: 'scripts' }, (payload) => {
+        if ((payload.new as any).id === scriptId) {
+          loadScriptData();
+        }
+      })
+      .subscribe();
+
+    return () => {
+      supabase.removeChannel(templatesChannel);
+      supabase.removeChannel(serviceTypesChannel);
+      supabase.removeChannel(scriptChannel);
+    };
   }, [scriptId]);
 
   const loadScriptData = async () => {
