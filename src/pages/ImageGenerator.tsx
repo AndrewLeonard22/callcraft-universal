@@ -291,7 +291,7 @@ export default function ImageGenerator() {
           feature_options: featureOptions,
           feature_size: featureSize,
           created_by: user.id
-        });
+        } as any);
 
       if (dbError) throw dbError;
 
