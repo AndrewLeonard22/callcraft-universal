@@ -98,6 +98,7 @@ export default function ImageGenerator() {
   const [selectedFeatures, setSelectedFeatures] = useState<string[]>([]);
   const [expandedFeatures, setExpandedFeatures] = useState<string[]>([]);
   const [featureOptions, setFeatureOptions] = useState<Record<string, string>>({});
+  const [featureSize, setFeatureSize] = useState<string>("medium");
   const [isGenerating, setIsGenerating] = useState(false);
   const [generatedImageUrl, setGeneratedImageUrl] = useState<string | null>(null);
 
@@ -178,7 +179,8 @@ export default function ImageGenerator() {
         body: {
           imageBase64,
           features: selectedFeatures,
-          featureOptions
+          featureOptions,
+          featureSize
         }
       });
 
@@ -263,8 +265,35 @@ export default function ImageGenerator() {
                 <CardTitle>Select Features</CardTitle>
                 <CardDescription>Choose what you'd like to add to your backyard</CardDescription>
               </CardHeader>
-              <CardContent>
+              <CardContent className="space-y-6">
+                {/* Size Selection */}
                 <div className="space-y-3">
+                  <Label className="text-sm font-semibold">Feature Size</Label>
+                  <RadioGroup value={featureSize} onValueChange={setFeatureSize}>
+                    <div className="flex items-center space-x-2">
+                      <RadioGroupItem value="small" id="size-small" />
+                      <Label htmlFor="size-small" className="text-sm cursor-pointer font-normal">
+                        Small - Compact, space-efficient designs
+                      </Label>
+                    </div>
+                    <div className="flex items-center space-x-2">
+                      <RadioGroupItem value="medium" id="size-medium" />
+                      <Label htmlFor="size-medium" className="text-sm cursor-pointer font-normal">
+                        Medium - Balanced, standard sizing
+                      </Label>
+                    </div>
+                    <div className="flex items-center space-x-2">
+                      <RadioGroupItem value="large" id="size-large" />
+                      <Label htmlFor="size-large" className="text-sm cursor-pointer font-normal">
+                        Large - Spacious, prominent features
+                      </Label>
+                    </div>
+                  </RadioGroup>
+                </div>
+
+                <div className="border-t pt-6">
+                  <Label className="text-sm font-semibold mb-3 block">Features to Add</Label>
+                  <div className="space-y-3">
                   {FEATURES.map((feature) => {
                     const isSelected = selectedFeatures.includes(feature.id);
                     const isExpanded = expandedFeatures.includes(feature.id);
@@ -323,6 +352,7 @@ export default function ImageGenerator() {
                       </div>
                     );
                   })}
+                  </div>
                 </div>
               </CardContent>
             </Card>

@@ -11,7 +11,7 @@ serve(async (req) => {
   }
 
   try {
-    const { imageBase64, features, featureOptions = {} } = await req.json();
+    const { imageBase64, features, featureOptions = {}, featureSize = 'medium' } = await req.json();
 
     if (!imageBase64) {
       return new Response(
@@ -100,7 +100,15 @@ serve(async (req) => {
       return genericLabels[id] || id;
     });
 
-    const prompt = `Add ${featureLabels.join(', ')} to this backyard image. Keep the existing backyard structure and style, seamlessly integrate the new features in a realistic and professional way. Make it look like a high-quality architectural rendering.`;
+    // Size descriptions for prompt
+    const sizeDescriptions: Record<string, string> = {
+      small: 'compact and space-efficient',
+      medium: 'standard, balanced sizing',
+      large: 'spacious and prominent, taking up significant space'
+    };
+    const sizeDescription = sizeDescriptions[featureSize as keyof typeof sizeDescriptions] || sizeDescriptions.medium;
+
+    const prompt = `Add ${featureLabels.join(', ')} to this backyard image. All features should be ${sizeDescription} in scale and proportion. Keep the existing backyard structure and style, seamlessly integrate the new features in a realistic and professional way at the specified ${featureSize} size. Make it look like a high-quality architectural rendering.`;
 
     console.log('Generating image with prompt:', prompt);
     console.log('Selected features:', features);
