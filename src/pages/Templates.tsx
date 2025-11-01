@@ -602,13 +602,12 @@ export default function Templates() {
                 </p>
               </div>
               <div>
-                <Label htmlFor="script-content">Script Content</Label>
-                <Textarea
-                  id="script-content"
+                <RichTextEditor
+                  label="Script Content"
                   placeholder="Enter your template script here..."
-                  className="min-h-[300px] font-mono text-sm"
                   value={scriptContent}
-                  onChange={(e) => setScriptContent(e.target.value)}
+                  onChange={setScriptContent}
+                  minHeight="300px"
                 />
               </div>
               <div>
