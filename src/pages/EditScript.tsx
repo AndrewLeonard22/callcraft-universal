@@ -246,12 +246,27 @@ export default function EditScript() {
 
       // If template is selected, regenerate script with new details
       if (selectedTemplateId) {
-        const selectedTemplate = templates.find(t => t.id === selectedTemplateId);
-        if (!selectedTemplate) {
-          toast.error("Invalid template selected");
+        // Fetch the LATEST template data directly from database to ensure freshness
+        console.log("Fetching fresh template data for ID:", selectedTemplateId);
+        const { data: freshTemplate, error: templateError } = await supabase
+          .from("scripts")
+          .select("id, service_name, script_content, image_url")
+          .eq("id", selectedTemplateId)
+          .eq("is_template", true)
+          .single();
+
+        if (templateError || !freshTemplate) {
+          toast.error("Failed to load template. Please try again.");
+          console.error("Template fetch error:", templateError);
           setSaving(false);
           return;
         }
+
+        console.log("Using fresh template:", {
+          id: freshTemplate.id,
+          service_name: freshTemplate.service_name,
+          script_length: freshTemplate.script_content?.length || 0
+        });
 
         const { error } = await supabase.functions.invoke("extract-client-data", {
           body: {
@@ -259,7 +274,9 @@ export default function EditScript() {
             service_name: selectedServiceType.name,
             service_type_id: selectedServiceTypeId,
             use_template: true,
-            template_script: selectedTemplate.script_content,
+            template_script: freshTemplate.script_content,
+            template_image_url: freshTemplate.image_url,
+            template_id: freshTemplate.id,
             script_id: scriptId,
             service_details: {
               project_min_price: projectMinPrice,

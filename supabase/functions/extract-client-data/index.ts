@@ -92,7 +92,7 @@ serve(async (req) => {
 
   try {
     const requestBody = await req.json();
-    const { onboarding_form, transcript, client_id, service_name, service_type_id, use_template, template_script, template_image_url, regenerate, links, business_info, service_details, script_id } = requestBody;
+    const { onboarding_form, transcript, client_id, service_name, service_type_id, use_template, template_script, template_image_url, template_id, regenerate, links, business_info, service_details, script_id } = requestBody;
 
     const LOVABLE_API_KEY = Deno.env.get("LOVABLE_API_KEY");
     const SUPABASE_URL = Deno.env.get("SUPABASE_URL");
@@ -290,8 +290,16 @@ Return ONLY valid JSON with at least company_name and service_type. No markdown 
     let scriptContent;
     
     if (use_template && template_script) {
-      // Customize the template with client data
+      // Validate template data
+      if (!template_script || template_script.trim().length === 0) {
+        throw new Error("Template script is empty or invalid");
+      }
+      
       console.log("Customizing template script...");
+      console.log("Template ID:", template_id);
+      console.log("Template script length:", template_script.length);
+      console.log("First 200 chars of template:", template_script.substring(0, 200));
+      
       const customizationResponse = await fetch("https://ai.gateway.lovable.dev/v1/chat/completions", {
         method: "POST",
         headers: {
@@ -303,61 +311,65 @@ Return ONLY valid JSON with at least company_name and service_type. No markdown 
           messages: [
             {
               role: "system",
-              content: `You are a script customization assistant. Your ONLY job is to replace specific placeholders with client data. You are NOT allowed to create new content or make changes beyond what's explicitly instructed.
+              content: `You are a script customization assistant. Your ONLY job is to replace specific placeholders with client data.
 
-ABSOLUTE RULES - VIOLATION OF ANY RULE IS UNACCEPTABLE:
-1. Copy the script EXACTLY - word for word, character for character
-2. PRESERVE ALL FORMATTING - every **, __, [], ", formatting marker stays exactly as written
-3. PRESERVE ALL STRUCTURE - every line break, space, heading, number stays the same
-4. ONLY replace these specific bracketed placeholders with actual client data:
+CRITICAL INSTRUCTION: You MUST output in ENGLISH ONLY. Never use any other language.
+
+ABSOLUTE RULES - VIOLATION IS FORBIDDEN:
+1. Copy the script EXACTLY - every single word, character, punctuation mark
+2. PRESERVE ALL FORMATTING - every **, __, [], ", HTML tag, formatting marker must stay exactly as written
+3. PRESERVE ALL STRUCTURE - every line break, space, heading, number, indentation stays identical
+4. OUTPUT IN ENGLISH ONLY - Do not translate or use any other language
+5. ONLY replace these EXACT bracketed placeholders when found:
    - [COMPANY_NAME] → replace with company name
-   - [LOCATION_NAME] → replace with company name
+   - [LOCATION_NAME] → replace with company name  
    - [BUSINESS_NAME] → replace with company name
-   - [SERVICE_TYPE] → replace with service type
+   - [SERVICE_TYPE] → replace with service type (e.g., "pavers", "outdoor kitchens")
    - [SERVICE] → replace with service type
    - [CITY] → replace with city/location
    - [STARTING_PRICE] → replace with actual price if provided
-   - [WARRANTY] → replace with actual warranty if provided
+   - [MINIMUM_PRICE] → replace with project_min_price if provided
+   - [PRICE_PER_SQFT] → replace with price_per_sq_ft if provided
+   - [WARRANTY] → replace with warranties if provided
    - [YEARS_IN_BUSINESS] → replace with actual years if provided
    - [CUSTOMER_NAME] → keep as "[CUSTOMER_NAME]" (placeholder for caller)
    - [YOUR_NAME] → keep as "[YOUR_NAME]" (placeholder for caller)
-   - Any other [BRACKETED_TEXT] → replace if matching client data, otherwise keep as is
+   - Any other [BRACKETED_TEXT] → replace ONLY if exact matching client data exists, otherwise keep bracket as is
 
-5. DO NOT add any new text, sentences, or explanations
-6. DO NOT change any existing wording
-7. DO NOT add sections, bullet points, or formatting that wasn't there
-8. DO NOT make the script "better" or "more detailed"
-9. DO NOT interpret what the script should say
-10. DO NOT create content even if it seems like something is missing
+FORBIDDEN ACTIONS - YOU MUST NEVER:
+- Add ANY new text, words, sentences, paragraphs, or explanations
+- Change ANY existing wording or phrasing
+- Add sections, bullet points, headings, or formatting not present in original
+- Make the script "better", "clearer", or "more detailed"
+- Interpret what the script should say
+- Create content to "fill in gaps"
+- Translate to any language other than English
+- Make assumptions about missing information
+- Add pleasantries, greetings, or closing statements not in original
+- Rephrase or reword anything
 
-WHAT YOU ARE ALLOWED TO DO:
-- Replace bracketed placeholders with exact client data
-- That's it. Nothing else.
-
-WHAT YOU ARE NOT ALLOWED TO DO:
-- Add new content
-- Change existing words
-- "Improve" the script
-- Fill in gaps
-- Make assumptions about what should be included
-- Adapt language for different services (unless [SERVICE] placeholder exists)
-
-If the template says "Hi is this [CUSTOMER_NAME]", your output is "Hi is this [CUSTOMER_NAME]" (keep the placeholder).
-If the template says "We specialize in [SERVICE_TYPE]", and service_type is "pergolas", your output is "We specialize in pergolas".
-
-Think of yourself as a find-and-replace tool, not a writer.`,
+YOU ARE A FIND-AND-REPLACE TOOL ONLY.
+If template says "Hi is this [CUSTOMER_NAME]" → output "Hi is this [CUSTOMER_NAME]"
+If template says "We do [SERVICE_TYPE]" and service is "pavers" → output "We do pavers"
+If template is 10 words → output is 10 words (minus/plus only replaced placeholder lengths)`,
             },
             {
               role: "user",
-              content: `Replace ONLY the bracketed placeholders in this script with the matching client data. Do not add or change anything else.
+              content: `CRITICAL: Replace ONLY bracketed placeholders with matching data. Do not add, remove, or change ANY other text.
 
-Client Data:
+Client Data Available:
 ${JSON.stringify(extractedInfo, null, 2)}
 
-Script Template:
+ORIGINAL SCRIPT TEMPLATE (copy this EXACTLY, only replacing [BRACKETS]):
 ${template_script}
 
-Return ONLY the script with placeholders replaced. No explanations, no commentary, no additions.`,
+OUTPUT INSTRUCTIONS:
+- Copy the script exactly as written above
+- Replace bracketed placeholders ONLY where matching data exists
+- Keep ALL formatting, line breaks, and structure identical
+- Output in ENGLISH ONLY
+- Return ONLY the customized script - no explanations, no commentary, no markdown
+- If you add even one word not in the original, you have failed`,
             },
           ],
         }),
@@ -369,6 +381,26 @@ Return ONLY the script with placeholders replaced. No explanations, no commentar
 
       const customizationData = await customizationResponse.json();
       scriptContent = customizationData.choices[0].message.content;
+      
+      // Validate the output
+      console.log("AI output length:", scriptContent.length);
+      console.log("First 200 chars of AI output:", scriptContent.substring(0, 200));
+      
+      // Check if AI added unexpected content (output should be similar length to input)
+      const lengthDifference = Math.abs(scriptContent.length - template_script.length);
+      const percentageChange = (lengthDifference / template_script.length) * 100;
+      
+      if (percentageChange > 50) {
+        console.warn(`WARNING: AI output changed length by ${percentageChange.toFixed(1)}%`);
+        console.warn("Template length:", template_script.length);
+        console.warn("Output length:", scriptContent.length);
+      }
+      
+      // Check for common hallucination patterns
+      if (scriptContent.includes('```') || scriptContent.includes('Here is') || scriptContent.includes('Here\'s')) {
+        console.error("CRITICAL: AI added explanatory text or markdown");
+        throw new Error("AI generated invalid output. Please try again.");
+      }
     } else {
       // Generate a fresh script
       const scriptResponse = await fetch("https://ai.gateway.lovable.dev/v1/chat/completions", {

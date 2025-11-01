@@ -56,6 +56,28 @@ export default function CreateScript() {
     loadClient();
     loadTemplates();
     loadServiceTypes();
+
+    // Set up real-time subscription for templates to ensure fresh data
+    const templatesSubscription = supabase
+      .channel('templates-changes')
+      .on(
+        'postgres_changes',
+        {
+          event: '*',
+          schema: 'public',
+          table: 'scripts',
+          filter: 'is_template=eq.true'
+        },
+        () => {
+          console.log('Templates changed, reloading...');
+          loadTemplates();
+        }
+      )
+      .subscribe();
+
+    return () => {
+      templatesSubscription.unsubscribe();
+    };
   }, [clientId]);
 
   const loadClient = async () => {
@@ -120,28 +142,46 @@ export default function CreateScript() {
       return;
     }
 
-    const selectedTemplate = templates.find(t => t.id === selectedTemplateId);
-    if (!selectedTemplate) {
-      toast.error("Invalid template selected");
-      return;
-    }
-
-    const selectedServiceType = serviceTypes.find(t => t.id === selectedServiceTypeId);
-    if (!selectedServiceType) {
-      toast.error("Invalid service type selected");
-      return;
-    }
-
     setLoading(true);
     try {
+      // Fetch the LATEST template data directly from database to ensure freshness
+      console.log("Fetching fresh template data for ID:", selectedTemplateId);
+      const { data: freshTemplate, error: templateError } = await supabase
+        .from("scripts")
+        .select("id, service_name, script_content, image_url")
+        .eq("id", selectedTemplateId)
+        .eq("is_template", true)
+        .single();
+
+      if (templateError || !freshTemplate) {
+        toast.error("Failed to load template. Please try again.");
+        console.error("Template fetch error:", templateError);
+        setLoading(false);
+        return;
+      }
+
+      const selectedServiceType = serviceTypes.find(t => t.id === selectedServiceTypeId);
+      if (!selectedServiceType) {
+        toast.error("Invalid service type selected");
+        setLoading(false);
+        return;
+      }
+
+      console.log("Using fresh template:", {
+        id: freshTemplate.id,
+        service_name: freshTemplate.service_name,
+        script_length: freshTemplate.script_content?.length || 0
+      });
+
       const { data, error } = await supabase.functions.invoke("extract-client-data", {
         body: {
           client_id: clientId,
           service_name: selectedServiceType.name,
           service_type_id: selectedServiceTypeId,
           use_template: true,
-          template_script: selectedTemplate.script_content,
-          template_image_url: selectedTemplate.image_url,
+          template_script: freshTemplate.script_content,
+          template_image_url: freshTemplate.image_url,
+          template_id: freshTemplate.id, // Send template ID for validation
           service_details: {
             project_min_price: projectMinPrice,
             project_min_size: projectMinSize,
