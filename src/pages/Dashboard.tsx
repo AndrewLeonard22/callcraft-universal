@@ -49,6 +49,14 @@ interface ScriptWithType {
   image_url?: string;
 }
 
+interface GeneratedImage {
+  id: string;
+  image_url: string;
+  features: string[];
+  feature_size: string;
+  created_at: string;
+}
+
 interface ClientWithScripts {
   id: string;
   name: string;
@@ -58,7 +66,9 @@ interface ClientWithScripts {
   business_name?: string;
   owners_name?: string;
   created_at: string;
+  organization_id?: string;
   scripts: ScriptWithType[];
+  generated_images: GeneratedImage[];
 }
 
 const getClientLogo = (serviceType: string, customLogoUrl?: string): string => {
@@ -163,6 +173,14 @@ export default function Dashboard() {
 
       if (serviceTypesError) throw serviceTypesError;
 
+      // Fetch generated images for all organizations
+      const { data: generatedImagesData, error: generatedImagesError } = await supabase
+        .from("generated_images")
+        .select("id, organization_id, image_url, features, feature_size, created_at")
+        .order("created_at", { ascending: false });
+
+      if (generatedImagesError) throw generatedImagesError;
+
       const serviceTypesMap = new Map(
         (serviceTypesData || []).map(st => [st.id, st])
       );
@@ -205,6 +223,16 @@ export default function Dashboard() {
               image_url: s.image_url,
             }));
 
+          const clientGeneratedImages: GeneratedImage[] = (generatedImagesData || [])
+            .filter(img => img.organization_id === client.organization_id)
+            .map(img => ({
+              id: img.id,
+              image_url: img.image_url,
+              features: img.features,
+              feature_size: img.feature_size,
+              created_at: img.created_at,
+            }));
+
           return {
             id: client.id,
             name: client.name,
@@ -214,7 +242,9 @@ export default function Dashboard() {
             business_name: businessNamesMap.get(client.id),
             owners_name: ownersNamesMap.get(client.id),
             created_at: client.created_at,
+            organization_id: client.organization_id,
             scripts: clientScripts,
+            generated_images: clientGeneratedImages,
           };
         });
 
@@ -560,55 +590,87 @@ export default function Dashboard() {
                     <span>{format(new Date(client.created_at), "MMM d, yyyy")}</span>
                   </div>
                   
-                  {client.scripts.length > 0 ? (
-                    <div>
-                      <div className="text-xs font-medium text-muted-foreground mb-3 uppercase tracking-wide">
-                        Scripts ({client.scripts.length})
+                  <div className="space-y-4">
+                    {client.scripts.length > 0 && (
+                      <div>
+                        <div className="text-xs font-medium text-muted-foreground mb-3 uppercase tracking-wide">
+                          Scripts ({client.scripts.length})
+                        </div>
+                        <div className="flex flex-wrap gap-2">
+                          {client.scripts.map((script: ScriptWithType) => (
+                            <Link key={script.id} to={`/script/${script.id}`}>
+                              <Button 
+                                variant="outline" 
+                                size="sm" 
+                                className="h-10 text-xs px-3 gap-2.5 hover:bg-primary/5 hover:border-primary/30 transition-colors shadow-sm group/script"
+                              >
+                                {script.image_url ? (
+                                  <div className="h-6 w-6 rounded-md overflow-hidden flex-shrink-0 bg-muted ring-1 ring-border/50 group-hover/script:ring-primary/30 transition-all">
+                                    <img 
+                                      src={script.image_url} 
+                                      alt=""
+                                      className="h-full w-full object-cover"
+                                    />
+                                  </div>
+                                ) : script.service_type?.icon_url ? (
+                                  <div className="h-6 w-6 rounded-md overflow-hidden flex-shrink-0 bg-muted/50 ring-1 ring-border/50 group-hover/script:ring-primary/30 transition-all p-0.5">
+                                    <img 
+                                      src={script.service_type.icon_url} 
+                                      alt=""
+                                      className="h-full w-full object-contain"
+                                    />
+                                  </div>
+                                ) : (
+                                  <FileText className="h-4 w-4 flex-shrink-0 text-muted-foreground" />
+                                )}
+                                <span className="truncate max-w-[100px] font-medium">{script.service_name}</span>
+                              </Button>
+                            </Link>
+                          ))}
+                        </div>
                       </div>
-                      <div className="flex flex-wrap gap-2">
-                        {client.scripts.map((script: ScriptWithType) => (
-                          <Link key={script.id} to={`/script/${script.id}`}>
-                            <Button 
-                              variant="outline" 
-                              size="sm" 
-                              className="h-10 text-xs px-3 gap-2.5 hover:bg-primary/5 hover:border-primary/30 transition-colors shadow-sm group/script"
+                    )}
+
+                    {client.generated_images && client.generated_images.length > 0 && (
+                      <div className={client.scripts.length > 0 ? "pt-4 border-t border-border/50" : ""}>
+                        <div className="text-xs font-medium text-muted-foreground mb-3 uppercase tracking-wide flex items-center gap-2">
+                          <Wand2 className="h-3.5 w-3.5" />
+                          Generated Designs ({client.generated_images.length})
+                        </div>
+                        <div className="grid grid-cols-3 gap-2">
+                          {client.generated_images.slice(0, 3).map((image) => (
+                            <div 
+                              key={image.id}
+                              className="aspect-square rounded-lg overflow-hidden bg-muted ring-1 ring-border/50 hover:ring-primary/30 transition-all cursor-pointer group/image"
                             >
-                              {script.image_url ? (
-                                <div className="h-6 w-6 rounded-md overflow-hidden flex-shrink-0 bg-muted ring-1 ring-border/50 group-hover/script:ring-primary/30 transition-all">
-                                  <img 
-                                    src={script.image_url} 
-                                    alt=""
-                                    className="h-full w-full object-cover"
-                                  />
-                                </div>
-                              ) : script.service_type?.icon_url ? (
-                                <div className="h-6 w-6 rounded-md overflow-hidden flex-shrink-0 bg-muted/50 ring-1 ring-border/50 group-hover/script:ring-primary/30 transition-all p-0.5">
-                                  <img 
-                                    src={script.service_type.icon_url} 
-                                    alt=""
-                                    className="h-full w-full object-contain"
-                                  />
-                                </div>
-                              ) : (
-                                <FileText className="h-4 w-4 flex-shrink-0 text-muted-foreground" />
-                              )}
-                              <span className="truncate max-w-[100px] font-medium">{script.service_name}</span>
-                            </Button>
-                          </Link>
-                        ))}
+                              <img 
+                                src={image.image_url} 
+                                alt="Generated design"
+                                className="h-full w-full object-cover group-hover/image:scale-105 transition-transform duration-300"
+                              />
+                            </div>
+                          ))}
+                        </div>
+                        {client.generated_images.length > 3 && (
+                          <p className="text-xs text-muted-foreground mt-2 text-center">
+                            +{client.generated_images.length - 3} more
+                          </p>
+                        )}
                       </div>
-                    </div>
-                  ) : (
-                    <div className="text-center py-4">
-                      <p className="text-sm text-muted-foreground">No scripts yet</p>
-                      <Link to={`/client/${client.id}`}>
-                        <Button variant="ghost" size="sm" className="mt-2 gap-2 text-xs">
-                          <Plus className="h-3 w-3" />
-                          View Details
-                        </Button>
-                      </Link>
-                    </div>
-                  )}
+                    )}
+
+                    {client.scripts.length === 0 && (!client.generated_images || client.generated_images.length === 0) && (
+                      <div className="text-center py-4">
+                        <p className="text-sm text-muted-foreground">No scripts or designs yet</p>
+                        <Link to={`/client/${client.id}`}>
+                          <Button variant="ghost" size="sm" className="mt-2 gap-2 text-xs">
+                            <Plus className="h-3 w-3" />
+                            View Details
+                          </Button>
+                        </Link>
+                      </div>
+                    )}
+                  </div>
                 </CardContent>
               </Card>
             ))}
