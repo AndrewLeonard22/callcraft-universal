@@ -1,6 +1,6 @@
 import { useEffect, useState } from "react";
 import { Link, useNavigate } from "react-router-dom";
-import { Plus, FileText, Calendar, Search, Settings, Trash2, Sparkles, LogOut, User as UserIcon, Users } from "lucide-react";
+import { Plus, FileText, Calendar, Search, Settings, Trash2, Sparkles, LogOut, User as UserIcon, Users, Wand2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
@@ -313,6 +313,12 @@ export default function Dashboard() {
             <div className="flex items-center gap-1 sm:gap-2 flex-shrink-0">
               {/* Desktop Navigation */}
               <div className="hidden lg:flex items-center gap-2">
+                <Link to="/image-generator">
+                  <Button variant="outline" size="default" className="gap-2 shadow-sm hover:shadow transition-shadow">
+                    <Wand2 className="h-4 w-4" />
+                    Image Generator
+                  </Button>
+                </Link>
                 <Link to="/team">
                   <Button variant="outline" size="default" className="gap-2 shadow-sm hover:shadow transition-shadow">
                     <Users className="h-4 w-4" />
@@ -341,6 +347,12 @@ export default function Dashboard() {
                   </Button>
                 </DropdownMenuTrigger>
                 <DropdownMenuContent align="end" className="w-48 bg-background">
+                  <DropdownMenuItem asChild>
+                    <Link to="/image-generator" className="flex items-center cursor-pointer">
+                      <Wand2 className="mr-2 h-4 w-4" />
+                      <span>Image Generator</span>
+                    </Link>
+                  </DropdownMenuItem>
                   <DropdownMenuItem asChild>
                     <Link to="/team" className="flex items-center cursor-pointer">
                       <Users className="mr-2 h-4 w-4" />
