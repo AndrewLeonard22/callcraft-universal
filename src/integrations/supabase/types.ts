@@ -116,6 +116,50 @@ export type Database = {
           },
         ]
       }
+      generated_images: {
+        Row: {
+          created_at: string
+          created_by: string
+          feature_options: Json | null
+          feature_size: string
+          features: string[]
+          id: string
+          image_url: string
+          organization_id: string
+          updated_at: string
+        }
+        Insert: {
+          created_at?: string
+          created_by: string
+          feature_options?: Json | null
+          feature_size?: string
+          features: string[]
+          id?: string
+          image_url: string
+          organization_id: string
+          updated_at?: string
+        }
+        Update: {
+          created_at?: string
+          created_by?: string
+          feature_options?: Json | null
+          feature_size?: string
+          features?: string[]
+          id?: string
+          image_url?: string
+          organization_id?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "generated_images_organization_id_fkey"
+            columns: ["organization_id"]
+            isOneToOne: false
+            referencedRelation: "organizations"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       objection_handling_templates: {
         Row: {
           content: string

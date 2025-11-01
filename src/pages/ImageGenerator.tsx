@@ -1,13 +1,14 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Checkbox } from "@/components/ui/checkbox";
 import { Label } from "@/components/ui/label";
 import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { toast } from "sonner";
 import { supabase } from "@/integrations/supabase/client";
-import { Loader2, Upload, Wand2, ChevronDown, ChevronRight, ArrowLeft } from "lucide-react";
+import { Loader2, Upload, Wand2, ChevronDown, ChevronRight, ArrowLeft, Save } from "lucide-react";
 
 interface FeatureOption {
   id: string;
@@ -101,6 +102,39 @@ export default function ImageGenerator() {
   const [featureSize, setFeatureSize] = useState<string>("medium");
   const [isGenerating, setIsGenerating] = useState(false);
   const [generatedImageUrl, setGeneratedImageUrl] = useState<string | null>(null);
+  const [organizations, setOrganizations] = useState<Array<{ id: string; name: string }>>([]);
+  const [selectedOrgId, setSelectedOrgId] = useState<string>("");
+  const [isSaving, setIsSaving] = useState(false);
+
+  useEffect(() => {
+    fetchOrganizations();
+  }, []);
+
+  const fetchOrganizations = async () => {
+    try {
+      const { data: { user } } = await supabase.auth.getUser();
+      if (!user) return;
+
+      const { data, error } = await supabase
+        .from('organization_members')
+        .select('organization_id, organizations(id, name)')
+        .eq('user_id', user.id);
+
+      if (error) throw error;
+
+      const orgs = data
+        .map(item => item.organizations)
+        .filter(Boolean) as Array<{ id: string; name: string }>;
+      
+      setOrganizations(orgs);
+      if (orgs.length > 0) {
+        setSelectedOrgId(orgs[0].id);
+      }
+    } catch (error: any) {
+      console.error("Error fetching organizations:", error);
+      toast.error("Failed to load companies");
+    }
+  };
 
   const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
@@ -197,6 +231,65 @@ export default function ImageGenerator() {
       toast.error(error.message || "Failed to generate image");
     } finally {
       setIsGenerating(false);
+    }
+  };
+
+  const handleSaveImage = async () => {
+    if (!generatedImageUrl) {
+      toast.error("No image to save");
+      return;
+    }
+
+    if (!selectedOrgId) {
+      toast.error("Please select a company");
+      return;
+    }
+
+    setIsSaving(true);
+    try {
+      const { data: { user } } = await supabase.auth.getUser();
+      if (!user) throw new Error("Not authenticated");
+
+      // Convert base64 to blob
+      const base64Response = await fetch(generatedImageUrl);
+      const blob = await base64Response.blob();
+      
+      // Upload to storage
+      const fileName = `${Date.now()}-${Math.random().toString(36).substring(7)}.png`;
+      const { data: uploadData, error: uploadError } = await supabase.storage
+        .from('generated-backyards')
+        .upload(fileName, blob, {
+          contentType: 'image/png',
+          cacheControl: '3600'
+        });
+
+      if (uploadError) throw uploadError;
+
+      // Get public URL
+      const { data: { publicUrl } } = supabase.storage
+        .from('generated-backyards')
+        .getPublicUrl(fileName);
+
+      // Save to database
+      const { error: dbError } = await supabase
+        .from('generated_images')
+        .insert({
+          organization_id: selectedOrgId,
+          image_url: publicUrl,
+          features: selectedFeatures,
+          feature_options: featureOptions,
+          feature_size: featureSize,
+          created_by: user.id
+        });
+
+      if (dbError) throw dbError;
+
+      toast.success("Image saved to company successfully!");
+    } catch (error: any) {
+      console.error("Save error:", error);
+      toast.error(error.message || "Failed to save image");
+    } finally {
+      setIsSaving(false);
     }
   };
 
@@ -384,15 +477,51 @@ export default function ImageGenerator() {
                 <CardTitle>Generated Design</CardTitle>
                 <CardDescription>Your AI-generated backyard design will appear here</CardDescription>
               </CardHeader>
-              <CardContent>
+              <CardContent className="space-y-4">
                 {generatedImageUrl ? (
-                  <div className="rounded-lg overflow-hidden shadow-lg">
-                    <img
-                      src={generatedImageUrl}
-                      alt="Generated design"
-                      className="w-full h-auto object-cover"
-                    />
-                  </div>
+                  <>
+                    <div className="rounded-lg overflow-hidden shadow-lg">
+                      <img
+                        src={generatedImageUrl}
+                        alt="Generated design"
+                        className="w-full h-auto object-cover"
+                      />
+                    </div>
+                    
+                    {/* Save to Company Section */}
+                    <div className="space-y-3 pt-4 border-t">
+                      <Label className="text-sm font-semibold">Save to Company</Label>
+                      <Select value={selectedOrgId} onValueChange={setSelectedOrgId}>
+                        <SelectTrigger className="w-full">
+                          <SelectValue placeholder="Select a company" />
+                        </SelectTrigger>
+                        <SelectContent>
+                          {organizations.map((org) => (
+                            <SelectItem key={org.id} value={org.id}>
+                              {org.name}
+                            </SelectItem>
+                          ))}
+                        </SelectContent>
+                      </Select>
+                      <Button
+                        onClick={handleSaveImage}
+                        disabled={!selectedOrgId || isSaving}
+                        className="w-full"
+                      >
+                        {isSaving ? (
+                          <>
+                            <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                            Saving...
+                          </>
+                        ) : (
+                          <>
+                            <Save className="mr-2 h-4 w-4" />
+                            Save to Company
+                          </>
+                        )}
+                      </Button>
+                    </div>
+                  </>
                 ) : (
                   <div className="flex items-center justify-center h-96 border-2 border-dashed border-border rounded-lg">
                     <div className="text-center text-muted-foreground">
