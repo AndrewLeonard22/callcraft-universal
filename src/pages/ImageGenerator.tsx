@@ -124,7 +124,7 @@ export default function ImageGenerator() {
 
       const orgs = data
         .map(item => item.organizations)
-        .filter(Boolean) as Array<{ id: string; name: string }>;
+        .filter((org): org is { id: string; name: string } => org !== null);
       
       setOrganizations(orgs);
       if (orgs.length > 0) {
@@ -251,17 +251,14 @@ export default function ImageGenerator() {
       if (!user) throw new Error("Not authenticated");
 
       // Convert base64 to blob
-      const base64Response = await fetch(generatedImageUrl);
-      const blob = await base64Response.blob();
+      const base64Data = generatedImageUrl.split(',')[1];
+      const blob = await fetch(`data:image/png;base64,${base64Data}`).then(res => res.blob());
       
       // Upload to storage
-      const fileName = `${Date.now()}-${Math.random().toString(36).substring(7)}.png`;
+      const fileName = `${selectedOrgId}/${Date.now()}.png`;
       const { data: uploadData, error: uploadError } = await supabase.storage
         .from('generated-backyards')
-        .upload(fileName, blob, {
-          contentType: 'image/png',
-          cacheControl: '3600'
-        });
+        .upload(fileName, blob);
 
       if (uploadError) throw uploadError;
 
@@ -490,36 +487,40 @@ export default function ImageGenerator() {
                     
                     {/* Save to Company Section */}
                     <div className="space-y-3 pt-4 border-t">
-                      <Label className="text-sm font-semibold">Save to Company</Label>
-                      <Select value={selectedOrgId} onValueChange={setSelectedOrgId}>
-                        <SelectTrigger className="w-full">
-                          <SelectValue placeholder="Select a company" />
-                        </SelectTrigger>
-                        <SelectContent>
-                          {organizations.map((org) => (
-                            <SelectItem key={org.id} value={org.id}>
-                              {org.name}
-                            </SelectItem>
-                          ))}
-                        </SelectContent>
-                      </Select>
-                      <Button
-                        onClick={handleSaveImage}
-                        disabled={!selectedOrgId || isSaving}
-                        className="w-full"
-                      >
-                        {isSaving ? (
-                          <>
-                            <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                            Saving...
-                          </>
-                        ) : (
-                          <>
-                            <Save className="mr-2 h-4 w-4" />
-                            Save to Company
-                          </>
-                        )}
-                      </Button>
+                      <Label htmlFor="company-select" className="text-sm font-semibold">
+                        Save to Company
+                      </Label>
+                      <div className="flex gap-2">
+                        <Select value={selectedOrgId} onValueChange={setSelectedOrgId}>
+                          <SelectTrigger id="company-select" className="flex-1">
+                            <SelectValue placeholder="Select a company" />
+                          </SelectTrigger>
+                          <SelectContent>
+                            {organizations.map((org) => (
+                              <SelectItem key={org.id} value={org.id}>
+                                {org.name}
+                              </SelectItem>
+                            ))}
+                          </SelectContent>
+                        </Select>
+                        <Button
+                          onClick={handleSaveImage}
+                          disabled={!selectedOrgId || isSaving}
+                          size="default"
+                        >
+                          {isSaving ? (
+                            <>
+                              <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                              Saving...
+                            </>
+                          ) : (
+                            <>
+                              <Save className="mr-2 h-4 w-4" />
+                              Save
+                            </>
+                          )}
+                        </Button>
+                      </div>
                     </div>
                   </>
                 ) : (
