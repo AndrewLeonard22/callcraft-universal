@@ -40,6 +40,14 @@ interface Client {
   logo_url?: string;
 }
 
+interface GeneratedImage {
+  id: string;
+  image_url: string;
+  features: string[];
+  feature_size: string;
+  created_at: string;
+}
+
 // Helper to get logo based on service type
 const getClientLogo = (serviceType: string, customLogoUrl?: string): string => {
   // If custom logo exists, use it
@@ -78,6 +86,7 @@ export default function ClientScripts() {
   const navigate = useNavigate();
   const [client, setClient] = useState<Client | null>(null);
   const [scripts, setScripts] = useState<Script[]>([]);
+  const [generatedImages, setGeneratedImages] = useState<GeneratedImage[]>([]);
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
@@ -170,6 +179,19 @@ export default function ClientScripts() {
         return { ...s, image_url: resolved };
       });
       setScripts(mapped);
+
+      // Load generated images for this client
+      const { data: imagesData, error: imagesError } = await supabase
+        .from("generated_images")
+        .select("id, image_url, features, feature_size, created_at")
+        .eq("client_id", clientId)
+        .order("created_at", { ascending: false });
+
+      if (imagesError) {
+        console.error("Error loading generated images:", imagesError);
+      } else {
+        setGeneratedImages(imagesData || []);
+      }
     } catch (error) {
       console.error("Error loading data:", error);
       toast.error("Failed to load client data");
@@ -261,6 +283,47 @@ export default function ClientScripts() {
           </div>
         </div>
 
+        {/* Generated Designs Section */}
+        {generatedImages.length > 0 && (
+          <div className="mb-8">
+            <h2 className="text-xl font-semibold mb-4">Generated Designs</h2>
+            <div className="grid gap-4 grid-cols-1 sm:grid-cols-2 lg:grid-cols-3">
+              {generatedImages.map((image) => (
+                <Card key={image.id} className="overflow-hidden">
+                  <div className="w-full h-40 bg-muted/20 overflow-hidden">
+                    <img 
+                      src={image.image_url} 
+                      alt="Generated design"
+                      className="w-full h-full object-cover"
+                    />
+                  </div>
+                  <CardContent className="pt-4">
+                    <div className="space-y-2">
+                      <div className="flex flex-wrap gap-1">
+                        {image.features.slice(0, 3).map((feature, idx) => (
+                          <span key={idx} className="text-xs px-2 py-1 rounded-full bg-primary/10 text-primary">
+                            {feature}
+                          </span>
+                        ))}
+                        {image.features.length > 3 && (
+                          <span className="text-xs px-2 py-1 rounded-full bg-muted text-muted-foreground">
+                            +{image.features.length - 3} more
+                          </span>
+                        )}
+                      </div>
+                      <p className="text-xs text-muted-foreground">
+                        {new Date(image.created_at).toLocaleDateString()}
+                      </p>
+                    </div>
+                  </CardContent>
+                </Card>
+              ))}
+            </div>
+          </div>
+        )}
+
+        {/* Scripts Section */}
+        <h2 className="text-xl font-semibold mb-4">Scripts</h2>
         {scripts.length === 0 ? (
           <Card>
             <CardContent className="flex flex-col items-center justify-center py-12">

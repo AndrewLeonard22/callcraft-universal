@@ -631,37 +631,10 @@ export default function Dashboard() {
                       </div>
                     )}
 
-                    {client.generated_images && client.generated_images.length > 0 && (
-                      <div className={client.scripts.length > 0 ? "pt-4 border-t border-border/50" : ""}>
-                        <div className="text-xs font-medium text-muted-foreground mb-3 uppercase tracking-wide flex items-center gap-2">
-                          <Wand2 className="h-3.5 w-3.5" />
-                          Generated Designs ({client.generated_images.length})
-                        </div>
-                        <div className="grid grid-cols-3 gap-2">
-                          {client.generated_images.slice(0, 3).map((image) => (
-                            <div 
-                              key={image.id}
-                              className="aspect-square rounded-lg overflow-hidden bg-muted ring-1 ring-border/50 hover:ring-primary/30 transition-all cursor-pointer group/image"
-                            >
-                              <img 
-                                src={image.image_url} 
-                                alt="Generated design"
-                                className="h-full w-full object-cover group-hover/image:scale-105 transition-transform duration-300"
-                              />
-                            </div>
-                          ))}
-                        </div>
-                        {client.generated_images.length > 3 && (
-                          <p className="text-xs text-muted-foreground mt-2 text-center">
-                            +{client.generated_images.length - 3} more
-                          </p>
-                        )}
-                      </div>
-                    )}
 
-                    {client.scripts.length === 0 && (!client.generated_images || client.generated_images.length === 0) && (
+                    {client.scripts.length === 0 && (
                       <div className="text-center py-4">
-                        <p className="text-sm text-muted-foreground">No scripts or designs yet</p>
+                        <p className="text-sm text-muted-foreground">No scripts yet</p>
                         <Link to={`/client/${client.id}`}>
                           <Button variant="ghost" size="sm" className="mt-2 gap-2 text-xs">
                             <Plus className="h-3 w-3" />
