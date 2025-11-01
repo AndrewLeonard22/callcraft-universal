@@ -283,45 +283,6 @@ export default function ClientScripts() {
           </div>
         </div>
 
-        {/* Generated Designs Section */}
-        {generatedImages.length > 0 && (
-          <div className="mb-8">
-            <h2 className="text-xl font-semibold mb-4">Generated Designs</h2>
-            <div className="grid gap-4 grid-cols-1 sm:grid-cols-2 lg:grid-cols-3">
-              {generatedImages.map((image) => (
-                <Card key={image.id} className="overflow-hidden">
-                  <div className="w-full h-40 bg-muted/20 overflow-hidden">
-                    <img 
-                      src={image.image_url} 
-                      alt="Generated design"
-                      className="w-full h-full object-cover"
-                    />
-                  </div>
-                  <CardContent className="pt-4">
-                    <div className="space-y-2">
-                      <div className="flex flex-wrap gap-1">
-                        {image.features.slice(0, 3).map((feature, idx) => (
-                          <span key={idx} className="text-xs px-2 py-1 rounded-full bg-primary/10 text-primary">
-                            {feature}
-                          </span>
-                        ))}
-                        {image.features.length > 3 && (
-                          <span className="text-xs px-2 py-1 rounded-full bg-muted text-muted-foreground">
-                            +{image.features.length - 3} more
-                          </span>
-                        )}
-                      </div>
-                      <p className="text-xs text-muted-foreground">
-                        {new Date(image.created_at).toLocaleDateString()}
-                      </p>
-                    </div>
-                  </CardContent>
-                </Card>
-              ))}
-            </div>
-          </div>
-        )}
-
         {/* Scripts Section */}
         <h2 className="text-xl font-semibold mb-4">Scripts</h2>
         {scripts.length === 0 ? (
@@ -407,6 +368,45 @@ export default function ClientScripts() {
                 </CardContent>
               </Card>
             ))}
+          </div>
+        )}
+
+        {/* Generated Designs Section */}
+        {generatedImages.length > 0 && (
+          <div className="mt-12">
+            <h2 className="text-xl font-semibold mb-4">Generated Designs</h2>
+            <div className="grid gap-4 grid-cols-1 sm:grid-cols-2 lg:grid-cols-3">
+              {generatedImages.map((image) => (
+                <Card key={image.id} className="overflow-hidden">
+                  <div className="w-full h-40 bg-muted/20 overflow-hidden">
+                    <img 
+                      src={image.image_url} 
+                      alt="Generated design"
+                      className="w-full h-full object-cover"
+                    />
+                  </div>
+                  <CardContent className="pt-4">
+                    <div className="space-y-2">
+                      <div className="flex flex-wrap gap-1">
+                        {image.features.slice(0, 3).map((feature, idx) => (
+                          <span key={idx} className="text-xs px-2 py-1 rounded-full bg-primary/10 text-primary">
+                            {feature}
+                          </span>
+                        ))}
+                        {image.features.length > 3 && (
+                          <span className="text-xs px-2 py-1 rounded-full bg-muted text-muted-foreground">
+                            +{image.features.length - 3} more
+                          </span>
+                        )}
+                      </div>
+                      <p className="text-xs text-muted-foreground">
+                        {new Date(image.created_at).toLocaleDateString()}
+                      </p>
+                    </div>
+                  </CardContent>
+                </Card>
+              ))}
+            </div>
           </div>
         )}
       </div>
