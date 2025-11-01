@@ -3,25 +3,99 @@ import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Checkbox } from "@/components/ui/checkbox";
 import { Label } from "@/components/ui/label";
+import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
 import { toast } from "sonner";
 import { supabase } from "@/integrations/supabase/client";
-import { Loader2, Upload, Wand2 } from "lucide-react";
+import { Loader2, Upload, Wand2, ChevronDown, ChevronRight } from "lucide-react";
 
-const FEATURES = [
-  { id: "pergola", label: "Pergola" },
-  { id: "pavers", label: "Pavers" },
-  { id: "outdoor-kitchen", label: "Outdoor Kitchen" },
-  { id: "fire-pit", label: "Fire Pit" },
-  { id: "pool", label: "Pool" },
-  { id: "deck", label: "Deck" },
-  { id: "landscaping", label: "Landscaping" },
-  { id: "lighting", label: "Outdoor Lighting" },
+interface FeatureOption {
+  id: string;
+  label: string;
+  options?: { id: string; label: string }[];
+}
+
+const FEATURES: FeatureOption[] = [
+  { 
+    id: "pergola", 
+    label: "Pergola",
+    options: [
+      { id: "wood", label: "Wood" },
+      { id: "aluminum", label: "Aluminum" },
+      { id: "vinyl", label: "Vinyl" },
+    ]
+  },
+  { 
+    id: "pavers", 
+    label: "Pavers",
+    options: [
+      { id: "concrete", label: "Concrete" },
+      { id: "brick", label: "Brick" },
+      { id: "natural-stone", label: "Natural Stone" },
+      { id: "travertine", label: "Travertine" },
+    ]
+  },
+  { 
+    id: "outdoor-kitchen", 
+    label: "Outdoor Kitchen",
+    options: [
+      { id: "basic", label: "Basic (Grill)" },
+      { id: "standard", label: "Standard (Grill + Counter)" },
+      { id: "premium", label: "Premium (Full Kitchen)" },
+    ]
+  },
+  { 
+    id: "fire-pit", 
+    label: "Fire Pit",
+    options: [
+      { id: "round", label: "Round" },
+      { id: "square", label: "Square" },
+      { id: "linear", label: "Linear" },
+    ]
+  },
+  { 
+    id: "pool", 
+    label: "Pool",
+    options: [
+      { id: "rectangular", label: "Rectangular" },
+      { id: "freeform", label: "Freeform" },
+      { id: "lap", label: "Lap Pool" },
+    ]
+  },
+  { 
+    id: "deck", 
+    label: "Deck",
+    options: [
+      { id: "wood", label: "Wood" },
+      { id: "composite", label: "Composite" },
+      { id: "pvc", label: "PVC" },
+    ]
+  },
+  { 
+    id: "landscaping", 
+    label: "Landscaping",
+    options: [
+      { id: "tropical", label: "Tropical" },
+      { id: "desert", label: "Desert/Xeriscaping" },
+      { id: "traditional", label: "Traditional" },
+    ]
+  },
+  { 
+    id: "lighting", 
+    label: "Outdoor Lighting",
+    options: [
+      { id: "path", label: "Path Lights" },
+      { id: "ambient", label: "Ambient/String Lights" },
+      { id: "accent", label: "Accent/Uplighting" },
+    ]
+  },
 ];
 
 export default function ImageGenerator() {
   const [selectedFile, setSelectedFile] = useState<File | null>(null);
   const [previewUrl, setPreviewUrl] = useState<string | null>(null);
   const [selectedFeatures, setSelectedFeatures] = useState<string[]>([]);
+  const [expandedFeatures, setExpandedFeatures] = useState<string[]>([]);
+  const [featureOptions, setFeatureOptions] = useState<Record<string, string>>({});
   const [isGenerating, setIsGenerating] = useState(false);
   const [generatedImageUrl, setGeneratedImageUrl] = useState<string | null>(null);
 
@@ -39,11 +113,38 @@ export default function ImageGenerator() {
   };
 
   const toggleFeature = (featureId: string) => {
-    setSelectedFeatures(prev =>
+    setSelectedFeatures(prev => {
+      const isSelected = prev.includes(featureId);
+      if (isSelected) {
+        // Remove feature and its option
+        const newOptions = { ...featureOptions };
+        delete newOptions[featureId];
+        setFeatureOptions(newOptions);
+        setExpandedFeatures(exp => exp.filter(id => id !== featureId));
+        return prev.filter(id => id !== featureId);
+      } else {
+        // Add feature and expand if it has options
+        const feature = FEATURES.find(f => f.id === featureId);
+        if (feature?.options && feature.options.length > 0) {
+          setExpandedFeatures(exp => [...exp, featureId]);
+          // Set default option
+          setFeatureOptions(opts => ({ ...opts, [featureId]: feature.options![0].id }));
+        }
+        return [...prev, featureId];
+      }
+    });
+  };
+
+  const toggleExpanded = (featureId: string) => {
+    setExpandedFeatures(prev =>
       prev.includes(featureId)
         ? prev.filter(id => id !== featureId)
         : [...prev, featureId]
     );
+  };
+
+  const setFeatureOption = (featureId: string, optionId: string) => {
+    setFeatureOptions(prev => ({ ...prev, [featureId]: optionId }));
   };
 
   const handleGenerate = async () => {
@@ -74,7 +175,8 @@ export default function ImageGenerator() {
       const { data, error } = await supabase.functions.invoke('generate-backyard-image', {
         body: {
           imageBase64,
-          features: selectedFeatures
+          features: selectedFeatures,
+          featureOptions
         }
       });
 
@@ -152,22 +254,65 @@ export default function ImageGenerator() {
                 <CardDescription>Choose what you'd like to add to your backyard</CardDescription>
               </CardHeader>
               <CardContent>
-                <div className="grid grid-cols-2 gap-4">
-                  {FEATURES.map((feature) => (
-                    <div key={feature.id} className="flex items-center space-x-2">
-                      <Checkbox
-                        id={feature.id}
-                        checked={selectedFeatures.includes(feature.id)}
-                        onCheckedChange={() => toggleFeature(feature.id)}
-                      />
-                      <Label
-                        htmlFor={feature.id}
-                        className="text-sm font-medium leading-none peer-disabled:cursor-not-allowed peer-disabled:opacity-70 cursor-pointer"
-                      >
-                        {feature.label}
-                      </Label>
-                    </div>
-                  ))}
+                <div className="space-y-3">
+                  {FEATURES.map((feature) => {
+                    const isSelected = selectedFeatures.includes(feature.id);
+                    const isExpanded = expandedFeatures.includes(feature.id);
+                    const hasOptions = feature.options && feature.options.length > 0;
+
+                    return (
+                      <div key={feature.id} className="space-y-2">
+                        <div className="flex items-center gap-2">
+                          <Checkbox
+                            id={feature.id}
+                            checked={isSelected}
+                            onCheckedChange={() => toggleFeature(feature.id)}
+                          />
+                          <Label
+                            htmlFor={feature.id}
+                            className="text-sm font-medium leading-none peer-disabled:cursor-not-allowed peer-disabled:opacity-70 cursor-pointer flex-1"
+                          >
+                            {feature.label}
+                          </Label>
+                          {hasOptions && isSelected && (
+                            <Button
+                              variant="ghost"
+                              size="sm"
+                              className="h-6 w-6 p-0"
+                              onClick={() => toggleExpanded(feature.id)}
+                            >
+                              {isExpanded ? (
+                                <ChevronDown className="h-4 w-4" />
+                              ) : (
+                                <ChevronRight className="h-4 w-4" />
+                              )}
+                            </Button>
+                          )}
+                        </div>
+
+                        {isSelected && hasOptions && isExpanded && (
+                          <div className="ml-7 pl-3 border-l-2 border-border">
+                            <RadioGroup
+                              value={featureOptions[feature.id]}
+                              onValueChange={(value) => setFeatureOption(feature.id, value)}
+                            >
+                              {feature.options!.map((option) => (
+                                <div key={option.id} className="flex items-center space-x-2 py-1">
+                                  <RadioGroupItem value={option.id} id={`${feature.id}-${option.id}`} />
+                                  <Label
+                                    htmlFor={`${feature.id}-${option.id}`}
+                                    className="text-sm cursor-pointer"
+                                  >
+                                    {option.label}
+                                  </Label>
+                                </div>
+                              ))}
+                            </RadioGroup>
+                          </div>
+                        )}
+                      </div>
+                    );
+                  })}
                 </div>
               </CardContent>
             </Card>

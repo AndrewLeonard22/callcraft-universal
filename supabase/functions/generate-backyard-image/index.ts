@@ -11,7 +11,7 @@ serve(async (req) => {
   }
 
   try {
-    const { imageBase64, features } = await req.json();
+    const { imageBase64, features, featureOptions = {} } = await req.json();
 
     if (!imageBase64) {
       return new Response(
@@ -32,19 +32,72 @@ serve(async (req) => {
       throw new Error('LOVABLE_API_KEY is not configured');
     }
 
-    // Create prompt based on selected features
+    // Create prompt based on selected features and their options
     const featureLabels = features.map((id: string) => {
-      const labels: Record<string, string> = {
+      const option = featureOptions[id];
+      
+      const labels: Record<string, Record<string, string>> = {
+        'pergola': {
+          'wood': 'a beautiful wooden pergola',
+          'aluminum': 'a modern aluminum pergola',
+          'vinyl': 'a white vinyl pergola'
+        },
+        'pavers': {
+          'concrete': 'elegant concrete pavers',
+          'brick': 'classic brick pavers',
+          'natural-stone': 'natural stone pavers',
+          'travertine': 'travertine pavers'
+        },
+        'outdoor-kitchen': {
+          'basic': 'a basic outdoor kitchen with grill',
+          'standard': 'an outdoor kitchen with grill and counter',
+          'premium': 'a premium full outdoor kitchen'
+        },
+        'fire-pit': {
+          'round': 'a round fire pit',
+          'square': 'a square fire pit',
+          'linear': 'a linear fire pit'
+        },
+        'pool': {
+          'rectangular': 'a rectangular swimming pool',
+          'freeform': 'a freeform swimming pool',
+          'lap': 'a lap pool'
+        },
+        'deck': {
+          'wood': 'a wooden deck',
+          'composite': 'a composite deck',
+          'pvc': 'a PVC deck'
+        },
+        'landscaping': {
+          'tropical': 'tropical landscaping',
+          'desert': 'desert xeriscaping',
+          'traditional': 'traditional landscaping'
+        },
+        'lighting': {
+          'path': 'path lighting',
+          'ambient': 'ambient string lights',
+          'accent': 'accent uplighting'
+        }
+      };
+      
+      // If there's a specific option selected, use it; otherwise use generic
+      if (option && labels[id] && labels[id][option]) {
+        return labels[id][option];
+      }
+      
+      // Fallback to generic labels
+      const genericLabels: Record<string, string> = {
         'pergola': 'a beautiful pergola',
-        'pavers': 'elegant paver stones',
+        'pavers': 'elegant pavers',
         'outdoor-kitchen': 'an outdoor kitchen',
         'fire-pit': 'a fire pit',
         'pool': 'a swimming pool',
-        'deck': 'a wooden deck',
+        'deck': 'a deck',
         'landscaping': 'professional landscaping',
         'lighting': 'outdoor lighting'
       };
-      return labels[id] || id;
+      
+      return genericLabels[id] || id;
     });
 
     const prompt = `Add ${featureLabels.join(', ')} to this backyard image. Keep the existing backyard structure and style, seamlessly integrate the new features in a realistic and professional way. Make it look like a high-quality architectural rendering.`;
