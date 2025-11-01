@@ -91,6 +91,26 @@ export default function TeamManagement() {
 
   useEffect(() => {
     loadData();
+
+    // Set up real-time subscriptions
+    const membersChannel = supabase
+      .channel('org-members-changes')
+      .on('postgres_changes', { event: '*', schema: 'public', table: 'organization_members' }, () => {
+        loadData();
+      })
+      .subscribe();
+
+    const invitationsChannel = supabase
+      .channel('team-invitations-changes')
+      .on('postgres_changes', { event: '*', schema: 'public', table: 'team_invitations' }, () => {
+        loadData();
+      })
+      .subscribe();
+
+    return () => {
+      supabase.removeChannel(membersChannel);
+      supabase.removeChannel(invitationsChannel);
+    };
   }, []);
 
   const loadData = async () => {

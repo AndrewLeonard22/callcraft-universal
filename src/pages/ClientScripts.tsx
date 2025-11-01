@@ -82,6 +82,32 @@ export default function ClientScripts() {
 
   useEffect(() => {
     loadData();
+
+    // Set up real-time subscriptions
+    const scriptsChannel = supabase
+      .channel('client-scripts-changes')
+      .on('postgres_changes', { event: '*', schema: 'public', table: 'scripts' }, (payload) => {
+        if (payload.new && (payload.new as any).client_id === clientId) {
+          loadData();
+        } else if (payload.old && (payload.old as any).client_id === clientId) {
+          loadData();
+        }
+      })
+      .subscribe();
+
+    const clientChannel = supabase
+      .channel('client-changes')
+      .on('postgres_changes', { event: 'UPDATE', schema: 'public', table: 'clients' }, (payload) => {
+        if ((payload.new as any).id === clientId) {
+          loadData();
+        }
+      })
+      .subscribe();
+
+    return () => {
+      supabase.removeChannel(scriptsChannel);
+      supabase.removeChannel(clientChannel);
+    };
   }, [clientId]);
 
   const loadData = async () => {

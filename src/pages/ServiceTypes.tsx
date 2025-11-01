@@ -39,6 +39,18 @@ export default function ServiceTypes() {
 
   useEffect(() => {
     loadServiceTypes();
+
+    // Set up real-time subscription
+    const serviceTypesChannel = supabase
+      .channel('service-types-changes')
+      .on('postgres_changes', { event: '*', schema: 'public', table: 'service_types' }, () => {
+        loadServiceTypes();
+      })
+      .subscribe();
+
+    return () => {
+      supabase.removeChannel(serviceTypesChannel);
+    };
   }, []);
 
   const loadServiceTypes = async () => {

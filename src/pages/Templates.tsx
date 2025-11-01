@@ -201,6 +201,42 @@ export default function Templates() {
     loadObjectionTemplates();
     loadFaqs();
     loadServiceTypes();
+
+    // Set up real-time subscriptions
+    const templatesChannel = supabase
+      .channel('templates-changes')
+      .on('postgres_changes', { event: '*', schema: 'public', table: 'scripts' }, () => {
+        loadTemplates();
+      })
+      .subscribe();
+
+    const objectionChannel = supabase
+      .channel('objection-changes')
+      .on('postgres_changes', { event: '*', schema: 'public', table: 'objection_handling_templates' }, () => {
+        loadObjectionTemplates();
+      })
+      .subscribe();
+
+    const faqsChannel = supabase
+      .channel('faqs-changes')
+      .on('postgres_changes', { event: '*', schema: 'public', table: 'faqs' }, () => {
+        loadFaqs();
+      })
+      .subscribe();
+
+    const serviceTypesChannel = supabase
+      .channel('service-types-tmpl-changes')
+      .on('postgres_changes', { event: '*', schema: 'public', table: 'service_types' }, () => {
+        loadServiceTypes();
+      })
+      .subscribe();
+
+    return () => {
+      supabase.removeChannel(templatesChannel);
+      supabase.removeChannel(objectionChannel);
+      supabase.removeChannel(faqsChannel);
+      supabase.removeChannel(serviceTypesChannel);
+    };
   }, []);
 
   const loadTemplates = async () => {

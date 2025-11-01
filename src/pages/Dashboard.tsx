@@ -109,6 +109,34 @@ export default function Dashboard() {
 
   useEffect(() => {
     loadClients();
+
+    // Set up real-time subscriptions
+    const clientsChannel = supabase
+      .channel('clients-changes')
+      .on('postgres_changes', { event: '*', schema: 'public', table: 'clients' }, () => {
+        loadClients();
+      })
+      .subscribe();
+
+    const scriptsChannel = supabase
+      .channel('scripts-changes')
+      .on('postgres_changes', { event: '*', schema: 'public', table: 'scripts' }, () => {
+        loadClients();
+      })
+      .subscribe();
+
+    const clientDetailsChannel = supabase
+      .channel('client-details-changes')
+      .on('postgres_changes', { event: '*', schema: 'public', table: 'client_details' }, () => {
+        loadClients();
+      })
+      .subscribe();
+
+    return () => {
+      supabase.removeChannel(clientsChannel);
+      supabase.removeChannel(scriptsChannel);
+      supabase.removeChannel(clientDetailsChannel);
+    };
   }, []);
 
   const loadClients = async () => {
