@@ -126,7 +126,7 @@ export type Database = {
           features: string[]
           id: string
           image_url: string
-          organization_id: string
+          organization_id: string | null
           updated_at: string
         }
         Insert: {
@@ -138,7 +138,7 @@ export type Database = {
           features: string[]
           id?: string
           image_url: string
-          organization_id: string
+          organization_id?: string | null
           updated_at?: string
         }
         Update: {
@@ -150,7 +150,7 @@ export type Database = {
           features?: string[]
           id?: string
           image_url?: string
-          organization_id?: string
+          organization_id?: string | null
           updated_at?: string
         }
         Relationships: [
