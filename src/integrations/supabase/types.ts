@@ -181,21 +181,32 @@ export type Database = {
           content: string
           created_at: string
           id: string
+          organization_id: string
           service_name: string
         }
         Insert: {
           content: string
           created_at?: string
           id?: string
+          organization_id: string
           service_name: string
         }
         Update: {
           content?: string
           created_at?: string
           id?: string
+          organization_id?: string
           service_name?: string
         }
-        Relationships: []
+        Relationships: [
+          {
+            foreignKeyName: "objection_handling_templates_organization_id_fkey"
+            columns: ["organization_id"]
+            isOneToOne: false
+            referencedRelation: "organizations"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       organization_members: {
         Row: {
