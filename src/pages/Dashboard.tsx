@@ -69,6 +69,8 @@ interface ClientWithScripts {
   owners_name?: string;
   created_at: string;
   organization_id?: string;
+  archived?: boolean;
+  last_accessed_at?: string;
   scripts: ScriptWithType[];
   generated_images: GeneratedImage[];
 }
@@ -96,6 +98,7 @@ export default function Dashboard() {
   const [clientToDelete, setClientToDelete] = useState<{ id: string; name: string } | null>(null);
   const [user, setUser] = useState<User | null>(null);
   const [profile, setProfile] = useState<{ display_name?: string; avatar_url?: string } | null>(null);
+  const [viewMode, setViewMode] = useState<'live' | 'archived'>('live');
   const { toast } = useToast();
 
   // Optimized: Use useCallback to prevent re-creating function on every render
@@ -136,7 +139,7 @@ export default function Dashboard() {
           .from("clients")
           .select("*")
           .neq("id", "00000000-0000-0000-0000-000000000001")
-          .order("created_at", { ascending: false }),
+          .order("last_accessed_at", { ascending: false, nullsFirst: false }),
         supabase
           .from("scripts")
           .select("id, service_name, created_at, client_id, service_type_id, image_url")
@@ -215,6 +218,8 @@ export default function Dashboard() {
             owners_name: ownersNamesMap.get(client.id),
             created_at: client.created_at,
             organization_id: client.organization_id,
+            archived: client.archived || false,
+            last_accessed_at: client.last_accessed_at,
             scripts: clientScripts,
             generated_images: clientGeneratedImages,
           };
@@ -298,17 +303,54 @@ export default function Dashboard() {
 
   // Optimized: Memoize filtered clients to prevent re-filtering on every render
   const filteredClients = useMemo(() => {
-    if (!debouncedSearch) return clients;
+    if (!debouncedSearch) {
+      // Filter by view mode (live vs archived)
+      return clients.filter(client => 
+        viewMode === 'live' ? !client.archived : client.archived
+      );
+    }
     
     const query = debouncedSearch.toLowerCase();
-    return clients.filter((client) =>
-      client.name.toLowerCase().includes(query) ||
-      (client.business_name && client.business_name.toLowerCase().includes(query)) ||
-      client.service_type.toLowerCase().includes(query) ||
-      (client.city && client.city.toLowerCase().includes(query)) ||
-      client.scripts.some(s => s.service_name.toLowerCase().includes(query))
-    );
-  }, [clients, debouncedSearch]);
+    return clients.filter((client) => {
+      const matchesSearch = 
+        client.name.toLowerCase().includes(query) ||
+        (client.business_name && client.business_name.toLowerCase().includes(query)) ||
+        client.service_type.toLowerCase().includes(query) ||
+        (client.city && client.city.toLowerCase().includes(query)) ||
+        client.scripts.some(s => s.service_name.toLowerCase().includes(query));
+      
+      const matchesViewMode = viewMode === 'live' ? !client.archived : client.archived;
+      
+      return matchesSearch && matchesViewMode;
+    });
+  }, [clients, debouncedSearch, viewMode]);
+
+  const handleArchiveToggle = useCallback(async (clientId: string, currentlyArchived: boolean) => {
+    try {
+      const { error } = await supabase
+        .from("clients")
+        .update({ archived: !currentlyArchived })
+        .eq("id", clientId);
+
+      if (error) throw error;
+
+      toast({
+        title: currentlyArchived ? "Company restored" : "Company archived",
+        description: currentlyArchived 
+          ? "Company moved to Live companies." 
+          : "Company moved to Archived.",
+      });
+
+      loadClients();
+    } catch (error) {
+      logger.error("Error archiving/unarchiving client:", error);
+      toast({
+        title: "Error",
+        description: "Failed to update company status. Please try again.",
+        variant: "destructive",
+      });
+    }
+  }, [toast, loadClients]);
 
   const handleLogout = useCallback(async () => {
     await supabase.auth.signOut();
@@ -457,6 +499,38 @@ export default function Dashboard() {
       </div>
 
       <div className="container mx-auto px-4 sm:px-6 py-6 sm:py-8 max-w-7xl">
+        {/* View Mode Tabs */}
+        {!loading && clients.length > 0 && (
+          <div className="mb-6">
+            <div className="flex items-center gap-2 p-1 bg-muted/50 rounded-lg w-fit">
+              <Button
+                variant={viewMode === 'live' ? 'default' : 'ghost'}
+                size="sm"
+                onClick={() => setViewMode('live')}
+                className="gap-2"
+              >
+                <Sparkles className="h-4 w-4" />
+                Live Companies
+                <span className="ml-1 px-2 py-0.5 bg-background/50 rounded-full text-xs font-medium">
+                  {clients.filter(c => !c.archived).length}
+                </span>
+              </Button>
+              <Button
+                variant={viewMode === 'archived' ? 'default' : 'ghost'}
+                size="sm"
+                onClick={() => setViewMode('archived')}
+                className="gap-2"
+              >
+                <FileText className="h-4 w-4" />
+                Archived
+                <span className="ml-1 px-2 py-0.5 bg-background/50 rounded-full text-xs font-medium">
+                  {clients.filter(c => c.archived).length}
+                </span>
+              </Button>
+            </div>
+          </div>
+        )}
+        
         {/* Search Bar */}
         {!loading && clients.length > 0 && (
           <div className="mb-6 sm:mb-8">
@@ -526,13 +600,26 @@ export default function Dashboard() {
               <div className="h-16 w-16 rounded-2xl bg-muted flex items-center justify-center mb-4">
                 <Search className="h-8 w-8 text-muted-foreground" />
               </div>
-              <h3 className="text-lg font-semibold mb-2">No results found</h3>
+              <h3 className="text-lg font-semibold mb-2">
+                {searchQuery ? "No results found" : `No ${viewMode} companies`}
+              </h3>
               <p className="text-sm text-muted-foreground mb-6 text-center max-w-sm">
-                Try adjusting your search terms
+                {searchQuery 
+                  ? "Try adjusting your search terms" 
+                  : viewMode === 'archived'
+                    ? "Archive companies to see them here"
+                    : "All your companies are currently archived"
+                }
               </p>
-              <Button variant="outline" onClick={() => setSearchQuery("")} className="shadow-sm">
-                Clear Search
-              </Button>
+              {searchQuery ? (
+                <Button variant="outline" onClick={() => setSearchQuery("")} className="shadow-sm">
+                  Clear Search
+                </Button>
+              ) : viewMode === 'live' && clients.some(c => c.archived) ? (
+                <Button variant="outline" onClick={() => setViewMode('archived')} className="shadow-sm">
+                  View Archived Companies
+                </Button>
+              ) : null}
             </CardContent>
           </Card>
         ) : (
@@ -578,17 +665,35 @@ export default function Dashboard() {
                       </CardDescription>
                     </div>
                     
-                    <Button
-                      variant="ghost"
-                      size="icon"
-                      className="h-8 w-8 opacity-0 group-hover:opacity-100 transition-opacity duration-200 hover:bg-destructive/10 hover:text-destructive"
-                      onClick={(e) => {
-                        e.preventDefault();
-                        openDeleteDialog(client.id, client.business_name || client.name);
-                      }}
-                    >
-                      <Trash2 className="h-4 w-4" />
-                    </Button>
+                    <div className="flex items-center gap-1">
+                      <Button
+                        variant="ghost"
+                        size="icon"
+                        className="h-8 w-8 opacity-0 group-hover:opacity-100 transition-opacity duration-200 hover:bg-primary/10 hover:text-primary"
+                        onClick={(e) => {
+                          e.preventDefault();
+                          handleArchiveToggle(client.id, client.archived || false);
+                        }}
+                        title={client.archived ? "Restore company" : "Archive company"}
+                      >
+                        {client.archived ? (
+                          <Sparkles className="h-4 w-4" />
+                        ) : (
+                          <FileText className="h-4 w-4" />
+                        )}
+                      </Button>
+                      <Button
+                        variant="ghost"
+                        size="icon"
+                        className="h-8 w-8 opacity-0 group-hover:opacity-100 transition-opacity duration-200 hover:bg-destructive/10 hover:text-destructive"
+                        onClick={(e) => {
+                          e.preventDefault();
+                          openDeleteDialog(client.id, client.business_name || client.name);
+                        }}
+                      >
+                        <Trash2 className="h-4 w-4" />
+                      </Button>
+                    </div>
                   </div>
                 </CardHeader>
                 

@@ -107,6 +107,13 @@ export default function ClientScripts() {
       if (clientError) throw clientError;
       if (scriptsError) throw scriptsError;
       
+      // Update last_accessed_at timestamp for tracking
+      supabase
+        .from("clients")
+        .update({ last_accessed_at: new Date().toISOString() })
+        .eq("id", clientId)
+        .then(); // Fire and forget - don't block UI
+      
       setClient({
         ...clientData,
         logo_url: logoData?.field_value || undefined

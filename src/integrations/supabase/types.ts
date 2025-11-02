@@ -48,27 +48,33 @@ export type Database = {
       }
       clients: {
         Row: {
+          archived: boolean
           city: string | null
           created_at: string | null
           id: string
+          last_accessed_at: string | null
           name: string
           organization_id: string
           service_type: string
           updated_at: string | null
         }
         Insert: {
+          archived?: boolean
           city?: string | null
           created_at?: string | null
           id?: string
+          last_accessed_at?: string | null
           name: string
           organization_id: string
           service_type: string
           updated_at?: string | null
         }
         Update: {
+          archived?: boolean
           city?: string | null
           created_at?: string | null
           id?: string
+          last_accessed_at?: string | null
           name?: string
           organization_id?: string
           service_type?: string
