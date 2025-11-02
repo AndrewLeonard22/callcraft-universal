@@ -11,7 +11,7 @@ serve(async (req) => {
   }
 
   try {
-    const { imageBase64, features, featureOptions = {}, featureSize = 'medium' } = await req.json();
+    const { imageBase64, features, featureOptions = {} } = await req.json();
 
     if (!imageBase64) {
       return new Response(
@@ -100,14 +100,6 @@ serve(async (req) => {
       return genericLabels[id] || id;
     });
 
-    // Detailed size descriptions for prompt
-    const sizeDescriptions: Record<string, string> = {
-      small: 'appropriately compact yet functional, maintaining proper proportions and realistic scale without overwhelming the space',
-      medium: 'well-proportioned with standard dimensions, balanced sizing that feels natural and realistic in the space',
-      large: 'generously sized and prominently featured, taking up significant space while maintaining architectural accuracy and realistic proportions'
-    };
-    const sizeDescription = sizeDescriptions[featureSize as keyof typeof sizeDescriptions] || sizeDescriptions.medium;
-
     const prompt = `CRITICAL: Create a photorealistic, architecturally accurate design. Add ${featureLabels.join('; ')} to this backyard image. 
 
 QUALITY REQUIREMENTS:
@@ -116,7 +108,7 @@ QUALITY REQUIREMENTS:
 - Professional construction details and proper materials
 - Accurate shadows, lighting, and reflections matching the original image
 - Seamless integration preserving the existing backyard structure
-- All features should be ${sizeDescription}
+- All features should be well-proportioned with standard dimensions, balanced sizing that feels natural and realistic in the space
 - Maintain consistent perspective and viewing angle
 - Include proper depth, texture, and material details
 - No distortions, artifacts, or unrealistic elements
