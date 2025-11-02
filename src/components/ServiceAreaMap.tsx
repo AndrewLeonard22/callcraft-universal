@@ -78,6 +78,7 @@ export default function ServiceAreaMap({ city, serviceArea, address, radiusMiles
   const [searchAddress, setSearchAddress] = useState("");
   const [centerCoordinates, setCenterCoordinates] = useState<[number, number] | null>(null);
   const [serviceRadius, setServiceRadius] = useState(30);
+  const [mapError, setMapError] = useState<string | null>(null);
   const searchMarkerRef = useRef<mapboxgl.Marker | null>(null);
 
   useEffect(() => {
@@ -116,8 +117,15 @@ export default function ServiceAreaMap({ city, serviceArea, address, radiusMiles
 
     mapboxgl.accessToken = mapboxToken;
 
-    // Filter out empty strings and use first valid location
-    const searchLocation = [address, city, serviceArea].find(loc => loc && loc.trim() !== '') || 'United States';
+    const handleResize = () => {
+      map.current?.resize();
+    };
+
+    // Filter out invalid location values and use first valid location
+    const candidates = [address, city, serviceArea].filter(
+      (loc): loc is string => !!loc && loc.trim() !== '' && !/^n\/?a$/i.test(loc.trim()) && loc.trim().toLowerCase() !== 'n/a' && loc.trim().toLowerCase() !== 'na' && loc.trim().toLowerCase() !== 'none'
+    );
+    const searchLocation = candidates[0] || 'United States';
     const radius = typeof radiusMiles === 'number' && !isNaN(radiusMiles) ? radiusMiles : extractRadius(serviceArea);
     setServiceRadius(radius);
     
@@ -138,6 +146,17 @@ export default function ServiceAreaMap({ city, serviceArea, address, radiusMiles
           style: 'mapbox://styles/mapbox/streets-v12',
           center: coordinates,
           zoom: zoom,
+        });
+
+        // Ensure map is visible and properly sized
+        map.current.on('load', () => {
+          handleResize();
+          setMapError(null);
+        });
+
+        map.current.on('error', (e) => {
+          console.error('Map error:', e.error);
+          setMapError(`Map failed to load: ${e.error?.message || 'Unknown error'}`);
         });
 
         map.current.addControl(new mapboxgl.NavigationControl(), 'top-right');
@@ -367,6 +386,27 @@ export default function ServiceAreaMap({ city, serviceArea, address, radiusMiles
         )}
         <div className="w-full h-[400px] rounded-lg bg-muted animate-pulse flex items-center justify-center">
           <p className="text-sm text-muted-foreground">Loading map...</p>
+        </div>
+      </div>
+    );
+  }
+
+  if (mapError) {
+    return (
+      <div className="space-y-3">
+        <div className="rounded-lg border border-red-200 bg-red-50 p-4">
+          <p className="text-sm text-red-800 mb-2">Map Error</p>
+          <p className="text-xs text-red-700">{mapError}</p>
+          <Button
+            size="sm"
+            className="mt-2"
+            onClick={() => window.location.reload()}
+          >
+            Refresh Page
+          </Button>
+        </div>
+        <div className="w-full h-[400px] rounded-lg bg-red-100 flex items-center justify-center">
+          <p className="text-sm text-red-700">Map failed to load</p>
         </div>
       </div>
     );
