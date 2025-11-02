@@ -1,7 +1,7 @@
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
-import React from 'npm:react@18.3.1';
-import { Resend } from 'npm:resend@4.0.1';
-import { renderAsync } from 'npm:@react-email/components@0.0.22';
+import React from 'https://esm.sh/react@18.3.1';
+import { Resend } from 'https://esm.sh/resend@4.0.1';
+import { renderAsync } from 'https://esm.sh/@react-email/render@0.0.15';
 import { DesignEstimateEmail } from './_templates/design-estimate.tsx';
 
 const resend = new Resend(Deno.env.get('RESEND_API_KEY') as string);
@@ -91,6 +91,27 @@ serve(async (req) => {
     );
   } catch (error: any) {
     console.error('Error in send-design-email function:', error);
+
+    // If Resend test-mode restriction, return 200 with guidance so UI doesn't hard fail
+    const msg: string = error?.message || '';
+    if (
+      error?.statusCode === 403 ||
+      (typeof msg === 'string' && msg.includes('You can only send testing emails'))
+    ) {
+      return new Response(
+        JSON.stringify({
+          success: false,
+          testOnly: true,
+          message:
+            'Resend test mode: you can only send to your own account email until a domain is verified.',
+        }),
+        {
+          status: 200,
+          headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+        }
+      );
+    }
+
     return new Response(
       JSON.stringify({ error: error.message || 'Failed to send email' }),
       {
