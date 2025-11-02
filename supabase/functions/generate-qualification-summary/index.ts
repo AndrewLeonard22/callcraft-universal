@@ -11,7 +11,7 @@ serve(async (req) => {
   }
 
   try {
-    const { responses } = await req.json();
+    const { responses, serviceName, clientName } = await req.json();
     
     if (!responses || responses.length === 0) {
       return new Response(
@@ -30,19 +30,22 @@ serve(async (req) => {
       .map((r: any) => `Q: ${r.question}\nA: ${r.customer_response || 'Not answered'}`)
       .join('\n\n');
 
-    const systemPrompt = `You are a professional sales assistant creating client qualification summaries. 
-Your task is to synthesize discovery call information into a clear, conversational summary that sounds natural and professional - not robotic or AI-generated.
+    const contextInfo = [];
+    if (serviceName) contextInfo.push(`Service: ${serviceName}`);
+    if (clientName) contextInfo.push(`Client: ${clientName}`);
+    const contextString = contextInfo.length > 0 ? contextInfo.join(' | ') : '';
 
-Format your response with:
-1. A brief 2-3 sentence overview paragraph that captures the essence of what the client wants
-2. Key points in bullet format covering:
-   - Specific service/product interests and details
-   - Client goals and desired outcomes
-   - Pain points or challenges they're facing
-   - Decision-making authority and timeline
-   - Budget considerations (if mentioned)
+    const systemPrompt = `You are a professional sales assistant summarizing client qualification responses${contextString ? ` for ${contextString}` : ''}.
 
-Keep the tone conversational and professional. Use natural language, avoid jargon, and make it easy for the sales team to quickly understand the client's situation.`;
+CRITICAL RULES:
+- ONLY use information explicitly stated in the customer's responses
+- DO NOT add assumptions, inferences, or information not directly provided
+- DO NOT suggest next steps or make recommendations
+- DO NOT embellish or interpret beyond what was said
+- Keep it factual and concise (2-4 sentences overview + bullet points for key facts)
+- Use a straightforward, professional tone
+
+Your summary must reflect EXACTLY what was discussed - nothing more, nothing less.`;
 
     console.log('Generating summary for responses:', responsesText);
 

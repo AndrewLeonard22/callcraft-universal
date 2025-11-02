@@ -371,7 +371,11 @@ export default function ScriptViewer() {
       }));
 
       const { data, error } = await supabase.functions.invoke('generate-qualification-summary', {
-        body: { responses }
+        body: { 
+          responses,
+          serviceName: (script as any)?.service_name || client?.service_type,
+          clientName: client?.name
+        }
       });
 
       if (error) throw error;
