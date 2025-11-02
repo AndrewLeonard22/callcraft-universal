@@ -146,17 +146,26 @@ export default function ServiceAreaMap({ city, serviceArea, address, radiusMiles
           style: 'mapbox://styles/mapbox/streets-v12',
           center: coordinates,
           zoom: zoom,
+          attributionControl: false,
         });
+
+        console.log('Map instance created, waiting for load event...');
 
         // Ensure map is visible and properly sized
         map.current.on('load', () => {
+          console.log('Map loaded successfully');
           handleResize();
           setMapError(null);
         });
 
         map.current.on('error', (e) => {
-          console.error('Map error:', e.error);
-          setMapError(`Map failed to load: ${e.error?.message || 'Unknown error'}`);
+          console.error('Mapbox error:', e);
+          setMapError(`Map error: ${e.error?.message || 'Failed to load map tiles'}`);
+          toast.error('Map failed to load. Please refresh the page.');
+        });
+
+        map.current.on('styledata', () => {
+          console.log('Map style loaded');
         });
 
         map.current.addControl(new mapboxgl.NavigationControl(), 'top-right');
@@ -244,19 +253,8 @@ export default function ServiceAreaMap({ city, serviceArea, address, radiusMiles
       })
       .catch(error => {
         console.error('Map initialization error:', error);
+        setMapError(`Initialization failed: ${error.message}`);
         toast.error('Failed to initialize map. Please refresh the page.');
-        // Initialize with default US center on error
-        const defaultCoords: [number, number] = [-98.5795, 39.8283];
-        setCenterCoordinates(defaultCoords);
-        
-        map.current = new mapboxgl.Map({
-          container: mapContainer.current!,
-          style: 'mapbox://styles/mapbox/streets-v12',
-          center: defaultCoords,
-          zoom: 4,
-        });
-
-        map.current.addControl(new mapboxgl.NavigationControl(), 'top-right');
       });
 
     return () => {
@@ -425,8 +423,16 @@ export default function ServiceAreaMap({ city, serviceArea, address, radiusMiles
           <Search className="h-4 w-4" />
         </Button>
       </div>
-      <div className="relative w-full h-[400px] rounded-lg overflow-hidden border border-border shadow-lg">
-        <div ref={mapContainer} className="absolute inset-0" />
+      <div className="relative w-full h-[400px] rounded-lg overflow-hidden border border-border shadow-lg bg-muted">
+        <div ref={mapContainer} className="absolute inset-0" style={{ minHeight: '400px' }} />
+        {!centerCoordinates && (
+          <div className="absolute inset-0 flex items-center justify-center bg-muted/50 backdrop-blur-sm">
+            <div className="text-center space-y-2">
+              <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary mx-auto"></div>
+              <p className="text-sm text-muted-foreground">Initializing map...</p>
+            </div>
+          </div>
+        )}
       </div>
     </div>
   );
