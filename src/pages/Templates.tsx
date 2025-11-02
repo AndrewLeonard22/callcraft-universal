@@ -195,8 +195,10 @@ export default function Templates() {
   const [faqAnswer, setFaqAnswer] = useState("");
   const [saving, setSaving] = useState(false);
   const [templateImageFile, setTemplateImageFile] = useState<File | null>(null);
+  const [userOrganizationId, setUserOrganizationId] = useState<string | null>(null);
 
   useEffect(() => {
+    loadUserOrganization();
     loadTemplates();
     loadObjectionTemplates();
     loadFaqs();
@@ -238,6 +240,24 @@ export default function Templates() {
       supabase.removeChannel(serviceTypesChannel);
     };
   }, []);
+
+  const loadUserOrganization = async () => {
+    try {
+      const { data: { user } } = await supabase.auth.getUser();
+      if (!user) return;
+
+      const { data, error } = await supabase
+        .from('organization_members')
+        .select('organization_id')
+        .eq('user_id', user.id)
+        .single();
+
+      if (error) throw error;
+      setUserOrganizationId(data?.organization_id || null);
+    } catch (error) {
+      console.error('Error loading user organization:', error);
+    }
+  };
 
   const loadTemplates = async () => {
     try {
@@ -412,6 +432,11 @@ export default function Templates() {
       return;
     }
 
+    if (!userOrganizationId) {
+      toast.error("Organization not found");
+      return;
+    }
+
     setSaving(true);
     try {
       if (editingObjection) {
@@ -431,6 +456,7 @@ export default function Templates() {
           .insert({
             service_name: objectionServiceName,
             content: objectionContent,
+            organization_id: userOrganizationId,
           });
 
         if (error) throw error;
@@ -680,8 +706,8 @@ export default function Templates() {
                         </div>
                         <div className="flex-1 min-w-0">
                           <CardTitle className="text-lg">{template.service_name}</CardTitle>
-                          <CardDescription className="mt-1">
-                            Universal template • {template.script_content.substring(0, 120)}...
+                          <CardDescription className="mt-1 line-clamp-2 text-sm leading-relaxed">
+                            {template.script_content.substring(0, 150)}...
                           </CardDescription>
                         </div>
                       </div>
