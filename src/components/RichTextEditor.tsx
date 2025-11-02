@@ -76,52 +76,17 @@ const FontSize = Extension.create({
 
 // Convert HTML to plain text with formatting markers for backward compatibility
 const htmlToMarkers = (html: string): string => {
-  let text = html;
-  
-  // Convert font sizes
-  text = text.replace(/<span[^>]*style="[^"]*font-size:\s*0\.875rem[^"]*"[^>]*>(.*?)<\/span>/gi, '{small:$1}');
-  text = text.replace(/<span[^>]*style="[^"]*font-size:\s*1\.25rem[^"]*"[^>]*>(.*?)<\/span>/gi, '{large:$1}');
-  
-  // Convert bold tags
-  text = text.replace(/<strong[^>]*>(.*?)<\/strong>/gi, '**$1**');
-  text = text.replace(/<b[^>]*>(.*?)<\/b>/gi, '**$1**');
-  
-  // Convert highlights
-  text = text.replace(/<mark[^>]*>(.*?)<\/mark>/gi, '[$1]');
-  
-  // Convert colors
-  text = text.replace(/<span[^>]*style="[^"]*color:\s*rgb\(220,\s*38,\s*38\)[^"]*"[^>]*>(.*?)<\/span>/gi, '{red:$1}');
-  text = text.replace(/<span[^>]*style="[^"]*color:\s*rgb\(37,\s*99,\s*235\)[^"]*"[^>]*>(.*?)<\/span>/gi, '{blue:$1}');
-  text = text.replace(/<span[^>]*style="[^"]*color:\s*rgb\(22,\s*163,\s*74\)[^"]*"[^>]*>(.*?)<\/span>/gi, '{green:$1}');
-  text = text.replace(/<span[^>]*style="[^"]*color:\s*rgb\(202,\s*138,\s*4\)[^"]*"[^>]*>(.*?)<\/span>/gi, '{yellow:$1}');
-  text = text.replace(/<span[^>]*style="[^"]*color:\s*rgb\(168,\s*85,\s*247\)[^"]*"[^>]*>(.*?)<\/span>/gi, '{purple:$1}');
-  text = text.replace(/<span[^>]*style="[^"]*color:\s*rgb\(249,\s*115,\s*22\)[^"]*"[^>]*>(.*?)<\/span>/gi, '{orange:$1}');
-  
-  // Convert quotes (italic)
-  text = text.replace(/<em[^>]*>(.*?)<\/em>/gi, '"$1"');
-  text = text.replace(/<i[^>]*>(.*?)<\/i>/gi, '"$1"');
-  
-  // Remove paragraphs and breaks
-  text = text.replace(/<\/p><p[^>]*>/gi, '\n');
-  text = text.replace(/<br\s*\/?>/gi, '\n');
-  text = text.replace(/<p[^>]*>/gi, '');
-  text = text.replace(/<\/p>/gi, '');
-  
-  // Remove any remaining HTML tags
-  text = text.replace(/<[^>]+>/g, '');
-  
-  // Decode HTML entities
-  text = text.replace(/&nbsp;/g, ' ');
-  text = text.replace(/&amp;/g, '&');
-  text = text.replace(/&lt;/g, '<');
-  text = text.replace(/&gt;/g, '>');
-  text = text.replace(/&quot;/g, '"');
-  
-  return text;
+  // No longer needed - we store HTML directly
+  return html;
 };
 
-// Convert plain text with markers to HTML for editor
+// Convert plain text with markers to HTML for editor (backward compatibility)
 const markersToHtml = (text: string): string => {
+  // If it already looks like HTML, return as is
+  if (text.includes('<p>') || text.includes('<span') || text.includes('<strong>') || text.includes('<mark>')) {
+    return text;
+  }
+  
   let html = text;
   
   // Convert font sizes
@@ -135,7 +100,7 @@ const markersToHtml = (text: string): string => {
   // Convert highlights
   html = html.replace(/\[([^\]]+)\]/g, '<mark>$1</mark>');
   
-  // Convert quotes
+  // Convert quotes (italic)
   html = html.replace(/"([^"]+)"/g, '<em>$1</em>');
   
   // Convert colors
@@ -180,8 +145,8 @@ export function RichTextEditor({
     content: markersToHtml(value),
     onUpdate: ({ editor }) => {
       const html = editor.getHTML();
-      const plainText = htmlToMarkers(html);
-      onChange(plainText);
+      // Store HTML directly instead of converting to markers
+      onChange(html);
     },
     editorProps: {
       attributes: {
@@ -193,7 +158,7 @@ export function RichTextEditor({
 
   // Update editor content when value changes externally
   useEffect(() => {
-    if (editor && value !== htmlToMarkers(editor.getHTML())) {
+    if (editor && value !== editor.getHTML()) {
       const html = markersToHtml(value);
       editor.commands.setContent(html);
     }

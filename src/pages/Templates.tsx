@@ -24,6 +24,17 @@ import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
 
 const FormattedContent = ({ content }: { content: string }) => {
+  // If content contains HTML tags, render it as HTML
+  if (content.includes('<p>') || content.includes('<span') || content.includes('<strong>') || content.includes('<mark>')) {
+    return (
+      <div 
+        className="html-content text-sm text-foreground/80"
+        dangerouslySetInnerHTML={{ __html: content }}
+      />
+    );
+  }
+  
+  // Otherwise, use the marker-based formatting (backward compatibility)
   const lines = content.split('\n');
   
   const formatLine = (text: string) => {

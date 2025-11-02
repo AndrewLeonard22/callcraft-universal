@@ -166,4 +166,42 @@ All colors MUST be HSL.
     pointer-events: none;
     height: 0;
   }
+  
+  /* HTML Content Styles for Script Viewer */
+  .html-content {
+    line-height: 1.7;
+  }
+  
+  .html-content p {
+    margin: 0.75rem 0;
+  }
+  
+  .html-content p:first-child {
+    margin-top: 0;
+  }
+  
+  .html-content p:last-child {
+    margin-bottom: 0;
+  }
+  
+  .html-content strong {
+    font-weight: 700;
+  }
+  
+  .html-content em {
+    font-style: italic;
+  }
+  
+  .html-content mark {
+    background-color: hsl(48 96% 89%);
+    color: hsl(48 96% 20%);
+    padding: 0.25rem 0.5rem;
+    border-radius: 0.25rem;
+    font-weight: 500;
+  }
+  
+  .dark .html-content mark {
+    background-color: hsl(48 96% 25%);
+    color: hsl(48 96% 95%);
+  }
 }
