@@ -69,7 +69,7 @@ serve(async (req) => {
 
     // Send the email
     const { data, error } = await resend.emails.send({
-      from: `${companyName || 'Design Team'} <onboarding@resend.dev>`,
+      from: `${companyName || 'Design Team'} <andrew@socialworkspro.com>`,
       to: [clientEmail],
       subject: `Your Custom Backyard Design & Estimate from ${companyName || 'Us'}`,
       html,
@@ -77,6 +77,12 @@ serve(async (req) => {
 
     if (error) {
       console.error('Resend error:', error);
+      
+      // Provide helpful error message for domain verification
+      if (error.message && error.message.includes('verify a domain')) {
+        throw new Error('Please verify your domain at resend.com/domains and update the sender email address to use your verified domain.');
+      }
+      
       throw error;
     }
 
