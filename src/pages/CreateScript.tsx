@@ -180,7 +180,7 @@ export default function CreateScript() {
           service_type_id: selectedServiceTypeId,
           use_template: true,
           template_script: freshTemplate.script_content,
-          template_image_url: freshTemplate.image_url,
+          service_type_icon_url: selectedServiceType.icon_url,
           template_id: freshTemplate.id, // Send template ID for validation
           service_details: {
             project_min_price: projectMinPrice,
