@@ -727,20 +727,20 @@ export default function Dashboard() {
                                 className="h-10 text-xs px-3 gap-2.5 hover:bg-primary/5 hover:border-primary/30 transition-colors shadow-sm group/script"
                                 onClick={(e) => e.stopPropagation()}
                               >
-                                {script.image_url ? (
-                                  <div className="h-6 w-6 rounded-md overflow-hidden flex-shrink-0 bg-muted ring-1 ring-border/50 group-hover/script:ring-primary/30 transition-all">
-                                    <img 
-                                      src={script.image_url} 
-                                      alt=""
-                                      className="h-full w-full object-cover"
-                                    />
-                                  </div>
-                                ) : script.service_type?.icon_url ? (
+                                {script.service_type?.icon_url ? (
                                   <div className="h-6 w-6 rounded-md overflow-hidden flex-shrink-0 bg-muted/50 ring-1 ring-border/50 group-hover/script:ring-primary/30 transition-all p-0.5">
                                     <img 
                                       src={script.service_type.icon_url} 
                                       alt=""
                                       className="h-full w-full object-contain"
+                                    />
+                                  </div>
+                                ) : script.image_url ? (
+                                  <div className="h-6 w-6 rounded-md overflow-hidden flex-shrink-0 bg-muted ring-1 ring-border/50 group-hover/script:ring-primary/30 transition-all">
+                                    <img 
+                                      src={script.image_url} 
+                                      alt=""
+                                      className="h-full w-full object-cover"
                                     />
                                   </div>
                                 ) : (
