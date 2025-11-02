@@ -76,7 +76,7 @@ export default function CreateScript() {
       .subscribe();
 
     return () => {
-      templatesSubscription.unsubscribe();
+      supabase.removeChannel(templatesSubscription);
     };
   }, [clientId]);
 

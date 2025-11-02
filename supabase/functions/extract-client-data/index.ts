@@ -512,19 +512,25 @@ Make it natural, conversational, and specific to their business. Include specifi
 
           const existingFieldNames = new Set(existingDetails?.map(d => d.field_name) || []);
 
-          // Update existing fields or insert new ones
-          for (const detail of detailsToUpsert) {
-            if (existingFieldNames.has(detail.field_name)) {
-              await supabase
-                .from("client_details")
-                .update({ field_value: detail.field_value })
-                .eq("client_id", client_id)
-                .eq("field_name", detail.field_name);
-            } else {
-              await supabase
-                .from("client_details")
-                .insert(detail);
-            }
+          // Batch update and insert operations
+          const toUpdate = detailsToUpsert.filter(d => existingFieldNames.has(d.field_name));
+          const toInsert = detailsToUpsert.filter(d => !existingFieldNames.has(d.field_name));
+
+          if (toUpdate.length > 0) {
+            // Update in parallel
+            await Promise.all(
+              toUpdate.map(detail =>
+                supabase
+                  .from("client_details")
+                  .update({ field_value: detail.field_value })
+                  .eq("client_id", client_id)
+                  .eq("field_name", detail.field_name)
+              )
+            );
+          }
+
+          if (toInsert.length > 0) {
+            await supabase.from("client_details").insert(toInsert);
           }
         }
         
@@ -546,19 +552,25 @@ Make it natural, conversational, and specific to their business. Include specifi
 
           const existingAdditionalNames = new Set(existingAdditional?.map(d => d.field_name) || []);
 
-          // Update existing or insert new
-          for (const detail of additionalDetails) {
-            if (existingAdditionalNames.has(detail.field_name)) {
-              await supabase
-                .from("client_details")
-                .update({ field_value: detail.field_value })
-                .eq("client_id", client_id)
-                .eq("field_name", detail.field_name);
-            } else {
-              await supabase
-                .from("client_details")
-                .insert(detail);
-            }
+          // Batch update and insert operations
+          const toUpdate = additionalDetails.filter(d => existingAdditionalNames.has(d.field_name));
+          const toInsert = additionalDetails.filter(d => !existingAdditionalNames.has(d.field_name));
+
+          if (toUpdate.length > 0) {
+            // Update in parallel
+            await Promise.all(
+              toUpdate.map(detail =>
+                supabase
+                  .from("client_details")
+                  .update({ field_value: detail.field_value })
+                  .eq("client_id", client_id)
+                  .eq("field_name", detail.field_name)
+              )
+            );
+          }
+
+          if (toInsert.length > 0) {
+            await supabase.from("client_details").insert(toInsert);
           }
         }
       }

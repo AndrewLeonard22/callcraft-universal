@@ -1,6 +1,6 @@
 import { useEffect, useState, useMemo, useCallback } from "react";
 import { Link, useNavigate } from "react-router-dom";
-import { Plus, FileText, Calendar, Search, Settings, Trash2, Sparkles, LogOut, User as UserIcon, Users, Wand2 } from "lucide-react";
+import { Plus, FileText, Calendar, Search, Settings, Trash2, LogOut, User as UserIcon, Users, Wand2, Archive, ArchiveRestore } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
@@ -185,45 +185,52 @@ export default function Dashboard() {
         }
       });
 
-      const clientsWithScripts: ClientWithScripts[] = (clientsData || [])
-        .map((client) => {
-          const clientScripts: ScriptWithType[] = (scriptsData || [])
-            .filter(s => s.client_id === client.id)
-            .map(s => ({
-              id: s.id,
-              service_name: s.service_name,
-              created_at: s.created_at,
-              service_type_id: s.service_type_id,
-              service_type: s.service_type_id ? serviceTypesMap.get(s.service_type_id) : undefined,
-              image_url: s.image_url,
-            }));
-
-          const clientGeneratedImages: GeneratedImage[] = (generatedImagesData || [])
-            .filter(img => img.client_id === client.id)
-            .map(img => ({
-              id: img.id,
-              image_url: img.image_url,
-              features: img.features,
-              feature_size: img.feature_size,
-              created_at: img.created_at,
-            }));
-
-          return {
-            id: client.id,
-            name: client.name,
-            service_type: client.service_type,
-            city: client.city,
-            logo_url: logosMap.get(client.id),
-            business_name: businessNamesMap.get(client.id),
-            owners_name: ownersNamesMap.get(client.id),
-            created_at: client.created_at,
-            organization_id: client.organization_id,
-            archived: client.archived || false,
-            last_accessed_at: client.last_accessed_at,
-            scripts: clientScripts,
-            generated_images: clientGeneratedImages,
-          };
+      // Group scripts and images by client_id for O(1) lookup instead of filtering
+      const scriptsByClient = new Map<string, ScriptWithType[]>();
+      (scriptsData || []).forEach(s => {
+        if (!scriptsByClient.has(s.client_id)) {
+          scriptsByClient.set(s.client_id, []);
+        }
+        scriptsByClient.get(s.client_id)!.push({
+          id: s.id,
+          service_name: s.service_name,
+          created_at: s.created_at,
+          service_type_id: s.service_type_id,
+          service_type: s.service_type_id ? serviceTypesMap.get(s.service_type_id) : undefined,
+          image_url: s.image_url,
         });
+      });
+
+      const imagesByClient = new Map<string, GeneratedImage[]>();
+      (generatedImagesData || []).forEach(img => {
+        if (!imagesByClient.has(img.client_id!)) {
+          imagesByClient.set(img.client_id!, []);
+        }
+        imagesByClient.get(img.client_id!)!.push({
+          id: img.id,
+          image_url: img.image_url,
+          features: img.features,
+          feature_size: img.feature_size,
+          created_at: img.created_at,
+        });
+      });
+
+      const clientsWithScripts: ClientWithScripts[] = (clientsData || [])
+        .map((client) => ({
+          id: client.id,
+          name: client.name,
+          service_type: client.service_type,
+          city: client.city,
+          logo_url: logosMap.get(client.id),
+          business_name: businessNamesMap.get(client.id),
+          owners_name: ownersNamesMap.get(client.id),
+          created_at: client.created_at,
+          organization_id: client.organization_id,
+          archived: client.archived || false,
+          last_accessed_at: client.last_accessed_at,
+          scripts: scriptsByClient.get(client.id) || [],
+          generated_images: imagesByClient.get(client.id) || [],
+        }));
 
       setClients(clientsWithScripts);
     } catch (error) {
@@ -509,7 +516,6 @@ export default function Dashboard() {
                 onClick={() => setViewMode('live')}
                 className="gap-2"
               >
-                <Sparkles className="h-4 w-4" />
                 Live Companies
                 <span className="ml-1 px-2 py-0.5 bg-background/50 rounded-full text-xs font-medium">
                   {clients.filter(c => !c.archived).length}
@@ -679,9 +685,9 @@ export default function Dashboard() {
                         title={client.archived ? "Restore company" : "Archive company"}
                       >
                         {client.archived ? (
-                          <Sparkles className="h-4 w-4" />
+                          <ArchiveRestore className="h-4 w-4" />
                         ) : (
-                          <FileText className="h-4 w-4" />
+                          <Archive className="h-4 w-4" />
                         )}
                       </Button>
                       <Button

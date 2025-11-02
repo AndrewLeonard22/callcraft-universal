@@ -89,37 +89,24 @@ export default function EditClient() {
       setServiceType(clientResult.data.service_type);
       setCity(clientResult.data.city || "");
       if (detailsResult.data) {
-        detailsResult.data.forEach((detail) => {
-          if (detail.field_name === "logo_url") {
-            setLogoUrl(detail.field_value || "");
-          } else if (detail.field_name === "business_name") {
-            setBusinessName(detail.field_value || "");
-          } else if (detail.field_name === "owners_name") {
-            setOwnersName(detail.field_value || "");
-          } else if (detail.field_name === "sales_rep_name") {
-            setSalesRepName(detail.field_value || "");
-          } else if (detail.field_name === "sales_rep_phone") {
-            setSalesRepPhone(detail.field_value || "");
-          } else if (detail.field_name === "address") {
-            setAddress(detail.field_value || "");
-          } else if (detail.field_name === "other_key_info") {
-            setOtherKeyInfo(detail.field_value || "");
-          } else if (detail.field_name === "website") {
-            setWebsite(detail.field_value || "");
-          } else if (detail.field_name === "facebook_page") {
-            setFacebookPage(detail.field_value || "");
-          } else if (detail.field_name === "instagram") {
-            setInstagram(detail.field_value || "");
-          } else if (detail.field_name === "crm_account_link") {
-            setCrmAccountLink(detail.field_value || "");
-          } else if (detail.field_name === "appointment_calendar") {
-            setAppointmentCalendar(detail.field_value || "");
-          } else if (detail.field_name === "reschedule_calendar") {
-            setRescheduleCalendar(detail.field_value || "");
-          } else if (detail.field_name === "service_radius_miles") {
-            setServiceRadiusMiles(detail.field_value || "");
-          }
-        });
+        const detailsMap = new Map(
+          detailsResult.data.map(d => [d.field_name, d.field_value || ""])
+        );
+        
+        setBusinessName(detailsMap.get("business_name") || "");
+        setOwnersName(detailsMap.get("owners_name") || "");
+        setSalesRepName(detailsMap.get("sales_rep_name") || "");
+        setSalesRepPhone(detailsMap.get("sales_rep_phone") || "");
+        setAddress(detailsMap.get("address") || "");
+        setOtherKeyInfo(detailsMap.get("other_key_info") || "");
+        setWebsite(detailsMap.get("website") || "");
+        setFacebookPage(detailsMap.get("facebook_page") || "");
+        setInstagram(detailsMap.get("instagram") || "");
+        setCrmAccountLink(detailsMap.get("crm_account_link") || "");
+        setAppointmentCalendar(detailsMap.get("appointment_calendar") || "");
+        setRescheduleCalendar(detailsMap.get("reschedule_calendar") || "");
+        setServiceRadiusMiles(detailsMap.get("service_radius_miles") || "");
+        setLogoUrl(detailsMap.get("logo_url") || "");
       }
     } catch (error) {
       console.error("Error loading client data:", error);
