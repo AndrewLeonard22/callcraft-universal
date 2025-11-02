@@ -105,6 +105,32 @@ serve(async (req) => {
 
     const supabase = createClient(SUPABASE_URL, SUPABASE_SERVICE_ROLE_KEY);
 
+    // Get the authenticated user's organization
+    const authHeader = req.headers.get('Authorization');
+    if (!authHeader) {
+      throw new Error('No authorization header');
+    }
+
+    const token = authHeader.replace('Bearer ', '');
+    const { data: { user }, error: userError } = await supabase.auth.getUser(token);
+    
+    if (userError || !user) {
+      throw new Error('Unauthorized');
+    }
+
+    // Get user's organization
+    const { data: orgMember, error: orgError } = await supabase
+      .from('organization_members')
+      .select('organization_id')
+      .eq('user_id', user.id)
+      .single();
+
+    if (orgError || !orgMember) {
+      throw new Error('User is not part of an organization');
+    }
+
+    const userOrganizationId = orgMember.organization_id;
+
     // If creating a new client without script, skip AI extraction
     if (!client_id && business_info && !use_template) {
       console.log("Creating new client without script...");
@@ -116,6 +142,7 @@ serve(async (req) => {
           name: business_info.business_name || "New Client",
           service_type: "",
           city: "",
+          organization_id: userOrganizationId,
         })
         .select()
         .single();
@@ -543,6 +570,7 @@ Make it natural, conversational, and specific to their business. Include specifi
           name: extractedInfo.company_name,
           service_type: extractedInfo.service_type,
           city: extractedInfo.city,
+          organization_id: userOrganizationId,
         })
         .select()
         .single();
@@ -642,6 +670,7 @@ Make it natural, conversational, and specific to their business. Include specifi
           is_template: false,
           service_type_id: service_type_id || null,
           image_url: template_image_url || null,
+          organization_id: userOrganizationId,
         })
         .select()
         .single();
