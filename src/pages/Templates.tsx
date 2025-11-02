@@ -706,9 +706,24 @@ export default function Templates() {
                         </div>
                         <div className="flex-1 min-w-0">
                           <CardTitle className="text-lg">{template.service_name}</CardTitle>
-                          <CardDescription className="mt-1 line-clamp-2 text-sm leading-relaxed">
-                            {template.script_content.substring(0, 150)}...
-                          </CardDescription>
+                          <CardDescription 
+                            className="mt-1 line-clamp-2 text-sm leading-relaxed"
+                            dangerouslySetInnerHTML={{
+                              __html: template.script_content
+                                .substring(0, 200)
+                                .replace(/\*\*([^*]+)\*\*/g, '<strong>$1</strong>')
+                                .replace(/\[([^\]]+)\]/g, '<mark class="bg-yellow-200 px-1">$1</mark>')
+                                .replace(/\{red:([^}]+)\}/g, '<span style="color: rgb(220, 38, 38)">$1</span>')
+                                .replace(/\{blue:([^}]+)\}/g, '<span style="color: rgb(37, 99, 235)">$1</span>')
+                                .replace(/\{green:([^}]+)\}/g, '<span style="color: rgb(22, 163, 74)">$1</span>')
+                                .replace(/\{yellow:([^}]+)\}/g, '<span style="color: rgb(202, 138, 4)">$1</span>')
+                                .replace(/\{purple:([^}]+)\}/g, '<span style="color: rgb(168, 85, 247)">$1</span>')
+                                .replace(/\{orange:([^}]+)\}/g, '<span style="color: rgb(249, 115, 22)">$1</span>')
+                                .replace(/\{small:([^}]+)\}/g, '<span style="font-size: 0.875rem">$1</span>')
+                                .replace(/\{large:([^}]+)\}/g, '<span style="font-size: 1.25rem">$1</span>')
+                                + '...'
+                            }}
+                          />
                         </div>
                       </div>
                       <div className="flex gap-2 flex-shrink-0">

@@ -1,5 +1,5 @@
 import { useEffect } from "react";
-import { Bold, Highlighter, Quote } from "lucide-react";
+import { Bold, Highlighter, Quote, Type } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Label } from "@/components/ui/label";
 import {
@@ -15,6 +15,7 @@ import { TextStyle } from '@tiptap/extension-text-style';
 import { Color } from '@tiptap/extension-color';
 import { Highlight } from '@tiptap/extension-highlight';
 import { Placeholder } from '@tiptap/extension-placeholder';
+import { Extension } from '@tiptap/core';
 
 interface RichTextEditorProps {
   value: string;
@@ -24,9 +25,62 @@ interface RichTextEditorProps {
   minHeight?: string;
 }
 
+// Custom FontSize extension
+const FontSize = Extension.create({
+  name: 'fontSize',
+  
+  addOptions() {
+    return {
+      types: ['textStyle'],
+    }
+  },
+
+  addGlobalAttributes() {
+    return [
+      {
+        types: this.options.types,
+        attributes: {
+          fontSize: {
+            default: null,
+            parseHTML: element => element.style.fontSize || null,
+            renderHTML: attributes => {
+              if (!attributes.fontSize) {
+                return {}
+              }
+              return {
+                style: `font-size: ${attributes.fontSize}`,
+              }
+            },
+          },
+        },
+      },
+    ]
+  },
+
+  addCommands() {
+    return {
+      setFontSize: (fontSize: string) => ({ chain }) => {
+        return chain()
+          .setMark('textStyle', { fontSize })
+          .run()
+      },
+      unsetFontSize: () => ({ chain }) => {
+        return chain()
+          .setMark('textStyle', { fontSize: null })
+          .removeEmptyTextStyle()
+          .run()
+      },
+    }
+  },
+})
+
 // Convert HTML to plain text with formatting markers for backward compatibility
 const htmlToMarkers = (html: string): string => {
   let text = html;
+  
+  // Convert font sizes
+  text = text.replace(/<span[^>]*style="[^"]*font-size:\s*0\.875rem[^"]*"[^>]*>(.*?)<\/span>/gi, '{small:$1}');
+  text = text.replace(/<span[^>]*style="[^"]*font-size:\s*1\.25rem[^"]*"[^>]*>(.*?)<\/span>/gi, '{large:$1}');
   
   // Convert bold tags
   text = text.replace(/<strong[^>]*>(.*?)<\/strong>/gi, '**$1**');
@@ -70,6 +124,10 @@ const htmlToMarkers = (html: string): string => {
 const markersToHtml = (text: string): string => {
   let html = text;
   
+  // Convert font sizes
+  html = html.replace(/\{small:([^}]+)\}/g, '<span style="font-size: 0.875rem">$1</span>');
+  html = html.replace(/\{large:([^}]+)\}/g, '<span style="font-size: 1.25rem">$1</span>');
+  
   // Convert bold
   html = html.replace(/\*\*([^*]+)\*\*/g, '<strong>$1</strong>');
   html = html.replace(/__([^_]+)__/g, '<strong>$1</strong>');
@@ -104,8 +162,15 @@ export function RichTextEditor({
 }: RichTextEditorProps) {
   const editor = useEditor({
     extensions: [
-      StarterKit,
+      StarterKit.configure({
+        bold: {
+          HTMLAttributes: {
+            class: '',
+          },
+        },
+      }),
       TextStyle,
+      FontSize,
       Color,
       Highlight.configure({ multicolor: false }),
       Placeholder.configure({
@@ -120,7 +185,7 @@ export function RichTextEditor({
     },
     editorProps: {
       attributes: {
-        class: 'prose prose-sm max-w-none focus:outline-none px-4 py-3',
+        class: 'max-w-none focus:outline-none px-4 py-3',
         style: `min-height: ${minHeight}`,
       },
     },
@@ -157,6 +222,13 @@ export function RichTextEditor({
       if (rgb === currentColor) return name;
     }
     return 'default';
+  };
+
+  const getCurrentFontSize = () => {
+    const fontSize = editor.getAttributes('textStyle').fontSize;
+    if (fontSize === '0.875rem') return 'small';
+    if (fontSize === '1.25rem') return 'large';
+    return 'normal';
   };
 
   return (
@@ -203,6 +275,34 @@ export function RichTextEditor({
             
             <div className="flex items-center gap-1.5">
               <Select 
+                value={getCurrentFontSize()}
+                onValueChange={(size) => {
+                  if (size === 'normal') {
+                    editor.chain().focus().unsetFontSize().run();
+                  } else if (size === 'small') {
+                    editor.chain().focus().setFontSize('0.875rem').run();
+                  } else if (size === 'large') {
+                    editor.chain().focus().setFontSize('1.25rem').run();
+                  }
+                }}
+              >
+                <SelectTrigger className="h-8 w-[100px] text-xs">
+                  <SelectValue placeholder="Size" />
+                </SelectTrigger>
+                <SelectContent className="bg-background z-50">
+                  <SelectItem value="small">
+                    <span className="text-xs">Small</span>
+                  </SelectItem>
+                  <SelectItem value="normal">
+                    <span className="text-sm">Normal</span>
+                  </SelectItem>
+                  <SelectItem value="large">
+                    <span className="text-lg">Large</span>
+                  </SelectItem>
+                </SelectContent>
+              </Select>
+
+              <Select 
                 value={getCurrentColor()}
                 onValueChange={(color) => {
                   if (color === 'default') {
@@ -213,7 +313,7 @@ export function RichTextEditor({
                 }}
               >
                 <SelectTrigger className="h-8 w-[100px] text-xs">
-                  <SelectValue placeholder="Text Color" />
+                  <SelectValue placeholder="Color" />
                 </SelectTrigger>
                 <SelectContent className="bg-background z-50">
                   <SelectItem value="default">
