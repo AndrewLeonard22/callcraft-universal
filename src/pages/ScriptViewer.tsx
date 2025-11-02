@@ -1,10 +1,12 @@
 import { useEffect, useState } from "react";
 import { useParams, useNavigate } from "react-router-dom";
-import { ArrowLeft, Edit2, Download, Copy, MessageSquare, X } from "lucide-react";
+import { ArrowLeft, Edit2, Download, Copy, MessageSquare, X, ClipboardCheck, Sparkles } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
+import { Textarea } from "@/components/ui/textarea";
+import { Checkbox } from "@/components/ui/checkbox";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
 import ServiceAreaMap from "@/components/ServiceAreaMap";
@@ -45,6 +47,21 @@ interface FAQ {
   answer: string;
 }
 
+interface QualificationQuestion {
+  id: string;
+  service_type_id: string | null;
+  question: string;
+  display_order: number;
+}
+
+interface QualificationResponse {
+  id: string;
+  script_id: string;
+  question_id: string;
+  is_asked: boolean;
+  customer_response: string | null;
+}
+
 // Helper to get logo based on service type
 const getClientLogo = (serviceType: string, customLogoUrl?: string): string => {
   // If custom logo exists, use it
@@ -73,8 +90,13 @@ export default function ScriptViewer() {
   const [faqs, setFaqs] = useState<FAQ[]>([]);
   const [showObjections, setShowObjections] = useState(false);
   const [showFaqs, setShowFaqs] = useState(false);
+  const [showQualification, setShowQualification] = useState(false);
   const [expandedObjection, setExpandedObjection] = useState<string | null>(null);
   const [expandedFaq, setExpandedFaq] = useState<string | null>(null);
+  const [qualificationQuestions, setQualificationQuestions] = useState<QualificationQuestion[]>([]);
+  const [qualificationResponses, setQualificationResponses] = useState<Record<string, QualificationResponse>>({});
+  const [qualificationSummary, setQualificationSummary] = useState<string | null>(null);
+  const [generatingSummary, setGeneratingSummary] = useState(false);
 
   useEffect(() => {
     if (scriptId) {
@@ -128,17 +150,53 @@ export default function ScriptViewer() {
       // Load FAQs if service_type_id exists
       if (scriptResult.data.service_type_id) {
         console.log('Loading FAQs for service_type_id:', scriptResult.data.service_type_id);
-        const { data: faqData, error: faqError } = await supabase
-          .from("faqs")
-          .select("*")
-          .eq('service_type_id', scriptResult.data.service_type_id)
-          .order("created_at", { ascending: false });
+        const [faqResult, qualQuestionsResult, qualResponsesResult, summaryCheck] = await Promise.all([
+          supabase
+            .from("faqs")
+            .select("*")
+            .eq('service_type_id', scriptResult.data.service_type_id)
+            .order("created_at", { ascending: false }),
+          supabase
+            .from("qualification_questions")
+            .select("*")
+            .eq('service_type_id', scriptResult.data.service_type_id)
+            .order("display_order", { ascending: true }),
+          supabase
+            .from("qualification_responses")
+            .select("*")
+            .eq('script_id', scriptId),
+          supabase
+            .from("scripts")
+            .select("qualification_summary")
+            .eq("id", scriptId)
+            .single()
+        ]);
 
-        if (faqError) {
-          console.error('Error loading FAQs:', faqError);
+        if (faqResult.error) {
+          console.error('Error loading FAQs:', faqResult.error);
         } else {
-          console.log('Loaded FAQs:', faqData);
-          setFaqs(faqData || []);
+          console.log('Loaded FAQs:', faqResult.data);
+          setFaqs(faqResult.data || []);
+        }
+
+        if (qualQuestionsResult.error) {
+          console.error('Error loading qualification questions:', qualQuestionsResult.error);
+        } else {
+          setQualificationQuestions(qualQuestionsResult.data || []);
+        }
+
+        if (qualResponsesResult.error) {
+          console.error('Error loading qualification responses:', qualResponsesResult.error);
+        } else {
+          const responsesMap: Record<string, QualificationResponse> = {};
+          (qualResponsesResult.data || []).forEach((response: QualificationResponse) => {
+            responsesMap[response.question_id] = response;
+          });
+          setQualificationResponses(responsesMap);
+        }
+
+        if (summaryCheck.data?.qualification_summary) {
+          setQualificationSummary(summaryCheck.data.qualification_summary);
         }
       } else {
         console.log('No service_type_id found on script');
@@ -195,6 +253,142 @@ export default function ScriptViewer() {
       document.body.removeChild(a);
       URL.revokeObjectURL(url);
       toast.success("Script downloaded!");
+    }
+  };
+
+  const handleQualificationCheck = async (questionId: string, isChecked: boolean) => {
+    try {
+      const existing = qualificationResponses[questionId];
+      
+      if (existing) {
+        const { error } = await supabase
+          .from("qualification_responses")
+          .update({ is_asked: isChecked })
+          .eq("id", existing.id);
+
+        if (error) throw error;
+      } else {
+        const { data, error } = await supabase
+          .from("qualification_responses")
+          .insert({
+            script_id: scriptId,
+            question_id: questionId,
+            is_asked: isChecked,
+            customer_response: null,
+          })
+          .select()
+          .single();
+
+        if (error) throw error;
+        
+        setQualificationResponses(prev => ({
+          ...prev,
+          [questionId]: data,
+        }));
+      }
+
+      setQualificationResponses(prev => ({
+        ...prev,
+        [questionId]: { ...(prev[questionId] || {} as QualificationResponse), is_asked: isChecked },
+      }));
+    } catch (error) {
+      console.error("Error updating qualification check:", error);
+      toast.error("Failed to update question status");
+    }
+  };
+
+  const handleQualificationResponse = async (questionId: string, response: string) => {
+    try {
+      const existing = qualificationResponses[questionId];
+      
+      if (existing) {
+        const { error } = await supabase
+          .from("qualification_responses")
+          .update({ customer_response: response })
+          .eq("id", existing.id);
+
+        if (error) throw error;
+      } else {
+        const { data, error } = await supabase
+          .from("qualification_responses")
+          .insert({
+            script_id: scriptId,
+            question_id: questionId,
+            is_asked: false,
+            customer_response: response,
+          })
+          .select()
+          .single();
+
+        if (error) throw error;
+        
+        setQualificationResponses(prev => ({
+          ...prev,
+          [questionId]: data,
+        }));
+      }
+
+      setQualificationResponses(prev => ({
+        ...prev,
+        [questionId]: { ...(prev[questionId] || {} as QualificationResponse), customer_response: response },
+      }));
+    } catch (error) {
+      console.error("Error updating qualification response:", error);
+      toast.error("Failed to save response");
+    }
+  };
+
+  const handleGenerateSummary = async () => {
+    if (!qualificationQuestions.length) {
+      toast.error("No qualification questions found");
+      return;
+    }
+
+    const answeredQuestions = qualificationQuestions.filter(q => {
+      const response = qualificationResponses[q.id];
+      return response?.is_asked && response?.customer_response;
+    });
+
+    if (answeredQuestions.length === 0) {
+      toast.error("Please answer at least one qualification question");
+      return;
+    }
+
+    setGeneratingSummary(true);
+    try {
+      const responses = answeredQuestions.map(q => ({
+        question: q.question,
+        customer_response: qualificationResponses[q.id].customer_response,
+      }));
+
+      const { data, error } = await supabase.functions.invoke('generate-qualification-summary', {
+        body: { responses }
+      });
+
+      if (error) throw error;
+
+      if (data.error) {
+        toast.error(data.error);
+        return;
+      }
+
+      const summary = data.summary;
+      setQualificationSummary(summary);
+
+      // Save summary to database
+      const { error: updateError } = await supabase
+        .from("scripts")
+        .update({ qualification_summary: summary })
+        .eq("id", scriptId);
+
+      if (updateError) throw updateError;
+
+      toast.success("Summary generated successfully!");
+    } catch (error) {
+      console.error("Error generating summary:", error);
+      toast.error("Failed to generate summary");
+    } finally {
+      setGeneratingSummary(false);
     }
   };
 
@@ -1033,6 +1227,92 @@ export default function ScriptViewer() {
                       </CardContent>
                     </Card>
                   ))}
+                </div>
+              </div>
+            )}
+          </>
+        )}
+
+        {/* Qualification Toggle Button */}
+        {qualificationQuestions.length > 0 && (
+          <>
+            <Button
+              onClick={() => {
+                setShowQualification(!showQualification);
+                if (!showQualification) {
+                  setShowObjections(false);
+                  setShowFaqs(false);
+                }
+              }}
+              className="fixed bottom-6 left-6 h-14 rounded-full shadow-lg z-40"
+              size="lg"
+            >
+              {showQualification ? (
+                <>
+                  <X className="mr-2 h-5 w-5" />
+                  Close
+                </>
+              ) : (
+                <>
+                  <ClipboardCheck className="mr-2 h-5 w-5" />
+                  Qualify
+                </>
+              )}
+            </Button>
+
+            {/* Qualification Panel */}
+            {showQualification && (
+              <div className="fixed bottom-24 left-6 w-[500px] max-h-[600px] bg-background border border-border rounded-lg shadow-2xl z-30 overflow-hidden flex flex-col">
+                <div className="p-4 border-b border-border bg-muted/50">
+                  <h3 className="font-semibold text-lg">Client Qualification</h3>
+                  <p className="text-xs text-muted-foreground mt-1">Discovery questions to qualify the prospect</p>
+                </div>
+                <div className="overflow-y-auto flex-1 p-4 space-y-4">
+                  {qualificationQuestions.map((question) => {
+                    const response = qualificationResponses[question.id];
+                    return (
+                      <div key={question.id} className="space-y-2 pb-4 border-b border-border last:border-0">
+                        <div className="flex items-start gap-2">
+                          <Checkbox
+                            checked={response?.is_asked || false}
+                            onCheckedChange={(checked) => handleQualificationCheck(question.id, checked as boolean)}
+                            className="mt-1"
+                          />
+                          <Label className="text-sm font-medium leading-relaxed cursor-pointer flex-1">
+                            {question.question}
+                          </Label>
+                        </div>
+                        <Textarea
+                          placeholder="Customer's response..."
+                          value={response?.customer_response || ""}
+                          onChange={(e) => handleQualificationResponse(question.id, e.target.value)}
+                          className="text-sm"
+                          rows={2}
+                        />
+                      </div>
+                    );
+                  })}
+                </div>
+                <div className="p-4 border-t border-border bg-muted/50 space-y-3">
+                  <Button
+                    onClick={handleGenerateSummary}
+                    disabled={generatingSummary}
+                    className="w-full"
+                  >
+                    {generatingSummary ? (
+                      "Generating..."
+                    ) : (
+                      <>
+                        <Sparkles className="mr-2 h-4 w-4" />
+                        Generate AI Summary
+                      </>
+                    )}
+                  </Button>
+                  {qualificationSummary && (
+                    <div className="p-3 bg-background border border-border rounded text-sm whitespace-pre-wrap max-h-40 overflow-y-auto">
+                      {qualificationSummary}
+                    </div>
+                  )}
                 </div>
               </div>
             )}

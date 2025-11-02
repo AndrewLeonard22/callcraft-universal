@@ -1,6 +1,6 @@
 import { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
-import { Plus, Trash2, FileText, Edit2, MessageSquare, HelpCircle } from "lucide-react";
+import { Plus, Trash2, FileText, Edit2, MessageSquare, HelpCircle, ClipboardCheck } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
@@ -223,19 +223,30 @@ interface ServiceType {
   icon_url?: string;
 }
 
+interface QualificationQuestion {
+  id: string;
+  service_type_id: string | null;
+  question: string;
+  display_order: number;
+  created_at: string;
+}
+
 export default function Templates() {
   const navigate = useNavigate();
   const [templates, setTemplates] = useState<Template[]>([]);
   const [objectionTemplates, setObjectionTemplates] = useState<ObjectionTemplate[]>([]);
   const [faqs, setFaqs] = useState<FAQ[]>([]);
+  const [qualificationQuestions, setQualificationQuestions] = useState<QualificationQuestion[]>([]);
   const [serviceTypes, setServiceTypes] = useState<ServiceType[]>([]);
   const [loading, setLoading] = useState(true);
   const [showCreateForm, setShowCreateForm] = useState(false);
   const [showObjectionForm, setShowObjectionForm] = useState(false);
   const [showFaqForm, setShowFaqForm] = useState(false);
+  const [showQualificationForm, setShowQualificationForm] = useState(false);
   const [editingTemplate, setEditingTemplate] = useState<Template | null>(null);
   const [editingObjection, setEditingObjection] = useState<ObjectionTemplate | null>(null);
   const [editingFaq, setEditingFaq] = useState<FAQ | null>(null);
+  const [editingQualification, setEditingQualification] = useState<QualificationQuestion | null>(null);
   const [serviceName, setServiceName] = useState("");
   const [scriptContent, setScriptContent] = useState("");
   const [objectionServiceName, setObjectionServiceName] = useState("");
@@ -243,6 +254,8 @@ export default function Templates() {
   const [faqServiceTypeId, setFaqServiceTypeId] = useState("");
   const [faqQuestion, setFaqQuestion] = useState("");
   const [faqAnswer, setFaqAnswer] = useState("");
+  const [qualificationServiceTypeId, setQualificationServiceTypeId] = useState("");
+  const [qualificationQuestion, setQualificationQuestion] = useState("");
   const [saving, setSaving] = useState(false);
   const [templateImageFile, setTemplateImageFile] = useState<File | null>(null);
   const [userOrganizationId, setUserOrganizationId] = useState<string | null>(null);
@@ -252,6 +265,7 @@ export default function Templates() {
     loadTemplates();
     loadObjectionTemplates();
     loadFaqs();
+    loadQualificationQuestions();
     loadServiceTypes();
 
     // Set up real-time subscriptions
@@ -283,11 +297,19 @@ export default function Templates() {
       })
       .subscribe();
 
+    const qualificationQuestionsChannel = supabase
+      .channel('qualification-questions-changes')
+      .on('postgres_changes', { event: '*', schema: 'public', table: 'qualification_questions' }, () => {
+        loadQualificationQuestions();
+      })
+      .subscribe();
+
     return () => {
       supabase.removeChannel(templatesChannel);
       supabase.removeChannel(objectionChannel);
       supabase.removeChannel(faqsChannel);
       supabase.removeChannel(serviceTypesChannel);
+      supabase.removeChannel(qualificationQuestionsChannel);
     };
   }, []);
 
@@ -369,6 +391,21 @@ export default function Templates() {
     } catch (error) {
       console.error("Error loading service types:", error);
       toast.error("Failed to load service types");
+    }
+  };
+
+  const loadQualificationQuestions = async () => {
+    try {
+      const { data, error } = await supabase
+        .from("qualification_questions")
+        .select("*")
+        .order("display_order", { ascending: true });
+
+      if (error) throw error;
+      setQualificationQuestions(data || []);
+    } catch (error) {
+      console.error("Error loading qualification questions:", error);
+      toast.error("Failed to load qualification questions");
     }
   };
 
@@ -615,6 +652,75 @@ export default function Templates() {
     }
   };
 
+  const handleEditQualification = (question: QualificationQuestion) => {
+    setEditingQualification(question);
+    setQualificationServiceTypeId(question.service_type_id || "");
+    setQualificationQuestion(question.question);
+    setShowQualificationForm(true);
+  };
+
+  const handleCreateQualification = async () => {
+    if (!qualificationServiceTypeId || !qualificationQuestion.trim()) {
+      toast.error("Please fill in all fields");
+      return;
+    }
+
+    setSaving(true);
+    try {
+      if (editingQualification) {
+        const { error } = await supabase
+          .from("qualification_questions")
+          .update({
+            service_type_id: qualificationServiceTypeId,
+            question: qualificationQuestion,
+          })
+          .eq("id", editingQualification.id);
+
+        if (error) throw error;
+        toast.success("Question updated successfully!");
+      } else {
+        const { error } = await supabase
+          .from("qualification_questions")
+          .insert({
+            service_type_id: qualificationServiceTypeId,
+            question: qualificationQuestion,
+            display_order: qualificationQuestions.length,
+          });
+
+        if (error) throw error;
+        toast.success("Question created successfully!");
+      }
+
+      setQualificationServiceTypeId("");
+      setQualificationQuestion("");
+      setShowQualificationForm(false);
+      setEditingQualification(null);
+      loadQualificationQuestions();
+    } catch (error: any) {
+      console.error("Error saving qualification question:", error);
+      toast.error(error.message || "Failed to save question");
+    } finally {
+      setSaving(false);
+    }
+  };
+
+  const handleDeleteQualification = async (questionId: string) => {
+    try {
+      const { error } = await supabase
+        .from("qualification_questions")
+        .delete()
+        .eq("id", questionId);
+
+      if (error) throw error;
+
+      toast.success("Question deleted successfully!");
+      loadQualificationQuestions();
+    } catch (error: any) {
+      console.error("Error deleting qualification question:", error);
+      toast.error(error.message || "Failed to delete question");
+    }
+  };
+
   return (
     <div className="min-h-screen bg-background">
       <div className="container mx-auto px-6 py-8 max-w-5xl">
@@ -631,7 +737,7 @@ export default function Templates() {
         </div>
 
         <Tabs defaultValue="scripts" className="w-full">
-          <TabsList className="grid w-full max-w-2xl grid-cols-3 mb-6">
+          <TabsList className="grid w-full max-w-2xl grid-cols-4 mb-6">
             <TabsTrigger value="scripts">
               <FileText className="mr-2 h-4 w-4" />
               Scripts
@@ -643,6 +749,10 @@ export default function Templates() {
             <TabsTrigger value="faqs">
               <HelpCircle className="mr-2 h-4 w-4" />
               FAQs
+            </TabsTrigger>
+            <TabsTrigger value="qualification">
+              <ClipboardCheck className="mr-2 h-4 w-4" />
+              Qualification
             </TabsTrigger>
           </TabsList>
 
@@ -1111,6 +1221,154 @@ export default function Templates() {
                                   <AlertDialogCancel>Cancel</AlertDialogCancel>
                                   <AlertDialogAction
                                     onClick={() => handleDeleteFaq(faq.id)}
+                                    className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
+                                  >
+                                    Delete
+                                  </AlertDialogAction>
+                                </AlertDialogFooter>
+                              </AlertDialogContent>
+                            </AlertDialog>
+                          </div>
+                        </div>
+                      </CardHeader>
+                    </Card>
+                  );
+                })}
+              </div>
+            )}
+          </TabsContent>
+
+          <TabsContent value="qualification" className="space-y-6">
+            <div className="flex justify-end">
+              <Button onClick={() => setShowQualificationForm(!showQualificationForm)}>
+                <Plus className="mr-2 h-4 w-4" />
+                New Question
+              </Button>
+            </div>
+
+            {showQualificationForm && (
+              <Card>
+                <CardHeader>
+                  <CardTitle>{editingQualification ? "Edit Question" : "Create Qualification Question"}</CardTitle>
+                  <CardDescription>
+                    {editingQualification 
+                      ? "Update this qualification question"
+                      : "Create a discovery question to qualify prospects"}
+                  </CardDescription>
+                </CardHeader>
+                <CardContent className="space-y-4">
+                  <div>
+                    <Label htmlFor="qualification-service-type">Service Type</Label>
+                    <Select value={qualificationServiceTypeId} onValueChange={setQualificationServiceTypeId}>
+                      <SelectTrigger id="qualification-service-type">
+                        <SelectValue placeholder="Select service type" />
+                      </SelectTrigger>
+                      <SelectContent>
+                        {serviceTypes.map((type) => (
+                          <SelectItem key={type.id} value={type.id}>
+                            {type.name}
+                          </SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
+                  </div>
+                  <div>
+                    <Label htmlFor="qualification-question">Question</Label>
+                    <Textarea
+                      id="qualification-question"
+                      placeholder="e.g., What is the main goal for this project?"
+                      value={qualificationQuestion}
+                      onChange={(e) => setQualificationQuestion(e.target.value)}
+                      rows={3}
+                    />
+                  </div>
+                  <div className="flex gap-3">
+                    <Button onClick={handleCreateQualification} disabled={saving}>
+                      {saving ? (editingQualification ? "Updating..." : "Creating...") : (editingQualification ? "Update Question" : "Create Question")}
+                    </Button>
+                    <Button variant="outline" onClick={() => {
+                      setShowQualificationForm(false);
+                      setEditingQualification(null);
+                      setQualificationServiceTypeId("");
+                      setQualificationQuestion("");
+                    }}>
+                      Cancel
+                    </Button>
+                  </div>
+                </CardContent>
+              </Card>
+            )}
+
+            {loading ? (
+              <div className="space-y-4">
+                {[1, 2, 3].map((i) => (
+                  <Card key={i} className="animate-pulse">
+                    <CardHeader>
+                      <div className="h-5 bg-muted rounded w-1/3 mb-2" />
+                      <div className="h-3 bg-muted rounded w-1/2" />
+                    </CardHeader>
+                  </Card>
+                ))}
+              </div>
+            ) : qualificationQuestions.length === 0 ? (
+              <Card>
+                <CardContent className="flex flex-col items-center justify-center py-12">
+                  <ClipboardCheck className="h-12 w-12 text-muted-foreground/50 mb-3" />
+                  <h3 className="text-lg font-semibold mb-1">No Qualification Questions yet</h3>
+                  <p className="text-sm text-muted-foreground mb-4 text-center max-w-sm">
+                    Create discovery questions to help qualify prospects during sales calls
+                  </p>
+                  <Button onClick={() => setShowQualificationForm(true)}>
+                    <Plus className="mr-2 h-4 w-4" />
+                    Create Question
+                  </Button>
+                </CardContent>
+              </Card>
+            ) : (
+              <div className="space-y-4">
+                {qualificationQuestions.map((question) => {
+                  const serviceType = question.service_type_id ? serviceTypes.find(st => st.id === question.service_type_id) : null;
+                  return (
+                    <Card key={question.id}>
+                      <CardHeader>
+                        <div className="flex items-start gap-4 justify-between">
+                          <div className="flex items-start gap-3 flex-1">
+                            <div className="h-12 w-12 rounded-lg bg-muted border border-border flex-shrink-0 flex items-center justify-center">
+                              <ClipboardCheck className="h-5 w-5 text-muted-foreground" />
+                            </div>
+                            <div className="flex-1 min-w-0">
+                              <CardTitle className="text-lg">{question.question}</CardTitle>
+                              <CardDescription className="mt-1">
+                                Service Type: {serviceType?.name || 'Unknown'}
+                              </CardDescription>
+                            </div>
+                          </div>
+                          <div className="flex gap-2 flex-shrink-0">
+                            <Button
+                              variant="ghost"
+                              size="icon"
+                              onClick={() => handleEditQualification(question)}
+                            >
+                              <Edit2 className="h-4 w-4" />
+                            </Button>
+                            <AlertDialog>
+                              <AlertDialogTrigger asChild>
+                                <Button variant="ghost" size="icon" className="text-destructive flex-shrink-0">
+                                  <Trash2 className="h-4 w-4" />
+                                </Button>
+                              </AlertDialogTrigger>
+                              <AlertDialogContent>
+                                <AlertDialogHeader>
+                                  <AlertDialogTitle>Delete Question?</AlertDialogTitle>
+                                  <AlertDialogDescription>
+                                    This will permanently delete this qualification question.
+                                    This action cannot be undone.
+                                  </AlertDialogDescription>
+                                </AlertDialogHeader>
+                                <AlertDialogFooter>
+                                  <AlertDialogCancel>Cancel</AlertDialogCancel>
+                                  <AlertDialogAction
+                                    onClick={() => handleDeleteQualification(question.id)}
                                     className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
                                   >
                                     Delete

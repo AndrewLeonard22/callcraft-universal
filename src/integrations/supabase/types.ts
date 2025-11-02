@@ -297,6 +297,86 @@ export type Database = {
         }
         Relationships: []
       }
+      qualification_questions: {
+        Row: {
+          created_at: string
+          display_order: number
+          id: string
+          organization_id: string | null
+          question: string
+          service_type_id: string | null
+        }
+        Insert: {
+          created_at?: string
+          display_order?: number
+          id?: string
+          organization_id?: string | null
+          question: string
+          service_type_id?: string | null
+        }
+        Update: {
+          created_at?: string
+          display_order?: number
+          id?: string
+          organization_id?: string | null
+          question?: string
+          service_type_id?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "qualification_questions_service_type_id_fkey"
+            columns: ["service_type_id"]
+            isOneToOne: false
+            referencedRelation: "service_types"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      qualification_responses: {
+        Row: {
+          created_at: string
+          customer_response: string | null
+          id: string
+          is_asked: boolean
+          question_id: string
+          script_id: string
+          updated_at: string
+        }
+        Insert: {
+          created_at?: string
+          customer_response?: string | null
+          id?: string
+          is_asked?: boolean
+          question_id: string
+          script_id: string
+          updated_at?: string
+        }
+        Update: {
+          created_at?: string
+          customer_response?: string | null
+          id?: string
+          is_asked?: boolean
+          question_id?: string
+          script_id?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "qualification_responses_question_id_fkey"
+            columns: ["question_id"]
+            isOneToOne: false
+            referencedRelation: "qualification_questions"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "qualification_responses_script_id_fkey"
+            columns: ["script_id"]
+            isOneToOne: false
+            referencedRelation: "scripts"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       scripts: {
         Row: {
           client_id: string
@@ -306,6 +386,7 @@ export type Database = {
           is_template: boolean
           objection_handling: string | null
           organization_id: string | null
+          qualification_summary: string | null
           script_content: string
           service_name: string
           service_type_id: string | null
@@ -319,6 +400,7 @@ export type Database = {
           is_template?: boolean
           objection_handling?: string | null
           organization_id?: string | null
+          qualification_summary?: string | null
           script_content: string
           service_name?: string
           service_type_id?: string | null
@@ -332,6 +414,7 @@ export type Database = {
           is_template?: boolean
           objection_handling?: string | null
           organization_id?: string | null
+          qualification_summary?: string | null
           script_content?: string
           service_name?: string
           service_type_id?: string | null
