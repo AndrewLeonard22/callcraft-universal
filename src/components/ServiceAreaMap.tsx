@@ -412,6 +412,15 @@ export default function ServiceAreaMap({ city, serviceArea, address, radiusMiles
 
   return (
     <div className="space-y-3">
+      {/* Debug info */}
+      <div className="text-xs p-2 bg-yellow-100 rounded">
+        Token: {mapboxToken ? '✓' : '✗'} | 
+        Center: {centerCoordinates ? '✓' : '✗'} | 
+        City: {city || 'none'} | 
+        Address: {address || 'none'} | 
+        Area: {serviceArea || 'none'}
+      </div>
+      
       <div className="flex gap-2">
         <Input
           placeholder="Enter address to check if within service area..."
