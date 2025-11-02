@@ -121,36 +121,42 @@ export type Database = {
           client_id: string | null
           created_at: string
           created_by: string
+          estimated_at: string | null
           feature_options: Json | null
           feature_size: string
           features: string[]
           id: string
           image_url: string
           organization_id: string | null
+          price_estimate: Json | null
           updated_at: string
         }
         Insert: {
           client_id?: string | null
           created_at?: string
           created_by: string
+          estimated_at?: string | null
           feature_options?: Json | null
           feature_size?: string
           features: string[]
           id?: string
           image_url: string
           organization_id?: string | null
+          price_estimate?: Json | null
           updated_at?: string
         }
         Update: {
           client_id?: string | null
           created_at?: string
           created_by?: string
+          estimated_at?: string | null
           feature_options?: Json | null
           feature_size?: string
           features?: string[]
           id?: string
           image_url?: string
           organization_id?: string | null
+          price_estimate?: Json | null
           updated_at?: string
         }
         Relationships: [

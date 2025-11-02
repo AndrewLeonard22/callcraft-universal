@@ -101,6 +101,8 @@ export default function ImageGenerator() {
   const [featureOptions, setFeatureOptions] = useState<Record<string, string>>({});
   const [isGenerating, setIsGenerating] = useState(false);
   const [generatedImageUrl, setGeneratedImageUrl] = useState<string | null>(null);
+  const [priceEstimate, setPriceEstimate] = useState<any | null>(null);
+  const [isEstimating, setIsEstimating] = useState(false);
   const [clients, setClients] = useState<Array<{ id: string; name: string; business_name?: string }>>([]);
   const [selectedClientId, setSelectedClientId] = useState<string>("");
   const [isSaving, setIsSaving] = useState(false);
@@ -235,6 +237,9 @@ export default function ImageGenerator() {
       if (data.image) {
         setGeneratedImageUrl(data.image);
         toast.success("Image generated successfully!");
+        
+        // Automatically estimate price
+        await estimatePrice(data.image);
       } else {
         throw new Error("No image returned from generation");
       }
@@ -243,6 +248,31 @@ export default function ImageGenerator() {
       toast.error(error.message || "Failed to generate image");
     } finally {
       setIsGenerating(false);
+    }
+  };
+
+  const estimatePrice = async (imageUrl: string) => {
+    setIsEstimating(true);
+    try {
+      const { data, error } = await supabase.functions.invoke('estimate-backyard-price', {
+        body: {
+          imageBase64: imageUrl,
+          features: selectedFeatures,
+          featureOptions
+        }
+      });
+
+      if (error) throw error;
+
+      if (data.estimate) {
+        setPriceEstimate(data.estimate);
+        toast.success("Price estimate calculated!");
+      }
+    } catch (error: any) {
+      console.error("Estimation error:", error);
+      toast.error(error.message || "Failed to estimate price");
+    } finally {
+      setIsEstimating(false);
     }
   };
 
@@ -287,6 +317,8 @@ export default function ImageGenerator() {
           image_url: publicUrl,
           features: selectedFeatures,
           feature_options: featureOptions,
+          price_estimate: priceEstimate,
+          estimated_at: priceEstimate ? new Date().toISOString() : null,
           created_by: user.id
         } as any);
 
@@ -468,6 +500,69 @@ export default function ImageGenerator() {
                         className="w-full h-auto object-cover"
                       />
                     </div>
+                    
+                    {/* Price Estimate Section */}
+                    {isEstimating && (
+                      <div className="flex items-center justify-center py-8 text-muted-foreground">
+                        <Loader2 className="mr-2 h-5 w-5 animate-spin" />
+                        <span>Analyzing image and calculating estimate...</span>
+                      </div>
+                    )}
+                    
+                    {priceEstimate && !isEstimating && (
+                      <div className="space-y-4 p-4 bg-muted/50 rounded-lg border">
+                        <div className="flex items-center justify-between">
+                          <h3 className="text-lg font-semibold">Price Estimate</h3>
+                          <span className="text-2xl font-bold text-primary">
+                            ${priceEstimate.total?.toLocaleString() || '0'}
+                          </span>
+                        </div>
+                        
+                        <div className="space-y-2">
+                          <h4 className="text-sm font-semibold text-muted-foreground">Itemized Breakdown</h4>
+                          {priceEstimate.items?.map((item: any, index: number) => (
+                            <div key={index} className="flex justify-between items-start text-sm py-2 border-b last:border-b-0">
+                              <div className="flex-1">
+                                <p className="font-medium">{item.feature}</p>
+                                <p className="text-xs text-muted-foreground">{item.description}</p>
+                                <p className="text-xs text-muted-foreground">
+                                  {item.quantity} × {item.unitCost}
+                                </p>
+                                {item.notes && (
+                                  <p className="text-xs text-muted-foreground italic mt-1">{item.notes}</p>
+                                )}
+                              </div>
+                              <span className="font-semibold ml-4">
+                                ${item.totalCost?.toLocaleString() || '0'}
+                              </span>
+                            </div>
+                          ))}
+                        </div>
+                        
+                        <div className="space-y-1 pt-2 border-t">
+                          <div className="flex justify-between text-sm">
+                            <span>Subtotal (Materials)</span>
+                            <span>${priceEstimate.subtotal?.toLocaleString() || '0'}</span>
+                          </div>
+                          <div className="flex justify-between text-sm">
+                            <span>Labor & Installation</span>
+                            <span>${priceEstimate.laborCost?.toLocaleString() || '0'}</span>
+                          </div>
+                          <div className="flex justify-between font-semibold text-base pt-2 border-t">
+                            <span>Total Estimate</span>
+                            <span className="text-primary">
+                              ${priceEstimate.total?.toLocaleString() || '0'}
+                            </span>
+                          </div>
+                        </div>
+                        
+                        {priceEstimate.disclaimer && (
+                          <p className="text-xs text-muted-foreground italic pt-2 border-t">
+                            {priceEstimate.disclaimer}
+                          </p>
+                        )}
+                      </div>
+                    )}
                     
                     {/* Save to Company Section */}
                     <div className="space-y-3 pt-4 border-t">

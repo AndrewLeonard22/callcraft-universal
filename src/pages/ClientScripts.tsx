@@ -46,6 +46,8 @@ interface GeneratedImage {
   features: string[];
   feature_size: string;
   created_at: string;
+  price_estimate?: any;
+  estimated_at?: string;
 }
 
 // Helper to get logo based on service type
@@ -399,6 +401,16 @@ export default function ClientScripts() {
                           </span>
                         )}
                       </div>
+                      {image.price_estimate && (
+                        <div className="pt-2 border-t">
+                          <p className="text-sm font-semibold text-primary">
+                            Est. ${image.price_estimate.total?.toLocaleString() || '0'}
+                          </p>
+                          <p className="text-xs text-muted-foreground">
+                            {image.price_estimate.items?.length || 0} items included
+                          </p>
+                        </div>
+                      )}
                       <p className="text-xs text-muted-foreground">
                         {new Date(image.created_at).toLocaleDateString()}
                       </p>

@@ -8,3 +8,6 @@ verify_jwt = false
 
 [functions.generate-backyard-image]
 verify_jwt = false
+
+[functions.estimate-backyard-price]
+verify_jwt = false
