@@ -69,7 +69,7 @@ serve(async (req) => {
 
     // Send the email
     const { data, error } = await resend.emails.send({
-      from: 'Design Team <onboarding@resend.dev>',
+      from: `${companyName || 'Design Team'} <onboarding@resend.dev>`,
       to: [clientEmail],
       subject: `Your Custom Backyard Design & Estimate from ${companyName || 'Us'}`,
       html,
