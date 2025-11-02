@@ -32,6 +32,45 @@ const FormattedContent = ({ content }: { content: string }) => {
     let key = 0;
     
     while (remaining.length > 0) {
+      // Check for color markers
+      const colorMatch = remaining.match(/\{(red|blue|green|yellow|purple|orange):([^}]+)\}/);
+      if (colorMatch && colorMatch.index !== undefined) {
+        if (colorMatch.index > 0) {
+          parts.push(remaining.substring(0, colorMatch.index));
+        }
+        const colorMap: Record<string, string> = {
+          red: 'rgb(220, 38, 38)',
+          blue: 'rgb(37, 99, 235)',
+          green: 'rgb(22, 163, 74)',
+          yellow: 'rgb(202, 138, 4)',
+          purple: 'rgb(168, 85, 247)',
+          orange: 'rgb(249, 115, 22)',
+        };
+        parts.push(
+          <span key={`color-${key++}`} style={{ color: colorMap[colorMatch[1]] }}>
+            {colorMatch[2]}
+          </span>
+        );
+        remaining = remaining.substring(colorMatch.index + colorMatch[0].length);
+        continue;
+      }
+
+      // Check for font size markers
+      const sizeMatch = remaining.match(/\{(small|large):([^}]+)\}/);
+      if (sizeMatch && sizeMatch.index !== undefined) {
+        if (sizeMatch.index > 0) {
+          parts.push(remaining.substring(0, sizeMatch.index));
+        }
+        const sizeClass = sizeMatch[1] === 'small' ? 'text-xs' : 'text-lg';
+        parts.push(
+          <span key={`size-${key++}`} className={sizeClass}>
+            {sizeMatch[2]}
+          </span>
+        );
+        remaining = remaining.substring(sizeMatch.index + sizeMatch[0].length);
+        continue;
+      }
+      
       const bracketMatch = remaining.match(/\[([^\]]+)\]/);
       if (bracketMatch && bracketMatch.index !== undefined) {
         if (bracketMatch.index > 0) {
@@ -1015,7 +1054,23 @@ export default function Templates() {
                                 {serviceType ? (
                                   <span className="font-medium">{serviceType.name} • </span>
                                 ) : null}
-                                {faq.answer.substring(0, 100)}...
+                                <span
+                                  dangerouslySetInnerHTML={{
+                                    __html: faq.answer
+                                      .substring(0, 150)
+                                      .replace(/\*\*([^*]+)\*\*/g, '<strong>$1</strong>')
+                                      .replace(/\[([^\]]+)\]/g, '<mark class="bg-yellow-200 px-1">$1</mark>')
+                                      .replace(/\{red:([^}]+)\}/g, '<span style="color: rgb(220, 38, 38)">$1</span>')
+                                      .replace(/\{blue:([^}]+)\}/g, '<span style="color: rgb(37, 99, 235)">$1</span>')
+                                      .replace(/\{green:([^}]+)\}/g, '<span style="color: rgb(22, 163, 74)">$1</span>')
+                                      .replace(/\{yellow:([^}]+)\}/g, '<span style="color: rgb(202, 138, 4)">$1</span>')
+                                      .replace(/\{purple:([^}]+)\}/g, '<span style="color: rgb(168, 85, 247)">$1</span>')
+                                      .replace(/\{orange:([^}]+)\}/g, '<span style="color: rgb(249, 115, 22)">$1</span>')
+                                      .replace(/\{small:([^}]+)\}/g, '<span style="font-size: 0.875rem">$1</span>')
+                                      .replace(/\{large:([^}]+)\}/g, '<span style="font-size: 1.25rem">$1</span>')
+                                      + '...'
+                                  }}
+                                />
                               </div>
                             </div>
                           </div>
