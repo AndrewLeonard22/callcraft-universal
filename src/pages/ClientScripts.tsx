@@ -16,6 +16,16 @@ import {
   AlertDialogTitle,
   AlertDialogTrigger,
 } from "@/components/ui/alert-dialog";
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
+} from "@/components/ui/dialog";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
 import logoDefault from "@/assets/logo-default.png";
 import logoPergola from "@/assets/logo-pergola.png";
 import logoHvac from "@/assets/logo-hvac.png";
@@ -91,6 +101,10 @@ export default function ClientScripts() {
   const [generatedImages, setGeneratedImages] = useState<GeneratedImage[]>([]);
   const [loading, setLoading] = useState(true);
   const [sendingEmail, setSendingEmail] = useState<string | null>(null);
+  const [emailDialogOpen, setEmailDialogOpen] = useState(false);
+  const [selectedImage, setSelectedImage] = useState<GeneratedImage | null>(null);
+  const [leadEmail, setLeadEmail] = useState("");
+  const [leadName, setLeadName] = useState("");
 
   useEffect(() => {
     loadData();
@@ -220,23 +234,23 @@ export default function ClientScripts() {
     }
   };
 
-  const handleSendDesignEmail = async (image: GeneratedImage) => {
-    if (!client) {
-      toast.error("Client information not found");
+  const openEmailDialog = (image: GeneratedImage) => {
+    setSelectedImage(image);
+    setEmailDialogOpen(true);
+  };
+
+  const handleSendDesignEmail = async () => {
+    if (!client || !selectedImage) return;
+
+    if (!leadEmail || !leadName) {
+      toast.error("Please enter both lead name and email");
       return;
     }
 
-    // Get client email from client_details
-    const { data: emailData } = await supabase
-      .from('client_details')
-      .select('field_value')
-      .eq('client_id', client.id)
-      .eq('field_name', 'email')
-      .single();
-
-    const clientEmail = emailData?.field_value;
-    if (!clientEmail) {
-      toast.error("Client email not found. Please add an email to the client profile.");
+    // Basic email validation
+    const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+    if (!emailRegex.test(leadEmail)) {
+      toast.error("Please enter a valid email address");
       return;
     }
 
@@ -248,22 +262,26 @@ export default function ClientScripts() {
       .eq('field_name', 'business_name')
       .single();
 
-    setSendingEmail(image.id);
+    setSendingEmail(selectedImage.id);
     try {
       const { error } = await supabase.functions.invoke('send-design-email', {
         body: {
-          clientName: client.name,
-          clientEmail: clientEmail,
+          clientName: leadName,
+          clientEmail: leadEmail,
           companyName: companyData?.field_value || client.name,
-          imageUrl: image.image_url,
-          estimate: image.price_estimate,
-          features: image.features,
+          imageUrl: selectedImage.image_url,
+          estimate: selectedImage.price_estimate,
+          features: selectedImage.features,
         }
       });
 
       if (error) throw error;
 
-      toast.success(`Design emailed to ${clientEmail}`);
+      toast.success(`Design emailed to ${leadEmail}`);
+      setEmailDialogOpen(false);
+      setLeadEmail("");
+      setLeadName("");
+      setSelectedImage(null);
     } catch (error: any) {
       console.error("Error sending email:", error);
       toast.error(error.message || "Failed to send email");
@@ -469,22 +487,12 @@ export default function ClientScripts() {
                       </p>
                       {image.price_estimate && (
                         <Button
-                          onClick={() => handleSendDesignEmail(image)}
-                          disabled={sendingEmail === image.id}
+                          onClick={() => openEmailDialog(image)}
                           size="sm"
                           className="w-full mt-2"
                         >
-                          {sendingEmail === image.id ? (
-                            <>
-                              <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                              Sending...
-                            </>
-                          ) : (
-                            <>
-                              <Mail className="mr-2 h-4 w-4" />
-                              Send to Lead
-                            </>
-                          )}
+                          <Mail className="mr-2 h-4 w-4" />
+                          Send to Lead
                         </Button>
                       )}
                     </div>
@@ -494,6 +502,68 @@ export default function ClientScripts() {
             </div>
           </div>
         )}
+
+        {/* Email Dialog */}
+        <Dialog open={emailDialogOpen} onOpenChange={setEmailDialogOpen}>
+          <DialogContent>
+            <DialogHeader>
+              <DialogTitle>Send Design to Lead</DialogTitle>
+              <DialogDescription>
+                Enter the lead's information to send them this design and estimate.
+              </DialogDescription>
+            </DialogHeader>
+            <div className="space-y-4 py-4">
+              <div className="space-y-2">
+                <Label htmlFor="leadName">Lead Name</Label>
+                <Input
+                  id="leadName"
+                  placeholder="John Smith"
+                  value={leadName}
+                  onChange={(e) => setLeadName(e.target.value)}
+                />
+              </div>
+              <div className="space-y-2">
+                <Label htmlFor="leadEmail">Lead Email</Label>
+                <Input
+                  id="leadEmail"
+                  type="email"
+                  placeholder="john@example.com"
+                  value={leadEmail}
+                  onChange={(e) => setLeadEmail(e.target.value)}
+                />
+              </div>
+            </div>
+            <DialogFooter>
+              <Button
+                variant="outline"
+                onClick={() => {
+                  setEmailDialogOpen(false);
+                  setLeadEmail("");
+                  setLeadName("");
+                  setSelectedImage(null);
+                }}
+              >
+                Cancel
+              </Button>
+              <Button
+                onClick={handleSendDesignEmail}
+                disabled={sendingEmail === selectedImage?.id}
+              >
+                {sendingEmail === selectedImage?.id ? (
+                  <>
+                    <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                    Sending...
+                  </>
+                ) : (
+                  <>
+                    <Mail className="mr-2 h-4 w-4" />
+                    Send Email
+                  </>
+                )}
+              </Button>
+            </DialogFooter>
+          </DialogContent>
+        </Dialog>
       </div>
     </div>
   );
