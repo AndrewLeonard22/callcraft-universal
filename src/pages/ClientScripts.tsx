@@ -186,7 +186,7 @@ export default function ClientScripts() {
       // Load generated images for this client
       const { data: imagesData, error: imagesError } = await supabase
         .from("generated_images")
-        .select("id, image_url, features, feature_size, created_at")
+        .select("id, image_url, features, feature_size, created_at, price_estimate, estimated_at")
         .eq("client_id", clientId)
         .order("created_at", { ascending: false });
 
