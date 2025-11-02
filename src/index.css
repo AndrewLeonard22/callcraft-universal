@@ -169,11 +169,11 @@ All colors MUST be HSL.
   
   /* HTML Content Styles for Script Viewer */
   .html-content {
-    line-height: 1.7;
+    line-height: 1.6;
   }
   
   .html-content p {
-    margin: 0.75rem 0;
+    margin: 0.5rem 0;
   }
   
   .html-content p:first-child {
