@@ -73,6 +73,7 @@ export default function ScriptViewer() {
   const [faqs, setFaqs] = useState<FAQ[]>([]);
   const [showObjections, setShowObjections] = useState(false);
   const [showFaqs, setShowFaqs] = useState(false);
+  const [expandedObjection, setExpandedObjection] = useState<string | null>(null);
 
   useEffect(() => {
     if (scriptId) {
@@ -949,14 +950,20 @@ export default function ScriptViewer() {
                   <h3 className="font-semibold text-lg">Objection Handling</h3>
                   <p className="text-xs text-muted-foreground mt-1">Quick reference for common objections</p>
                 </div>
-                <div className="overflow-y-auto flex-1 p-4 space-y-4">
+                <div className="overflow-y-auto flex-1 p-4 space-y-2">
                   {objectionTemplates.map((template) => (
-                    <Card key={template.id} className="border border-border">
+                    <Card 
+                      key={template.id} 
+                      className="border border-border cursor-pointer hover:border-primary/50 transition-colors"
+                      onClick={() => setExpandedObjection(expandedObjection === template.id ? null : template.id)}
+                    >
                       <CardContent className="p-4">
-                        <h4 className="font-semibold text-sm mb-2">{template.service_name}</h4>
-                        <div className="text-sm whitespace-pre-wrap">
-                          <FormattedScript content={template.content} />
-                        </div>
+                        <h4 className="font-semibold text-sm">{template.service_name}</h4>
+                        {expandedObjection === template.id && (
+                          <div className="text-sm whitespace-pre-wrap mt-2 pt-2 border-t border-border">
+                            <FormattedScript content={template.content} />
+                          </div>
+                        )}
                       </CardContent>
                     </Card>
                   ))}
