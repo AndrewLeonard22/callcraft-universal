@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+import { useEffect, useState, useMemo, useCallback } from "react";
 import { Link, useNavigate } from "react-router-dom";
 import { Plus, FileText, Calendar, Search, Settings, Trash2, Sparkles, LogOut, User as UserIcon, Users, Wand2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
@@ -26,6 +26,8 @@ import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { supabase } from "@/integrations/supabase/client";
 import { format } from "date-fns";
 import { useToast } from "@/hooks/use-toast";
+import { useDebounce } from "@/hooks/useDebounce";
+import { logger } from "@/utils/logger";
 import type { User } from "@supabase/supabase-js";
 import logoDefault from "@/assets/logo-default.png";
 import logoPergola from "@/assets/logo-pergola.png";
@@ -89,115 +91,85 @@ export default function Dashboard() {
   const [clients, setClients] = useState<ClientWithScripts[]>([]);
   const [loading, setLoading] = useState(true);
   const [searchQuery, setSearchQuery] = useState("");
+  const debouncedSearch = useDebounce(searchQuery, 300);
   const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
   const [clientToDelete, setClientToDelete] = useState<{ id: string; name: string } | null>(null);
   const [user, setUser] = useState<User | null>(null);
   const [profile, setProfile] = useState<{ display_name?: string; avatar_url?: string } | null>(null);
   const { toast } = useToast();
 
-  useEffect(() => {
-    // Get current user and profile
-    const loadUser = async () => {
-      const { data: { user } } = await supabase.auth.getUser();
-      if (user) {
-        setUser(user);
-        
-        // Fetch profile data
-        const { data: profileData } = await supabase
-          .from("profiles")
-          .select("display_name, avatar_url")
-          .eq("id", user.id)
-          .single();
-        
-        if (profileData) {
-          setProfile(profileData);
-        }
+  // Optimized: Use useCallback to prevent re-creating function on every render
+  const loadUser = useCallback(async () => {
+    const { data: { user } } = await supabase.auth.getUser();
+    if (user) {
+      setUser(user);
+      
+      const { data: profileData } = await supabase
+        .from("profiles")
+        .select("display_name, avatar_url")
+        .eq("id", user.id)
+        .single();
+      
+      if (profileData) {
+        setProfile(profileData);
       }
-    };
-    loadUser();
+    }
   }, []);
 
   useEffect(() => {
-    loadClients();
+    loadUser();
+  }, [loadUser]);
 
-    // Set up real-time subscriptions
-    const clientsChannel = supabase
-      .channel('clients-changes')
-      .on('postgres_changes', { event: '*', schema: 'public', table: 'clients' }, () => {
-        loadClients();
-      })
-      .subscribe();
-
-    const scriptsChannel = supabase
-      .channel('scripts-changes')
-      .on('postgres_changes', { event: '*', schema: 'public', table: 'scripts' }, () => {
-        loadClients();
-      })
-      .subscribe();
-
-    const clientDetailsChannel = supabase
-      .channel('client-details-changes')
-      .on('postgres_changes', { event: '*', schema: 'public', table: 'client_details' }, () => {
-        loadClients();
-      })
-      .subscribe();
-
-    return () => {
-      supabase.removeChannel(clientsChannel);
-      supabase.removeChannel(scriptsChannel);
-      supabase.removeChannel(clientDetailsChannel);
-    };
-  }, []);
-
-  const loadClients = async () => {
+  // Optimized: Memoize loadClients to prevent unnecessary recreations
+  const loadClients = useCallback(async () => {
     try {
-      const { data: clientsData, error: clientsError } = await supabase
-        .from("clients")
-        .select("*")
-        .neq("id", "00000000-0000-0000-0000-000000000001")
-        .order("created_at", { ascending: false });
+      // Batch parallel API calls for better performance
+      const [
+        { data: clientsData, error: clientsError },
+        { data: scriptsData, error: scriptsError },
+        { data: serviceTypesData, error: serviceTypesError },
+        { data: generatedImagesData, error: generatedImagesError },
+        { data: logosData },
+        { data: businessNamesData },
+      ] = await Promise.all([
+        supabase
+          .from("clients")
+          .select("*")
+          .neq("id", "00000000-0000-0000-0000-000000000001")
+          .order("created_at", { ascending: false }),
+        supabase
+          .from("scripts")
+          .select("id, service_name, created_at, client_id, service_type_id, image_url")
+          .eq("is_template", false)
+          .order("created_at", { ascending: false }),
+        supabase.from("service_types").select("*"),
+        supabase
+          .from("generated_images")
+          .select("id, client_id, image_url, features, feature_size, created_at")
+          .order("created_at", { ascending: false }),
+        supabase
+          .from("client_details")
+          .select("client_id, field_value")
+          .eq("field_name", "logo_url"),
+        supabase
+          .from("client_details")
+          .select("client_id, field_name, field_value")
+          .in("field_name", ["business_name", "owners_name"]),
+      ]);
 
       if (clientsError) throw clientsError;
-
-      const { data: scriptsData, error: scriptsError } = await supabase
-        .from("scripts")
-        .select("id, service_name, created_at, client_id, service_type_id, image_url")
-        .eq("is_template", false)
-        .order("created_at", { ascending: false});
-
       if (scriptsError) throw scriptsError;
-
-      const { data: serviceTypesData, error: serviceTypesError } = await supabase
-        .from("service_types")
-        .select("*");
-
       if (serviceTypesError) throw serviceTypesError;
-
-      // Fetch generated images for all clients
-      const { data: generatedImagesData, error: generatedImagesError } = await supabase
-        .from("generated_images")
-        .select("id, client_id, image_url, features, feature_size, created_at")
-        .order("created_at", { ascending: false });
-
       if (generatedImagesError) throw generatedImagesError;
 
+      // Create optimized Maps for O(1) lookups
       const serviceTypesMap = new Map(
         (serviceTypesData || []).map(st => [st.id, st])
       );
 
-      const { data: logosData } = await supabase
-        .from("client_details")
-        .select("client_id, field_value")
-        .eq("field_name", "logo_url");
-
       const logosMap = new Map(
         (logosData || []).map(l => [l.client_id, l.field_value])
       );
-
-      const { data: businessNamesData } = await supabase
-        .from("client_details")
-        .select("client_id, field_name, field_value")
-        .in("field_name", ["business_name", "owners_name"]);
 
       const businessNamesMap = new Map<string, string>();
       const ownersNamesMap = new Map<string, string>();
@@ -250,12 +222,45 @@ export default function Dashboard() {
 
       setClients(clientsWithScripts);
     } catch (error) {
-      console.error("Error loading clients:", error);
+      logger.error("Error loading clients:", error);
       setClients([]);
     } finally {
       setLoading(false);
     }
-  };
+  }, []);
+
+  useEffect(() => {
+    loadClients();
+
+    // Optimized: Debounced real-time updates to prevent excessive reloads
+    let reloadTimeout: NodeJS.Timeout;
+    const debouncedReload = () => {
+      clearTimeout(reloadTimeout);
+      reloadTimeout = setTimeout(loadClients, 500);
+    };
+
+    const clientsChannel = supabase
+      .channel('clients-changes')
+      .on('postgres_changes', { event: '*', schema: 'public', table: 'clients' }, debouncedReload)
+      .subscribe();
+
+    const scriptsChannel = supabase
+      .channel('scripts-changes')
+      .on('postgres_changes', { event: '*', schema: 'public', table: 'scripts' }, debouncedReload)
+      .subscribe();
+
+    const clientDetailsChannel = supabase
+      .channel('client-details-changes')
+      .on('postgres_changes', { event: '*', schema: 'public', table: 'client_details' }, debouncedReload)
+      .subscribe();
+
+    return () => {
+      clearTimeout(reloadTimeout);
+      supabase.removeChannel(clientsChannel);
+      supabase.removeChannel(scriptsChannel);
+      supabase.removeChannel(clientDetailsChannel);
+    };
+  }, [loadClients]);
 
   const openDeleteDialog = (clientId: string, clientName: string) => {
     setClientToDelete({ id: clientId, name: clientName });
@@ -282,7 +287,7 @@ export default function Dashboard() {
       setClientToDelete(null);
       loadClients();
     } catch (error) {
-      console.error("Error deleting client:", error);
+      logger.error("Error deleting client:", error);
       toast({
         title: "Error",
         description: "Failed to delete company. Please try again.",
@@ -291,23 +296,26 @@ export default function Dashboard() {
     }
   };
 
-  const filteredClients = clients.filter((client) => {
-    const query = searchQuery.toLowerCase();
-    return (
+  // Optimized: Memoize filtered clients to prevent re-filtering on every render
+  const filteredClients = useMemo(() => {
+    if (!debouncedSearch) return clients;
+    
+    const query = debouncedSearch.toLowerCase();
+    return clients.filter((client) =>
       client.name.toLowerCase().includes(query) ||
       (client.business_name && client.business_name.toLowerCase().includes(query)) ||
       client.service_type.toLowerCase().includes(query) ||
       (client.city && client.city.toLowerCase().includes(query)) ||
       client.scripts.some(s => s.service_name.toLowerCase().includes(query))
     );
-  });
+  }, [clients, debouncedSearch]);
 
-  const handleLogout = async () => {
+  const handleLogout = useCallback(async () => {
     await supabase.auth.signOut();
     navigate("/auth");
-  };
+  }, [navigate]);
 
-  const getUserInitials = () => {
+  const getUserInitials = useCallback(() => {
     if (profile?.display_name) {
       return profile.display_name
         .split(" ")
@@ -317,7 +325,7 @@ export default function Dashboard() {
         .slice(0, 2);
     }
     return user?.email?.slice(0, 2).toUpperCase() || "U";
-  };
+  }, [profile, user]);
 
   return (
     <div className="min-h-screen bg-background">

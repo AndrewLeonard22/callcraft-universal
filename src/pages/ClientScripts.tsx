@@ -1,10 +1,12 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useCallback } from "react";
 import { useParams, Link, useNavigate } from "react-router-dom";
 import { ArrowLeft, Plus, FileText, Trash2, Edit2, Mail, Loader2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
+import { logger } from "@/utils/logger";
+import { getClientLogo, resolveStoragePublicUrl } from "@/utils/imageHelpers";
 import {
   AlertDialog,
   AlertDialogAction,
@@ -26,11 +28,6 @@ import {
 } from "@/components/ui/dialog";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import logoDefault from "@/assets/logo-default.png";
-import logoPergola from "@/assets/logo-pergola.png";
-import logoHvac from "@/assets/logo-hvac.png";
-import logoSolar from "@/assets/logo-solar.png";
-import logoLandscaping from "@/assets/logo-landscaping.png";
 
 interface Script {
   id: string;
@@ -60,39 +57,6 @@ interface GeneratedImage {
   estimated_at?: string;
 }
 
-// Helper to get logo based on service type
-const getClientLogo = (serviceType: string, customLogoUrl?: string): string => {
-  // If custom logo exists, use it
-  if (customLogoUrl) return customLogoUrl;
-  
-  // Otherwise fall back to default logos based on service type
-  const type = serviceType.toLowerCase();
-  
-  if (type.includes("pergola")) return logoPergola;
-  if (type.includes("hvac") || type.includes("heating") || type.includes("cooling")) return logoHvac;
-  if (type.includes("solar") || type.includes("panel")) return logoSolar;
-  if (type.includes("landscape") || type.includes("lawn") || type.includes("garden")) return logoLandscaping;
-  
-  return logoDefault;
-};
-
-// Resolve storage path to a public URL for script images
-const resolveStoragePublicUrl = (url?: string): string | undefined => {
-  if (!url) return undefined;
-  if (url.startsWith("http") || url.startsWith("data:")) return url;
-  const parts = url.split("/");
-  if (parts.length > 1) {
-    const bucket = parts[0];
-    const path = parts.slice(1).join("/");
-    const { data } = supabase.storage.from(bucket).getPublicUrl(path);
-    return data.publicUrl;
-  } else {
-    // Assume default bucket for template images
-    const { data } = supabase.storage.from("template-images").getPublicUrl(url);
-    return data.publicUrl;
-  }
-};
-
 export default function ClientScripts() {
   const { clientId } = useParams();
   const navigate = useNavigate();
@@ -106,81 +70,50 @@ export default function ClientScripts() {
   const [leadEmail, setLeadEmail] = useState("");
   const [leadName, setLeadName] = useState("");
 
-  useEffect(() => {
-    loadData();
-
-    // Set up real-time subscriptions
-    const scriptsChannel = supabase
-      .channel('client-scripts-changes')
-      .on('postgres_changes', { event: '*', schema: 'public', table: 'scripts' }, (payload) => {
-        if (payload.new && (payload.new as any).client_id === clientId) {
-          loadData();
-        } else if (payload.old && (payload.old as any).client_id === clientId) {
-          loadData();
-        }
-      })
-      .subscribe();
-
-    const clientChannel = supabase
-      .channel('client-changes')
-      .on('postgres_changes', { event: 'UPDATE', schema: 'public', table: 'clients' }, (payload) => {
-        if ((payload.new as any).id === clientId) {
-          loadData();
-        }
-      })
-      .subscribe();
-
-    return () => {
-      supabase.removeChannel(scriptsChannel);
-      supabase.removeChannel(clientChannel);
-    };
-  }, [clientId]);
-
-  const loadData = async () => {
+  // Optimized: Combined data loading with useCallback
+  const loadData = useCallback(async () => {
     try {
-      // Load client data
-      const { data: clientData, error: clientError } = await supabase
-        .from("clients")
-        .select("*")
-        .eq("id", clientId)
-        .single();
+      // Parallel API calls for better performance
+      const [
+        { data: clientData, error: clientError },
+        { data: logoData },
+        { data: scriptsData, error: scriptsError },
+        { data: tmplData },
+        { data: typesData },
+        { data: imagesData, error: imagesError }
+      ] = await Promise.all([
+        supabase.from("clients").select("*").eq("id", clientId).single(),
+        supabase
+          .from("client_details")
+          .select("field_value")
+          .eq("client_id", clientId)
+          .eq("field_name", "logo_url")
+          .maybeSingle(),
+        supabase
+          .from("scripts")
+          .select("id, service_name, version, created_at, is_template, image_url, service_type_id")
+          .eq("client_id", clientId)
+          .eq("is_template", false)
+          .order("created_at", { ascending: false }),
+        supabase.from('scripts').select('service_name, image_url').eq('is_template', true),
+        supabase.from('service_types').select('id, icon_url'),
+        supabase
+          .from("generated_images")
+          .select("id, image_url, features, feature_size, created_at, price_estimate, estimated_at")
+          .eq("client_id", clientId)
+          .order("created_at", { ascending: false })
+      ]);
 
       if (clientError) throw clientError;
-      
-      // Load logo URL from client_details
-      const { data: logoData } = await supabase
-        .from("client_details")
-        .select("field_value")
-        .eq("client_id", clientId)
-        .eq("field_name", "logo_url")
-        .maybeSingle();
+      if (scriptsError) throw scriptsError;
       
       setClient({
         ...clientData,
         logo_url: logoData?.field_value || undefined
       });
 
-      // Load scripts for this client
-      const { data: scriptsData, error: scriptsError } = await supabase
-        .from("scripts")
-        .select("id, service_name, version, created_at, is_template, image_url, service_type_id")
-        .eq("client_id", clientId)
-        .eq("is_template", false)
-        .order("created_at", { ascending: false });
-
-      if (scriptsError) throw scriptsError;
-
-      // Load template images for fallback
-      const { data: tmplData } = await supabase
-        .from('scripts')
-        .select('service_name, image_url')
-        .eq('is_template', true);
+      // Create Maps for O(1) lookups
       const tmplMap = new Map<string, string | undefined>((tmplData || []).map(t => [t.service_name, t.image_url || undefined]));
-
-      // Load service type icons for fallback
-      const { data: typesData } = await supabase
-        .from('service_types')
-        .select('id, icon_url');
       const typeMap = new Map<string, string | undefined>((typesData || []).map(t => [t.id, t.icon_url || undefined]));
 
       const mapped = (scriptsData || []).map((s) => {
@@ -197,27 +130,54 @@ export default function ClientScripts() {
       });
       setScripts(mapped);
 
-      // Load generated images for this client
-      const { data: imagesData, error: imagesError } = await supabase
-        .from("generated_images")
-        .select("id, image_url, features, feature_size, created_at, price_estimate, estimated_at")
-        .eq("client_id", clientId)
-        .order("created_at", { ascending: false });
-
       if (imagesError) {
-        console.error("Error loading generated images:", imagesError);
+        logger.error("Error loading generated images:", imagesError);
       } else {
         setGeneratedImages(imagesData || []);
       }
     } catch (error) {
-      console.error("Error loading data:", error);
+      logger.error("Error loading data:", error);
       toast.error("Failed to load client data");
     } finally {
       setLoading(false);
     }
-  };
+  }, [clientId]);
 
-  const handleDeleteScript = async (scriptId: string) => {
+  useEffect(() => {
+    loadData();
+
+    // Debounced real-time updates
+    let reloadTimeout: NodeJS.Timeout;
+    const debouncedReload = (payload: any) => {
+      const shouldReload = 
+        (payload.new && (payload.new as any).client_id === clientId) ||
+        (payload.old && (payload.old as any).client_id === clientId) ||
+        ((payload.new as any)?.id === clientId);
+      
+      if (shouldReload) {
+        clearTimeout(reloadTimeout);
+        reloadTimeout = setTimeout(loadData, 500);
+      }
+    };
+
+    const scriptsChannel = supabase
+      .channel('client-scripts-changes')
+      .on('postgres_changes', { event: '*', schema: 'public', table: 'scripts' }, debouncedReload)
+      .subscribe();
+
+    const clientChannel = supabase
+      .channel('client-changes')
+      .on('postgres_changes', { event: 'UPDATE', schema: 'public', table: 'clients' }, debouncedReload)
+      .subscribe();
+
+    return () => {
+      clearTimeout(reloadTimeout);
+      supabase.removeChannel(scriptsChannel);
+      supabase.removeChannel(clientChannel);
+    };
+  }, [clientId, loadData]);
+
+  const handleDeleteScript = useCallback(async (scriptId: string) => {
     try {
       const { error } = await supabase
         .from("scripts")
@@ -229,10 +189,10 @@ export default function ClientScripts() {
       toast.success("Script deleted successfully");
       loadData();
     } catch (error) {
-      console.error("Error deleting script:", error);
+      logger.error("Error deleting script:", error);
       toast.error("Failed to delete script");
     }
-  };
+  }, [loadData]);
 
   const openEmailDialog = (image: GeneratedImage) => {
     setSelectedImage(image);
@@ -283,7 +243,7 @@ export default function ClientScripts() {
       setLeadName("");
       setSelectedImage(null);
     } catch (error: any) {
-      console.error("Error sending email:", error);
+      logger.error("Error sending email:", error);
       toast.error(error.message || "Failed to send email");
     } finally {
       setSendingEmail(null);
