@@ -11,3 +11,6 @@ verify_jwt = false
 
 [functions.estimate-backyard-price]
 verify_jwt = false
+
+[functions.send-design-email]
+verify_jwt = false

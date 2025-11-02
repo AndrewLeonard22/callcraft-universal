@@ -1,6 +1,6 @@
 import { useState, useEffect } from "react";
 import { useParams, Link, useNavigate } from "react-router-dom";
-import { ArrowLeft, Plus, FileText, Trash2, Edit2 } from "lucide-react";
+import { ArrowLeft, Plus, FileText, Trash2, Edit2, Mail, Loader2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { supabase } from "@/integrations/supabase/client";
@@ -90,6 +90,7 @@ export default function ClientScripts() {
   const [scripts, setScripts] = useState<Script[]>([]);
   const [generatedImages, setGeneratedImages] = useState<GeneratedImage[]>([]);
   const [loading, setLoading] = useState(true);
+  const [sendingEmail, setSendingEmail] = useState<string | null>(null);
 
   useEffect(() => {
     loadData();
@@ -216,6 +217,58 @@ export default function ClientScripts() {
     } catch (error) {
       console.error("Error deleting script:", error);
       toast.error("Failed to delete script");
+    }
+  };
+
+  const handleSendDesignEmail = async (image: GeneratedImage) => {
+    if (!client) {
+      toast.error("Client information not found");
+      return;
+    }
+
+    // Get client email from client_details
+    const { data: emailData } = await supabase
+      .from('client_details')
+      .select('field_value')
+      .eq('client_id', client.id)
+      .eq('field_name', 'email')
+      .single();
+
+    const clientEmail = emailData?.field_value;
+    if (!clientEmail) {
+      toast.error("Client email not found. Please add an email to the client profile.");
+      return;
+    }
+
+    // Get company name
+    const { data: companyData } = await supabase
+      .from('client_details')
+      .select('field_value')
+      .eq('client_id', client.id)
+      .eq('field_name', 'business_name')
+      .single();
+
+    setSendingEmail(image.id);
+    try {
+      const { error } = await supabase.functions.invoke('send-design-email', {
+        body: {
+          clientName: client.name,
+          clientEmail: clientEmail,
+          companyName: companyData?.field_value || client.name,
+          imageUrl: image.image_url,
+          estimate: image.price_estimate,
+          features: image.features,
+        }
+      });
+
+      if (error) throw error;
+
+      toast.success(`Design emailed to ${clientEmail}`);
+    } catch (error: any) {
+      console.error("Error sending email:", error);
+      toast.error(error.message || "Failed to send email");
+    } finally {
+      setSendingEmail(null);
     }
   };
 
@@ -414,6 +467,26 @@ export default function ClientScripts() {
                       <p className="text-xs text-muted-foreground">
                         {new Date(image.created_at).toLocaleDateString()}
                       </p>
+                      {image.price_estimate && (
+                        <Button
+                          onClick={() => handleSendDesignEmail(image)}
+                          disabled={sendingEmail === image.id}
+                          size="sm"
+                          className="w-full mt-2"
+                        >
+                          {sendingEmail === image.id ? (
+                            <>
+                              <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                              Sending...
+                            </>
+                          ) : (
+                            <>
+                              <Mail className="mr-2 h-4 w-4" />
+                              Send to Lead
+                            </>
+                          )}
+                        </Button>
+                      )}
                     </div>
                   </CardContent>
                 </Card>
