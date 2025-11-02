@@ -74,6 +74,7 @@ export default function ScriptViewer() {
   const [showObjections, setShowObjections] = useState(false);
   const [showFaqs, setShowFaqs] = useState(false);
   const [expandedObjection, setExpandedObjection] = useState<string | null>(null);
+  const [expandedFaq, setExpandedFaq] = useState<string | null>(null);
 
   useEffect(() => {
     if (scriptId) {
@@ -1004,14 +1005,20 @@ export default function ScriptViewer() {
                   <h3 className="font-semibold text-lg">FAQs</h3>
                   <p className="text-xs text-muted-foreground mt-1">Frequently asked questions</p>
                 </div>
-                <div className="overflow-y-auto flex-1 p-4 space-y-4">
+                <div className="overflow-y-auto flex-1 p-4 space-y-2">
                   {faqs.map((faq) => (
-                    <Card key={faq.id} className="border border-border">
+                    <Card 
+                      key={faq.id} 
+                      className="border border-border cursor-pointer hover:border-primary/50 transition-colors"
+                      onClick={() => setExpandedFaq(expandedFaq === faq.id ? null : faq.id)}
+                    >
                       <CardContent className="p-4">
-                        <h4 className="font-semibold text-sm mb-2">{faq.question}</h4>
-                        <div className="text-sm whitespace-pre-wrap">
-                          <FormattedScript content={faq.answer} />
-                        </div>
+                        <h4 className="font-semibold text-sm">{faq.question}</h4>
+                        {expandedFaq === faq.id && (
+                          <div className="text-sm whitespace-pre-wrap mt-2 pt-2 border-t border-border">
+                            <FormattedScript content={faq.answer} />
+                          </div>
+                        )}
                       </CardContent>
                     </Card>
                   ))}
