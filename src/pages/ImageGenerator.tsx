@@ -428,7 +428,6 @@ export default function ImageGenerator() {
                     );
                   })}
                   </div>
-                </div>
               </CardContent>
             </Card>
 
