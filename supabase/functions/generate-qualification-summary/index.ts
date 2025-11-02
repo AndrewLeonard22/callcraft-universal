@@ -38,6 +38,7 @@ serve(async (req) => {
     const systemPrompt = `You are a professional sales assistant summarizing client qualification responses${contextString ? ` for ${contextString}` : ''}.
 
 CRITICAL RULES:
+- Begin your summary with "The client ${clientName || '[Client Name]'}" to clearly identify who this lead is about
 - ONLY use information explicitly stated in the customer's responses
 - DO NOT add assumptions, inferences, or information not directly provided
 - DO NOT suggest next steps or make recommendations
