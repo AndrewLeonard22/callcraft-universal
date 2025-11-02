@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+import { useEffect, useState, useRef } from "react";
 import { useParams, useNavigate } from "react-router-dom";
 import { ArrowLeft, Edit2, Download, Copy, MessageSquare, X, ClipboardCheck, Sparkles } from "lucide-react";
 import { Button } from "@/components/ui/button";
@@ -97,6 +97,7 @@ export default function ScriptViewer() {
   const [qualificationResponses, setQualificationResponses] = useState<Record<string, QualificationResponse>>({});
   const [qualificationSummary, setQualificationSummary] = useState<string | null>(null);
   const [generatingSummary, setGeneratingSummary] = useState(false);
+  const responseTimeouts = useRef<Record<string, NodeJS.Timeout>>({});
 
   useEffect(() => {
     if (scriptId) {
@@ -297,45 +298,53 @@ export default function ScriptViewer() {
     }
   };
 
-  const handleQualificationResponse = async (questionId: string, response: string) => {
-    try {
-      const existing = qualificationResponses[questionId];
-      
-      if (existing) {
-        const { error } = await supabase
-          .from("qualification_responses")
-          .update({ customer_response: response })
-          .eq("id", existing.id);
-
-        if (error) throw error;
-      } else {
-        const { data, error } = await supabase
-          .from("qualification_responses")
-          .insert({
-            script_id: scriptId,
-            question_id: questionId,
-            is_asked: false,
-            customer_response: response,
-          })
-          .select()
-          .single();
-
-        if (error) throw error;
-        
-        setQualificationResponses(prev => ({
-          ...prev,
-          [questionId]: data,
-        }));
-      }
-
-      setQualificationResponses(prev => ({
-        ...prev,
-        [questionId]: { ...(prev[questionId] || {} as QualificationResponse), customer_response: response },
-      }));
-    } catch (error) {
-      console.error("Error updating qualification response:", error);
-      toast.error("Failed to save response");
+  const handleQualificationResponse = (questionId: string, response: string) => {
+    // Update local state immediately for responsive UI
+    setQualificationResponses(prev => ({
+      ...prev,
+      [questionId]: { ...(prev[questionId] || {} as QualificationResponse), customer_response: response },
+    }));
+    
+    // Clear existing timeout for this question
+    if (responseTimeouts.current[questionId]) {
+      clearTimeout(responseTimeouts.current[questionId]);
     }
+    
+    // Debounce the database update (500ms after user stops typing)
+    responseTimeouts.current[questionId] = setTimeout(async () => {
+      try {
+        const existing = qualificationResponses[questionId];
+        
+        if (existing) {
+          const { error } = await supabase
+            .from("qualification_responses")
+            .update({ customer_response: response })
+            .eq("id", existing.id);
+
+          if (error) throw error;
+        } else {
+          const { data, error } = await supabase
+            .from("qualification_responses")
+            .insert({
+              script_id: scriptId,
+              question_id: questionId,
+              is_asked: false,
+              customer_response: response,
+            })
+            .select()
+            .single();
+
+          if (error) throw error;
+          
+          setQualificationResponses(prev => ({
+            ...prev,
+            [questionId]: data,
+          }));
+        }
+      } catch (error) {
+        console.error("Error updating qualification response:", error);
+      }
+    }, 500);
   };
 
   const handleGenerateSummary = async () => {
