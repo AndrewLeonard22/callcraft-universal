@@ -97,7 +97,16 @@ export default function ScriptViewer() {
   const [qualificationResponses, setQualificationResponses] = useState<Record<string, QualificationResponse>>({});
   const [qualificationSummary, setQualificationSummary] = useState<string | null>(null);
   const [generatingSummary, setGeneratingSummary] = useState(false);
-  const responseTimeouts = useRef<Record<string, NodeJS.Timeout>>({});
+  const responseTimeouts = useRef<Record<string, number>>({});
+  const responsesRef = useRef<Record<string, QualificationResponse>>({});
+  useEffect(() => {
+    responsesRef.current = qualificationResponses;
+  }, [qualificationResponses]);
+  useEffect(() => {
+    return () => {
+      Object.values(responseTimeouts.current).forEach((id) => clearTimeout(id));
+    };
+  }, []);
 
   useEffect(() => {
     if (scriptId) {
@@ -307,21 +316,40 @@ export default function ScriptViewer() {
     
     // Clear existing timeout for this question
     if (responseTimeouts.current[questionId]) {
-      clearTimeout(responseTimeouts.current[questionId]);
+      window.clearTimeout(responseTimeouts.current[questionId]);
     }
     
     // Debounce the database update (500ms after user stops typing)
-    responseTimeouts.current[questionId] = setTimeout(async () => {
+    responseTimeouts.current[questionId] = window.setTimeout(async () => {
       try {
-        const existing = qualificationResponses[questionId];
-        
-        if (existing) {
+        const existing = responsesRef.current[questionId];
+        let rowId = existing?.id;
+
+        if (!rowId) {
+          const { data: rows, error: selError } = await supabase
+            .from("qualification_responses")
+            .select("id")
+            .eq("script_id", scriptId)
+            .eq("question_id", questionId)
+            .order("created_at", { ascending: false })
+            .limit(1);
+          if (!selError && rows && rows.length > 0) {
+            rowId = rows[0].id as string;
+          }
+        }
+
+        if (rowId) {
           const { error } = await supabase
             .from("qualification_responses")
             .update({ customer_response: response })
-            .eq("id", existing.id);
+            .eq("id", rowId);
 
           if (error) throw error;
+
+          setQualificationResponses(prev => ({
+            ...prev,
+            [questionId]: { ...(prev[questionId] || {} as QualificationResponse), id: rowId!, customer_response: response } as QualificationResponse,
+          }));
         } else {
           const { data, error } = await supabase
             .from("qualification_responses")
