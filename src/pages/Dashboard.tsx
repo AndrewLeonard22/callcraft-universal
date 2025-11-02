@@ -627,14 +627,15 @@ export default function Dashboard() {
             {filteredClients.map((client) => (
               <Card 
                 key={client.id} 
-                className="group relative overflow-hidden border-border/50 bg-card shadow-sm hover:shadow-md transition-all duration-300 hover:border-primary/20"
+                className="group relative overflow-hidden border-border/50 bg-card shadow-sm hover:shadow-md transition-all duration-300 hover:border-primary/20 cursor-pointer"
+                onClick={() => navigate(`/client/${client.id}`)}
               >
                 {/* Subtle gradient overlay on hover */}
                 <div className="absolute inset-0 bg-gradient-to-br from-primary/5 to-accent/5 opacity-0 group-hover:opacity-100 transition-opacity duration-300" />
                 
                 <CardHeader className="pb-4 relative z-10">
                   <div className="flex items-start gap-4">
-                    <Link to={`/client/${client.id}`} className="relative">
+                    <Link to={`/client/${client.id}`} className="relative" onClick={(e) => e.stopPropagation()}>
                       <div className="h-14 w-14 rounded-xl overflow-hidden bg-muted ring-2 ring-border/50 group-hover:ring-primary/30 transition-all duration-300 shadow-sm">
                         <img 
                           src={getClientLogo(client.service_type, client.logo_url)} 
@@ -672,6 +673,7 @@ export default function Dashboard() {
                         className="h-8 w-8 opacity-0 group-hover:opacity-100 transition-opacity duration-200 hover:bg-primary/10 hover:text-primary"
                         onClick={(e) => {
                           e.preventDefault();
+                          e.stopPropagation();
                           handleArchiveToggle(client.id, client.archived || false);
                         }}
                         title={client.archived ? "Restore company" : "Archive company"}
@@ -688,6 +690,7 @@ export default function Dashboard() {
                         className="h-8 w-8 opacity-0 group-hover:opacity-100 transition-opacity duration-200 hover:bg-destructive/10 hover:text-destructive"
                         onClick={(e) => {
                           e.preventDefault();
+                          e.stopPropagation();
                           openDeleteDialog(client.id, client.business_name || client.name);
                         }}
                       >
@@ -711,11 +714,12 @@ export default function Dashboard() {
                         </div>
                         <div className="flex flex-wrap gap-2">
                           {client.scripts.map((script: ScriptWithType) => (
-                            <Link key={script.id} to={`/script/${script.id}`}>
-                              <Button 
+                            <Link key={script.id} to={`/script/${script.id}`} onClick={(e) => e.stopPropagation()}>
+                              <Button
                                 variant="outline" 
                                 size="sm" 
                                 className="h-10 text-xs px-3 gap-2.5 hover:bg-primary/5 hover:border-primary/30 transition-colors shadow-sm group/script"
+                                onClick={(e) => e.stopPropagation()}
                               >
                                 {script.image_url ? (
                                   <div className="h-6 w-6 rounded-md overflow-hidden flex-shrink-0 bg-muted ring-1 ring-border/50 group-hover/script:ring-primary/30 transition-all">
@@ -741,19 +745,6 @@ export default function Dashboard() {
                             </Link>
                           ))}
                         </div>
-                      </div>
-                    )}
-
-
-                    {client.scripts.length === 0 && (
-                      <div className="text-center py-4">
-                        <p className="text-sm text-muted-foreground">No scripts yet</p>
-                        <Link to={`/client/${client.id}`}>
-                          <Button variant="ghost" size="sm" className="mt-2 gap-2 text-xs">
-                            <Plus className="h-3 w-3" />
-                            View Details
-                          </Button>
-                        </Link>
                       </div>
                     )}
                   </div>
