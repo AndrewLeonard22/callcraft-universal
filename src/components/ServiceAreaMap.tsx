@@ -116,12 +116,16 @@ export default function ServiceAreaMap({ city, serviceArea, address, radiusMiles
 
     mapboxgl.accessToken = mapboxToken;
 
-    const searchLocation = address || city || serviceArea || 'United States';
+    // Filter out empty strings and use first valid location
+    const searchLocation = [address, city, serviceArea].find(loc => loc && loc.trim() !== '') || 'United States';
     const radius = typeof radiusMiles === 'number' && !isNaN(radiusMiles) ? radiusMiles : extractRadius(serviceArea);
     setServiceRadius(radius);
     
     fetch(`https://api.mapbox.com/geocoding/v5/mapbox.places/${encodeURIComponent(searchLocation)}.json?access_token=${mapboxToken}`)
-      .then(res => res.json())
+      .then(res => {
+        if (!res.ok) throw new Error('Geocoding failed');
+        return res.json();
+      })
       .then(data => {
         const coordinates = data.features?.[0]?.center || [-98.5795, 39.8283];
         setCenterCoordinates(coordinates as [number, number]);
@@ -218,6 +222,22 @@ export default function ServiceAreaMap({ city, serviceArea, address, radiusMiles
               .addTo(map.current!);
           }
         });
+      })
+      .catch(error => {
+        console.error('Map initialization error:', error);
+        toast.error('Failed to initialize map. Please refresh the page.');
+        // Initialize with default US center on error
+        const defaultCoords: [number, number] = [-98.5795, 39.8283];
+        setCenterCoordinates(defaultCoords);
+        
+        map.current = new mapboxgl.Map({
+          container: mapContainer.current!,
+          style: 'mapbox://styles/mapbox/streets-v12',
+          center: defaultCoords,
+          zoom: 4,
+        });
+
+        map.current.addControl(new mapboxgl.NavigationControl(), 'top-right');
       });
 
     return () => {
