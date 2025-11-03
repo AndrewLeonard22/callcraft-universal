@@ -98,6 +98,7 @@ export default function ScriptViewer() {
   const [qualificationSummary, setQualificationSummary] = useState<string | null>(null);
   const [generatingSummary, setGeneratingSummary] = useState(false);
   const [serviceTypeId, setServiceTypeId] = useState<string | null>(null);
+  const [organizationId, setOrganizationId] = useState<string | null>(null);
   const responseTimeouts = useRef<Record<string, number>>({});
   const responsesRef = useRef<Record<string, QualificationResponse>>({});
   useEffect(() => {
@@ -175,12 +176,13 @@ export default function ScriptViewer() {
   };
 
   const loadQualificationsOnly = async () => {
-    if (!serviceTypeId) return;
+    if (!serviceTypeId || !organizationId) return;
 
     try {
       const { data, error } = await supabase
         .from("qualification_questions")
         .select("*")
+        .eq('organization_id', organizationId)
         .or(`service_type_id.eq.${serviceTypeId},service_type_id.is.null`)
         .order("display_order", { ascending: true });
 
@@ -195,24 +197,24 @@ export default function ScriptViewer() {
   };
 
   useEffect(() => {
-    if (!serviceTypeId) return;
+    if (!serviceTypeId || !organizationId) return;
     loadFaqsOnly();
     loadQualificationsOnly();
-  }, [serviceTypeId]);
+  }, [serviceTypeId, organizationId]);
 
   const loadClientData = async () => {
     try {
       // First load the script to get the client_id
       const scriptResult = await supabase
         .from("scripts")
-        .select("*, client_id, service_name, service_type_id")
+        .select("*, client_id, service_name, service_type_id, organization_id")
         .eq("id", scriptId)
         .single();
 
       if (scriptResult.error) throw scriptResult.error;
       setScript(scriptResult.data);
       setServiceTypeId(scriptResult.data.service_type_id);
-
+      setOrganizationId(scriptResult.data.organization_id);
       // Load FAQs if service_type_id exists
       if (scriptResult.data.service_type_id) {
         const [faqResult, qualQuestionsResult, qualResponsesResult, summaryCheck] = await Promise.all([
@@ -224,6 +226,7 @@ export default function ScriptViewer() {
           supabase
             .from("qualification_questions")
             .select("*")
+            .eq('organization_id', scriptResult.data.organization_id)
             .or(`service_type_id.eq.${scriptResult.data.service_type_id},service_type_id.is.null`)
             .order("display_order", { ascending: true }),
           supabase
@@ -319,15 +322,21 @@ export default function ScriptViewer() {
   };
 
   const handleQualificationCheck = async (questionId: string, isChecked: boolean) => {
+    // Optimistic update to avoid UI lag
+    const prevState = qualificationResponses[questionId];
+    setQualificationResponses(prev => ({
+      ...prev,
+      [questionId]: { ...(prev[questionId] || {} as QualificationResponse), is_asked: isChecked },
+    }));
+
     try {
-      const existing = qualificationResponses[questionId];
+      const existing = prevState;
       
-      if (existing) {
+      if (existing && (existing as any).id) {
         const { error } = await supabase
           .from("qualification_responses")
           .update({ is_asked: isChecked })
-          .eq("id", existing.id);
-
+          .eq("id", (existing as any).id);
         if (error) throw error;
       } else {
         const { data, error } = await supabase
@@ -340,22 +349,22 @@ export default function ScriptViewer() {
           })
           .select()
           .single();
-
         if (error) throw error;
-        
+
+        // Ensure row id is stored
         setQualificationResponses(prev => ({
           ...prev,
           [questionId]: data,
         }));
       }
-
-      setQualificationResponses(prev => ({
-        ...prev,
-        [questionId]: { ...(prev[questionId] || {} as QualificationResponse), is_asked: isChecked },
-      }));
     } catch (error) {
       console.error("Error updating qualification check:", error);
       toast.error("Failed to update question status");
+      // Revert on failure
+      setQualificationResponses(prev => ({
+        ...prev,
+        [questionId]: prevState || undefined as any,
+      }));
     }
   };
 
@@ -1348,10 +1357,12 @@ export default function ScriptViewer() {
           <>
             <Button
               onClick={() => {
-                setShowQualification(!showQualification);
-                if (!showQualification) {
+                const opening = !showQualification;
+                setShowQualification(opening);
+                if (opening) {
                   setShowObjections(false);
                   setShowFaqs(false);
+                  loadQualificationsOnly();
                 }
               }}
               className="fixed bottom-6 left-6 h-14 rounded-full shadow-lg z-40"
