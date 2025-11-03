@@ -23,6 +23,7 @@ interface Template {
   service_name: string;
   script_content: string;
   image_url?: string;
+  service_type_id?: string;
 }
 
 interface ServiceType {
@@ -112,7 +113,7 @@ export default function CreateScript() {
 
       const { data, error } = await supabase
         .from("scripts")
-        .select("id, service_name, script_content, image_url")
+        .select("id, service_name, script_content, image_url, service_type_id")
         .eq("is_template", true)
         .eq("organization_id", orgMember.organization_id)
         .order("service_name", { ascending: true });
@@ -143,6 +144,11 @@ export default function CreateScript() {
   const handleTemplateSelect = (templateId: string) => {
     setSelectedTemplateId(templateId);
   };
+
+  // Filter templates by selected service type
+  const filteredTemplates = selectedServiceTypeId
+    ? templates.filter(t => t.service_type_id === selectedServiceTypeId)
+    : [];
 
   const handleGenerate = async () => {
     if (!selectedServiceTypeId) {
@@ -355,15 +361,25 @@ export default function CreateScript() {
             <CardContent>
               <Select value={selectedTemplateId} onValueChange={handleTemplateSelect}>
                 <SelectTrigger>
-                  <SelectValue placeholder="Select a template..." />
+                  <SelectValue placeholder={
+                    !selectedServiceTypeId 
+                      ? "Select a service type first..." 
+                      : filteredTemplates.length === 0 
+                        ? "No templates for this service type" 
+                        : "Select a template..."
+                  } />
                 </SelectTrigger>
                 <SelectContent className="bg-background z-50">
-                  {templates.length === 0 ? (
+                  {!selectedServiceTypeId ? (
                     <div className="p-4 text-sm text-muted-foreground text-center">
-                      No templates available. Create one first.
+                      Please select a service type first
+                    </div>
+                  ) : filteredTemplates.length === 0 ? (
+                    <div className="p-4 text-sm text-muted-foreground text-center">
+                      No templates for this service type. Create one in Templates page.
                     </div>
                   ) : (
-                    templates.map((template) => (
+                    filteredTemplates.map((template) => (
                       <SelectItem key={template.id} value={template.id}>
                         {template.service_name}
                       </SelectItem>
@@ -371,6 +387,11 @@ export default function CreateScript() {
                   )}
                 </SelectContent>
               </Select>
+              <p className="text-xs text-muted-foreground mt-2">
+                {selectedServiceTypeId && filteredTemplates.length > 0
+                  ? "AI will only replace client-specific details like company name, address, and pricing in the template"
+                  : "Templates are filtered by the selected service type"}
+              </p>
             </CardContent>
           </Card>
 

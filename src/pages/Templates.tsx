@@ -200,6 +200,7 @@ interface Template {
   script_content: string;
   created_at: string;
   image_url?: string;
+  service_type_id?: string;
 }
 
 interface ObjectionTemplate {
@@ -462,6 +463,7 @@ export default function Templates() {
         const updatePayload: any = {
           service_name: serviceName,
           script_content: scriptContent,
+          service_type_id: editingTemplate.service_type_id || null,
         };
         if (uploadedImageUrl) updatePayload.image_url = uploadedImageUrl;
 
@@ -473,7 +475,13 @@ export default function Templates() {
         if (error) throw error;
         toast.success('Template updated successfully!');
       } else {
-        // Create new template
+        // Create new template - require service type selection
+        if (!editingTemplate?.service_type_id) {
+          toast.error('Please select a service type for this template');
+          setSaving(false);
+          return;
+        }
+
         const insertPayload: any = {
           client_id: '00000000-0000-0000-0000-000000000001',
           service_name: serviceName,
@@ -481,6 +489,7 @@ export default function Templates() {
           is_template: true,
           version: 1,
           organization_id: userOrganizationId,
+          service_type_id: editingTemplate.service_type_id,
         };
         if (uploadedImageUrl) insertPayload.image_url = uploadedImageUrl;
 
@@ -774,7 +783,21 @@ export default function Templates() {
 
           <TabsContent value="scripts" className="space-y-6">
             <div className="flex justify-end">
-              <Button onClick={() => setShowCreateForm(!showCreateForm)}>
+              <Button onClick={() => {
+                setShowCreateForm(!showCreateForm);
+                if (!showCreateForm) {
+                  // Initialize with empty template that can hold service_type_id
+                  setEditingTemplate({ 
+                    id: '', 
+                    service_name: '', 
+                    script_content: '', 
+                    created_at: '', 
+                    service_type_id: '' 
+                  });
+                  setServiceName("");
+                  setScriptContent("");
+                }
+              }}>
                 <Plus className="mr-2 h-4 w-4" />
                 New Script Template
               </Button>
@@ -795,12 +818,34 @@ export default function Templates() {
                 <Label htmlFor="service-name">Template Name</Label>
                 <Input
                   id="service-name"
-                  placeholder="e.g., Standard Sales Script"
+                  placeholder="e.g., Turf Installation V1"
                   value={serviceName}
                   onChange={(e) => setServiceName(e.target.value)}
                 />
+              </div>
+              <div>
+                <Label htmlFor="service-type-select">Assign to Service Type</Label>
+                <Select 
+                  value={editingTemplate?.service_type_id || ""} 
+                  onValueChange={(value) => {
+                    if (editingTemplate) {
+                      setEditingTemplate({ ...editingTemplate, service_type_id: value });
+                    }
+                  }}
+                >
+                  <SelectTrigger id="service-type-select">
+                    <SelectValue placeholder="Select a service type" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {serviceTypes.map((type) => (
+                      <SelectItem key={type.id} value={type.id}>
+                        {type.name}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
                 <p className="text-xs text-muted-foreground mt-1">
-                  This template can be used across all services
+                  This template will only appear when creating scripts for this service type
                 </p>
               </div>
               <div>
