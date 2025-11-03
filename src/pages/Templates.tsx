@@ -1383,61 +1383,127 @@ export default function Templates() {
                 </CardContent>
               </Card>
             ) : (
-              <div className="space-y-4">
-                {qualificationQuestions.map((question) => {
-                  const serviceType = question.service_type_id ? serviceTypes.find(st => st.id === question.service_type_id) : null;
-                  return (
-                    <Card key={question.id}>
-                      <CardHeader>
-                        <div className="flex items-start gap-4 justify-between">
-                          <div className="flex items-start gap-3 flex-1">
-                            <div className="h-12 w-12 rounded-lg bg-muted border border-border flex-shrink-0 flex items-center justify-center">
-                              <ClipboardCheck className="h-5 w-5 text-muted-foreground" />
-                            </div>
-                            <div className="flex-1 min-w-0">
-                              <CardTitle className="text-lg">{question.question}</CardTitle>
-                              <CardDescription className="mt-1">
-                                Service Type: {question.service_type_id ? (serviceType?.name || 'Unknown') : 'Universal (All Services)'}
-                              </CardDescription>
-                            </div>
-                          </div>
-                          <div className="flex gap-2 flex-shrink-0">
-                            <Button
-                              variant="ghost"
-                              size="icon"
-                              onClick={() => handleEditQualification(question)}
-                            >
-                              <Edit2 className="h-4 w-4" />
-                            </Button>
-                            <AlertDialog>
-                              <AlertDialogTrigger asChild>
-                                <Button variant="ghost" size="icon" className="text-destructive flex-shrink-0">
-                                  <Trash2 className="h-4 w-4" />
+              <div className="space-y-6">
+                {/* Universal Questions Section */}
+                {qualificationQuestions.filter(q => !q.service_type_id).length > 0 && (
+                  <div>
+                    <h3 className="text-lg font-semibold mb-3 text-foreground">Universal Questions (All Services)</h3>
+                    <div className="space-y-3">
+                      {qualificationQuestions.filter(q => !q.service_type_id).map((question) => (
+                        <Card key={question.id}>
+                          <CardHeader>
+                            <div className="flex items-start gap-4 justify-between">
+                              <div className="flex items-start gap-3 flex-1">
+                                <div className="h-12 w-12 rounded-lg bg-muted border border-border flex-shrink-0 flex items-center justify-center">
+                                  <ClipboardCheck className="h-5 w-5 text-muted-foreground" />
+                                </div>
+                                <div className="flex-1 min-w-0">
+                                  <CardTitle className="text-lg">{question.question}</CardTitle>
+                                </div>
+                              </div>
+                              <div className="flex gap-2 flex-shrink-0">
+                                <Button
+                                  variant="ghost"
+                                  size="icon"
+                                  onClick={() => handleEditQualification(question)}
+                                >
+                                  <Edit2 className="h-4 w-4" />
                                 </Button>
-                              </AlertDialogTrigger>
-                              <AlertDialogContent>
-                                <AlertDialogHeader>
-                                  <AlertDialogTitle>Delete Question?</AlertDialogTitle>
-                                  <AlertDialogDescription>
-                                    This will permanently delete this qualification question.
-                                    This action cannot be undone.
-                                  </AlertDialogDescription>
-                                </AlertDialogHeader>
-                                <AlertDialogFooter>
-                                  <AlertDialogCancel>Cancel</AlertDialogCancel>
-                                  <AlertDialogAction
-                                    onClick={() => handleDeleteQualification(question.id)}
-                                    className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
+                                <AlertDialog>
+                                  <AlertDialogTrigger asChild>
+                                    <Button variant="ghost" size="icon" className="text-destructive flex-shrink-0">
+                                      <Trash2 className="h-4 w-4" />
+                                    </Button>
+                                  </AlertDialogTrigger>
+                                  <AlertDialogContent>
+                                    <AlertDialogHeader>
+                                      <AlertDialogTitle>Delete Question?</AlertDialogTitle>
+                                      <AlertDialogDescription>
+                                        This will permanently delete this qualification question.
+                                        This action cannot be undone.
+                                      </AlertDialogDescription>
+                                    </AlertDialogHeader>
+                                    <AlertDialogFooter>
+                                      <AlertDialogCancel>Cancel</AlertDialogCancel>
+                                      <AlertDialogAction
+                                        onClick={() => handleDeleteQualification(question.id)}
+                                        className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
+                                      >
+                                        Delete
+                                      </AlertDialogAction>
+                                    </AlertDialogFooter>
+                                  </AlertDialogContent>
+                                </AlertDialog>
+                              </div>
+                            </div>
+                          </CardHeader>
+                        </Card>
+                      ))}
+                    </div>
+                  </div>
+                )}
+
+                {/* Service-Specific Questions Sections */}
+                {serviceTypes.map((serviceType) => {
+                  const typeQuestions = qualificationQuestions.filter(q => q.service_type_id === serviceType.id);
+                  if (typeQuestions.length === 0) return null;
+                  
+                  return (
+                    <div key={serviceType.id}>
+                      <h3 className="text-lg font-semibold mb-3 text-foreground">{serviceType.name} Questions</h3>
+                      <div className="space-y-3">
+                        {typeQuestions.map((question) => (
+                          <Card key={question.id}>
+                            <CardHeader>
+                              <div className="flex items-start gap-4 justify-between">
+                                <div className="flex items-start gap-3 flex-1">
+                                  <div className="h-12 w-12 rounded-lg bg-muted border border-border flex-shrink-0 flex items-center justify-center">
+                                    <ClipboardCheck className="h-5 w-5 text-muted-foreground" />
+                                  </div>
+                                  <div className="flex-1 min-w-0">
+                                    <CardTitle className="text-lg">{question.question}</CardTitle>
+                                  </div>
+                                </div>
+                                <div className="flex gap-2 flex-shrink-0">
+                                  <Button
+                                    variant="ghost"
+                                    size="icon"
+                                    onClick={() => handleEditQualification(question)}
                                   >
-                                    Delete
-                                  </AlertDialogAction>
-                                </AlertDialogFooter>
-                              </AlertDialogContent>
-                            </AlertDialog>
-                          </div>
-                        </div>
-                      </CardHeader>
-                    </Card>
+                                    <Edit2 className="h-4 w-4" />
+                                  </Button>
+                                  <AlertDialog>
+                                    <AlertDialogTrigger asChild>
+                                      <Button variant="ghost" size="icon" className="text-destructive flex-shrink-0">
+                                        <Trash2 className="h-4 w-4" />
+                                      </Button>
+                                    </AlertDialogTrigger>
+                                    <AlertDialogContent>
+                                      <AlertDialogHeader>
+                                        <AlertDialogTitle>Delete Question?</AlertDialogTitle>
+                                        <AlertDialogDescription>
+                                          This will permanently delete this qualification question.
+                                          This action cannot be undone.
+                                        </AlertDialogDescription>
+                                      </AlertDialogHeader>
+                                      <AlertDialogFooter>
+                                        <AlertDialogCancel>Cancel</AlertDialogCancel>
+                                        <AlertDialogAction
+                                          onClick={() => handleDeleteQualification(question.id)}
+                                          className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
+                                        >
+                                          Delete
+                                        </AlertDialogAction>
+                                      </AlertDialogFooter>
+                                    </AlertDialogContent>
+                                  </AlertDialog>
+                                </div>
+                              </div>
+                            </CardHeader>
+                          </Card>
+                        ))}
+                      </div>
+                    </div>
                   );
                 })}
               </div>
