@@ -517,20 +517,12 @@ export default function ScriptViewer() {
   const autoCalcPrice = calculatedPricePerSqFt();
 
   const FormattedScript = ({ content }: { content: string }) => {
-    // If content contains HTML tags, render it as HTML (preserve double-spacing)
+    // If content contains HTML tags, render it as HTML preserving exact spacing
     if (content.includes('<p>') || content.includes('<span') || content.includes('<strong>') || content.includes('<mark>')) {
-      // Convert empty paragraphs and double <br> into spacer blocks so intentional blank lines are visible
-      const processedHtml = content
-        // Empty paragraphs like <p><br></p> or <p>   </p>
-        .replace(/<p>(?:\s|&nbsp;)*<br\s*\/>\s*<\/p>/gi, '<div class="html-spacer"></div>')
-        .replace(/<p>(?:\s|&nbsp;)*<\/p>/gi, '<div class="html-spacer"></div>')
-        // Consecutive <br> inside the same paragraph => insert spacer between them
-        .replace(/<br\s*\/?>(?:\s|&nbsp;)*<br\s*\/?>(?!\s*<\/p>)/gi, '<br/><div class="html-spacer"></div>');
-
       return (
         <div 
-          className="html-content text-sm leading-relaxed text-foreground/90 [&>p]:mb-3 [&>h1]:mt-6 [&>h2]:mt-5 [&>h3]:mt-4 [&_.html-spacer]:h-6"
-          dangerouslySetInnerHTML={{ __html: processedHtml }}
+          className="html-content text-sm leading-relaxed text-foreground/90 [&_p]:min-h-[1.5em] [&_p]:mb-2 [&_br]:block [&_br]:mb-2"
+          dangerouslySetInnerHTML={{ __html: content }}
         />
       );
     }
