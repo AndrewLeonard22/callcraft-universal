@@ -260,6 +260,7 @@ export default function Templates() {
   const [saving, setSaving] = useState(false);
   const [templateImageFile, setTemplateImageFile] = useState<File | null>(null);
   const [userOrganizationId, setUserOrganizationId] = useState<string | null>(null);
+  const [selectedTemplateServiceTypeId, setSelectedTemplateServiceTypeId] = useState<string>("");
 
   useEffect(() => {
     loadUserOrganization();
@@ -429,6 +430,7 @@ export default function Templates() {
     setEditingTemplate(template);
     setServiceName(template.service_name);
     setScriptContent(template.script_content);
+    setSelectedTemplateServiceTypeId(template.service_type_id || "");
     setShowCreateForm(true);
   };
 
@@ -458,12 +460,12 @@ export default function Templates() {
         uploadedImageUrl = data.publicUrl;
       }
 
-      if (editingTemplate) {
+      if (editingTemplate?.id) {
         // Update existing template
         const updatePayload: any = {
           service_name: serviceName,
           script_content: scriptContent,
-          service_type_id: editingTemplate.service_type_id || null,
+          service_type_id: selectedTemplateServiceTypeId || null,
         };
         if (uploadedImageUrl) updatePayload.image_url = uploadedImageUrl;
 
@@ -476,7 +478,7 @@ export default function Templates() {
         toast.success('Template updated successfully!');
       } else {
         // Create new template - require service type selection
-        if (!editingTemplate?.service_type_id || editingTemplate.service_type_id.trim() === '') {
+        if (!selectedTemplateServiceTypeId || selectedTemplateServiceTypeId.trim() === '') {
           toast.error('Please select a service type for this template');
           setSaving(false);
           return;
@@ -489,7 +491,7 @@ export default function Templates() {
           is_template: true,
           version: 1,
           organization_id: userOrganizationId,
-          service_type_id: editingTemplate.service_type_id,
+          service_type_id: selectedTemplateServiceTypeId,
         };
         if (uploadedImageUrl) insertPayload.image_url = uploadedImageUrl;
 
@@ -502,6 +504,7 @@ export default function Templates() {
       setServiceName('');
       setScriptContent('');
       setTemplateImageFile(null);
+      setSelectedTemplateServiceTypeId('');
       setShowCreateForm(false);
       setEditingTemplate(null);
       loadTemplates();
@@ -786,16 +789,10 @@ export default function Templates() {
               <Button onClick={() => {
                 setShowCreateForm(!showCreateForm);
                 if (!showCreateForm) {
-                  // Initialize with empty template that can hold service_type_id
-                  setEditingTemplate({ 
-                    id: '', 
-                    service_name: '', 
-                    script_content: '', 
-                    created_at: '', 
-                    service_type_id: undefined 
-                  });
+                  setEditingTemplate(null);
                   setServiceName("");
                   setScriptContent("");
+                  setSelectedTemplateServiceTypeId("");
                 }
               }}>
                 <Plus className="mr-2 h-4 w-4" />
@@ -826,12 +823,8 @@ export default function Templates() {
               <div>
                 <Label htmlFor="service-type-select">Assign to Service Type</Label>
                 <Select 
-                  value={editingTemplate?.service_type_id || undefined} 
-                  onValueChange={(value) => {
-                    if (editingTemplate) {
-                      setEditingTemplate({ ...editingTemplate, service_type_id: value });
-                    }
-                  }}
+                  value={selectedTemplateServiceTypeId} 
+                  onValueChange={setSelectedTemplateServiceTypeId}
                 >
                   <SelectTrigger id="service-type-select">
                     <SelectValue placeholder="Select a service type" />
@@ -878,6 +871,7 @@ export default function Templates() {
                   setServiceName("");
                   setScriptContent("");
                   setTemplateImageFile(null);
+                  setSelectedTemplateServiceTypeId("");
                 }}>
                   Cancel
                 </Button>
