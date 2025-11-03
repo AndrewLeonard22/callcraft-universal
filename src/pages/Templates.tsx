@@ -28,7 +28,7 @@ const FormattedContent = ({ content }: { content: string }) => {
   if (content.includes('<p>') || content.includes('<span') || content.includes('<strong>') || content.includes('<mark>')) {
     return (
       <div 
-        className="html-content text-sm text-foreground/80"
+        className="html-content whitespace-pre-wrap text-sm text-foreground/80"
         dangerouslySetInnerHTML={{ __html: content }}
       />
     );
@@ -185,7 +185,7 @@ const FormattedContent = ({ content }: { content: string }) => {
         }
         
         return (
-          <p key={index} className="text-sm leading-relaxed text-foreground/80">
+          <p key={index} className="text-sm leading-relaxed whitespace-pre-wrap text-foreground/80">
             {formatLine(line)}
           </p>
         );

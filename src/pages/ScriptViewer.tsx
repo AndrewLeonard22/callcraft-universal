@@ -573,7 +573,7 @@ export default function ScriptViewer() {
     if (content.includes('<p>') || content.includes('<span') || content.includes('<strong>') || content.includes('<mark>')) {
       return (
         <div 
-          className="html-content text-sm text-foreground/80"
+          className="html-content whitespace-pre-wrap text-sm text-foreground/80"
           dangerouslySetInnerHTML={{ __html: content }}
         />
       );
@@ -796,7 +796,7 @@ export default function ScriptViewer() {
       
       // Regular content with formatting
       elements.push(
-        <p key={`p-${i}`} className="text-sm leading-relaxed text-foreground/80">
+        <p key={`p-${i}`} className="text-sm leading-relaxed whitespace-pre-wrap text-foreground/80">
           {formatLine(line)}
         </p>
       );
