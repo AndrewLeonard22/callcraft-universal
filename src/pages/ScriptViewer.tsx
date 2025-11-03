@@ -521,7 +521,7 @@ export default function ScriptViewer() {
     if (content.includes('<p>') || content.includes('<span') || content.includes('<strong>') || content.includes('<mark>')) {
       return (
         <div 
-          className="html-content text-sm leading-relaxed text-foreground/90 [&_p]:min-h-[1.5em] [&_p]:mb-2 [&_br]:block [&_br]:mb-2"
+          className="html-content text-base text-foreground/90"
           dangerouslySetInnerHTML={{ __html: content }}
         />
       );
