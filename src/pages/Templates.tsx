@@ -262,10 +262,7 @@ export default function Templates() {
 
   useEffect(() => {
     loadUserOrganization();
-    loadTemplates();
-    loadObjectionTemplates();
     loadFaqs();
-    loadQualificationQuestions();
     loadServiceTypes();
 
     // Set up real-time subscriptions
@@ -313,6 +310,14 @@ export default function Templates() {
     };
   }, []);
 
+  useEffect(() => {
+    if (userOrganizationId) {
+      loadTemplates();
+      loadObjectionTemplates();
+      loadQualificationQuestions();
+    }
+  }, [userOrganizationId]);
+
   const loadUserOrganization = async () => {
     try {
       const { data: { user } } = await supabase.auth.getUser();
@@ -333,10 +338,13 @@ export default function Templates() {
 
   const loadTemplates = async () => {
     try {
+      if (!userOrganizationId) return;
+      
       const { data, error } = await supabase
         .from("scripts")
         .select("*")
         .eq("is_template", true)
+        .eq("organization_id", userOrganizationId)
         .order("created_at", { ascending: false });
 
       if (error) throw error;
@@ -351,9 +359,12 @@ export default function Templates() {
 
   const loadObjectionTemplates = async () => {
     try {
+      if (!userOrganizationId) return;
+      
       const { data, error } = await supabase
         .from("objection_handling_templates")
         .select("*")
+        .eq("organization_id", userOrganizationId)
         .order("created_at", { ascending: false });
 
       if (error) throw error;
@@ -396,9 +407,12 @@ export default function Templates() {
 
   const loadQualificationQuestions = async () => {
     try {
+      if (!userOrganizationId) return;
+      
       const { data, error } = await supabase
         .from("qualification_questions")
         .select("*")
+        .eq("organization_id", userOrganizationId)
         .order("display_order", { ascending: true });
 
       if (error) throw error;
