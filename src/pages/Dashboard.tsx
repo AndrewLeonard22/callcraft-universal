@@ -681,11 +681,6 @@ export default function Dashboard() {
                           <span className="block mb-1 font-medium">{client.owners_name}</span>
                         )}
                         <span className="text-xs flex items-center gap-2">
-                          {client.service_type && client.service_type.toLowerCase() !== "general services" && (
-                            <span className="inline-flex items-center px-2 py-0.5 rounded-full bg-primary/10 text-primary text-xs font-medium">
-                              {client.service_type}
-                            </span>
-                          )}
                           {client.city && (
                             <span className="text-muted-foreground">{client.city}</span>
                           )}
