@@ -579,11 +579,14 @@ export default function ScriptViewer() {
 
   const FormattedScript = ({ content }: { content: string }) => {
     // If content contains HTML tags, render it as HTML preserving exact spacing
-    if (content.includes('<p>') || content.includes('<span') || content.includes('<strong>') || content.includes('<mark>')) {
+    if (content.includes('<p') || content.includes('<span') || content.includes('<strong>') || content.includes('<mark')) {
+      // If there are no block paragraphs or <br>, convert newlines to <br> to ensure spacing
+      const needsBr = !content.includes('<p') && !content.includes('<br');
+      const html = needsBr ? content.replace(/\n/g, '<br />') : content;
       return (
         <div 
           className="html-content whitespace-pre-wrap text-sm text-foreground/80"
-          dangerouslySetInnerHTML={{ __html: content }}
+          dangerouslySetInnerHTML={{ __html: html }}
         />
       );
     }

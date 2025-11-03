@@ -191,6 +191,20 @@ All colors MUST be HSL.
     margin-bottom: 0;
   }
   
+  /* Also support scripts that use <div> or plain newlines instead of <p> */
+  .html-content div {
+    margin: 1rem 0;
+    min-height: 1.2em;
+  }
+
+  .html-content ul, .html-content ol {
+    margin: 1rem 0 1rem 1.25rem;
+  }
+
+  .html-content li {
+    margin: 0.25rem 0;
+  }
+  
   .html-content br {
     display: block;
     content: "";
