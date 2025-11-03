@@ -755,7 +755,7 @@ export default function ScriptViewer() {
           count++;
           i++;
         }
-        const height = 8 * count; // 0.5rem per blank line
+        const height = 16 * count; // 1rem per blank line for clear visual separation
         elements.push(<div key={`spacer-${i}`} style={{ height }} aria-hidden="true" />);
         continue;
       }
