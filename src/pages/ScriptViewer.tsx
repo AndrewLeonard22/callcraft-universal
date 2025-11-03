@@ -573,7 +573,7 @@ export default function ScriptViewer() {
     if (content.includes('<p>') || content.includes('<span') || content.includes('<strong>') || content.includes('<mark>')) {
       return (
         <div 
-          className="html-content text-base text-foreground/90"
+          className="html-content text-sm text-foreground/80"
           dangerouslySetInnerHTML={{ __html: content }}
         />
       );
@@ -748,22 +748,16 @@ export default function ScriptViewer() {
     for (let i = 0; i < lines.length; i++) {
       const line = lines[i];
 
-      // Handle consecutive blank lines -> create proportionally larger spacer
+      // Handle blank lines
       if (!line.trim()) {
-        let count = 1;
-        while (i + 1 < lines.length && !lines[i + 1].trim()) {
-          count++;
-          i++;
-        }
-        const height = Math.min(24 + (count - 1) * 16, 120); // px
-        elements.push(<div key={`spacer-${i}`} style={{ height }} aria-hidden="true" />);
+        elements.push(<div key={`spacer-${i}`} className="h-1" />);
         continue;
       }
 
       // Main numbered sections (like "1. SECTION NAME" or "3. UNDERSTAND WHY THEY CALLED")
       if (line.match(/^\d+\.\s+[A-Z]/)) {
         elements.push(
-          <h3 key={`h3-${i}`} className="text-2xl font-bold mt-8 mb-4 first:mt-0 text-foreground">
+          <h3 key={`h3-${i}`} className="text-sm font-bold mt-2 mb-1 first:mt-0 text-foreground">
             {line}
           </h3>
         );
@@ -773,7 +767,7 @@ export default function ScriptViewer() {
       // Section headers (all caps or ending with colon)
       if (line.match(/^[A-Z\s]+:$/) || line.match(/^[*#]+\s*[A-Z][^a-z]*$/)) {
         elements.push(
-          <h3 key={`h3b-${i}`} className="text-xl font-bold mt-8 mb-4 first:mt-0 text-foreground">
+          <h3 key={`h3b-${i}`} className="text-sm font-bold mt-2 mb-1 first:mt-0 text-foreground">
             {line.replace(/^[*#]+\s*/, '').replace(/:$/, '')}
           </h3>
         );
@@ -783,7 +777,7 @@ export default function ScriptViewer() {
       // Stage markers (like "Stage 1:", "Phase 2:")
       if (line.match(/^(Stage|Phase|Step)\s+\d+/i)) {
         elements.push(
-          <h4 key={`h4-${i}`} className="text-lg font-semibold mt-6 mb-3 text-foreground">
+          <h4 key={`h4-${i}`} className="text-sm font-semibold mt-2 mb-1 text-foreground">
             {line}
           </h4>
         );
@@ -793,7 +787,7 @@ export default function ScriptViewer() {
       // Sub-headers (lines starting with ** or ending with :)
       if (line.match(/^\*\*[^*]+\*\*/) || (line.endsWith(':') && line.length < 60 && !line.includes('.'))) {
         elements.push(
-          <h5 key={`h5-${i}`} className="font-semibold text-base mt-4 mb-2 text-foreground">
+          <h5 key={`h5-${i}`} className="font-semibold text-sm mt-2 mb-1 text-foreground">
             {line.replace(/^\*\*/, '').replace(/\*\*$/, '').replace(/:$/, '')}
           </h5>
         );
@@ -802,16 +796,16 @@ export default function ScriptViewer() {
       
       // Regular content with formatting
       elements.push(
-        <p key={`p-${i}`} className="text-[15px] leading-relaxed text-foreground/80">
+        <p key={`p-${i}`} className="text-sm leading-relaxed text-foreground/80">
           {formatLine(line)}
         </p>
       );
     }
     
     return (
-      <div className="space-y-3">
+      <>
         {elements}
-      </div>
+      </>
     );
   };
 
