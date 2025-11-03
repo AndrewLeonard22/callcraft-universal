@@ -138,10 +138,18 @@ export default function ScriptViewer() {
         })
         .subscribe();
 
+      const qualChannel = supabase
+        .channel('script-qualification-changes')
+        .on('postgres_changes', { event: '*', schema: 'public', table: 'qualification_questions' }, () => {
+          loadQualificationsOnly();
+        })
+        .subscribe();
+
       return () => {
         supabase.removeChannel(scriptChannel);
         supabase.removeChannel(objectionChannel);
         supabase.removeChannel(faqsChannel);
+        supabase.removeChannel(qualChannel);
       };
     }
   }, [scriptId]);
@@ -165,6 +173,32 @@ export default function ScriptViewer() {
       console.error("Error loading FAQs:", error);
     }
   };
+
+  const loadQualificationsOnly = async () => {
+    if (!serviceTypeId) return;
+
+    try {
+      const { data, error } = await supabase
+        .from("qualification_questions")
+        .select("*")
+        .or(`service_type_id.eq.${serviceTypeId},service_type_id.is.null`)
+        .order("display_order", { ascending: true });
+
+      if (error) {
+        console.error('Error loading qualification questions:', error);
+      } else {
+        setQualificationQuestions(data || []);
+      }
+    } catch (error) {
+      console.error("Error loading qualification questions:", error);
+    }
+  };
+
+  useEffect(() => {
+    if (!serviceTypeId) return;
+    loadFaqsOnly();
+    loadQualificationsOnly();
+  }, [serviceTypeId]);
 
   const loadClientData = async () => {
     try {
