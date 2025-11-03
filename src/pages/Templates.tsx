@@ -476,7 +476,7 @@ export default function Templates() {
         toast.success('Template updated successfully!');
       } else {
         // Create new template - require service type selection
-        if (!editingTemplate?.service_type_id) {
+        if (!editingTemplate?.service_type_id || editingTemplate.service_type_id.trim() === '') {
           toast.error('Please select a service type for this template');
           setSaving(false);
           return;
@@ -792,7 +792,7 @@ export default function Templates() {
                     service_name: '', 
                     script_content: '', 
                     created_at: '', 
-                    service_type_id: '' 
+                    service_type_id: undefined 
                   });
                   setServiceName("");
                   setScriptContent("");
@@ -826,7 +826,7 @@ export default function Templates() {
               <div>
                 <Label htmlFor="service-type-select">Assign to Service Type</Label>
                 <Select 
-                  value={editingTemplate?.service_type_id || ""} 
+                  value={editingTemplate?.service_type_id || undefined} 
                   onValueChange={(value) => {
                     if (editingTemplate) {
                       setEditingTemplate({ ...editingTemplate, service_type_id: value });
