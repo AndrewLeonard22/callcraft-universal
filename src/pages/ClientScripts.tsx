@@ -73,6 +73,26 @@ export default function ClientScripts() {
   // Optimized: Combined data loading with useCallback
   const loadData = useCallback(async () => {
     try {
+      // Get user's organization first
+      const { data: { user } } = await supabase.auth.getUser();
+      if (!user) {
+        toast.error("User not authenticated");
+        return;
+      }
+
+      const { data: orgMember } = await supabase
+        .from('organization_members')
+        .select('organization_id')
+        .eq('user_id', user.id)
+        .maybeSingle();
+
+      if (!orgMember?.organization_id) {
+        toast.error("Organization not found");
+        return;
+      }
+
+      const userOrganizationId = orgMember.organization_id;
+
       // Parallel API calls for better performance
       const [
         { data: clientData, error: clientError },
@@ -95,7 +115,7 @@ export default function ClientScripts() {
           .eq("client_id", clientId)
           .eq("is_template", false)
           .order("created_at", { ascending: false }),
-        supabase.from('scripts').select('service_name, image_url').eq('is_template', true),
+        supabase.from('scripts').select('service_name, image_url').eq('is_template', true).eq('organization_id', userOrganizationId),
         supabase.from('service_types').select('id, icon_url'),
         supabase
           .from("generated_images")

@@ -98,10 +98,23 @@ export default function CreateScript() {
 
   const loadTemplates = async () => {
     try {
+      // Get user's organization
+      const { data: { user } } = await supabase.auth.getUser();
+      if (!user) return;
+
+      const { data: orgMember } = await supabase
+        .from('organization_members')
+        .select('organization_id')
+        .eq('user_id', user.id)
+        .maybeSingle();
+
+      if (!orgMember?.organization_id) return;
+
       const { data, error } = await supabase
         .from("scripts")
         .select("id, service_name, script_content, image_url")
         .eq("is_template", true)
+        .eq("organization_id", orgMember.organization_id)
         .order("service_name", { ascending: true });
 
       if (error) throw error;

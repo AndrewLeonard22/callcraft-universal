@@ -126,6 +126,26 @@ export default function Dashboard() {
   // Optimized: Memoize loadClients to prevent unnecessary recreations
   const loadClients = useCallback(async () => {
     try {
+      // Get user's organization first
+      const { data: { user } } = await supabase.auth.getUser();
+      if (!user) {
+        toast({ title: "Error", description: "User not authenticated", variant: "destructive" });
+        return;
+      }
+
+      const { data: orgMember } = await supabase
+        .from('organization_members')
+        .select('organization_id')
+        .eq('user_id', user.id)
+        .maybeSingle();
+
+      if (!orgMember?.organization_id) {
+        setLoading(false);
+        return;
+      }
+
+      const userOrganizationId = orgMember.organization_id;
+
       // Batch parallel API calls for better performance
       const [
         { data: clientsData, error: clientsError },
@@ -138,6 +158,7 @@ export default function Dashboard() {
         supabase
           .from("clients")
           .select("*")
+          .eq("organization_id", userOrganizationId)
           .neq("id", "00000000-0000-0000-0000-000000000001")
           .order("last_accessed_at", { ascending: false, nullsFirst: false }),
         supabase
