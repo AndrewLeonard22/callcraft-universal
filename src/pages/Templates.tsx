@@ -466,6 +466,7 @@ export default function Templates() {
           script_content: scriptContent,
           is_template: true,
           version: 1,
+          organization_id: userOrganizationId,
         };
         if (uploadedImageUrl) insertPayload.image_url = uploadedImageUrl;
 
@@ -685,6 +686,7 @@ export default function Templates() {
             service_type_id: qualificationServiceTypeId,
             question: qualificationQuestion,
             display_order: qualificationQuestions.length,
+            organization_id: userOrganizationId,
           });
 
         if (error) throw error;
