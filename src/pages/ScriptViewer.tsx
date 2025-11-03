@@ -169,7 +169,7 @@ export default function ScriptViewer() {
           supabase
             .from("qualification_questions")
             .select("*")
-            .eq('service_type_id', scriptResult.data.service_type_id)
+            .or(`service_type_id.eq.${scriptResult.data.service_type_id},service_type_id.is.null`)
             .order("display_order", { ascending: true }),
           supabase
             .from("qualification_responses")

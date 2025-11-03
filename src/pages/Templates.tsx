@@ -681,7 +681,7 @@ export default function Templates() {
 
   const handleEditQualification = (question: QualificationQuestion) => {
     setEditingQualification(question);
-    setQualificationServiceTypeId(question.service_type_id || "");
+    setQualificationServiceTypeId(question.service_type_id || "universal");
     setQualificationQuestion(question.question);
     setShowQualificationForm(true);
   };
@@ -694,11 +694,13 @@ export default function Templates() {
 
     setSaving(true);
     try {
+      const serviceTypeValue = qualificationServiceTypeId === "universal" ? null : qualificationServiceTypeId;
+      
       if (editingQualification) {
         const { error } = await supabase
           .from("qualification_questions")
           .update({
-            service_type_id: qualificationServiceTypeId,
+            service_type_id: serviceTypeValue,
             question: qualificationQuestion,
           })
           .eq("id", editingQualification.id);
@@ -709,7 +711,7 @@ export default function Templates() {
         const { error } = await supabase
           .from("qualification_questions")
           .insert({
-            service_type_id: qualificationServiceTypeId,
+            service_type_id: serviceTypeValue,
             question: qualificationQuestion,
             display_order: qualificationQuestions.length,
             organization_id: userOrganizationId,
@@ -1319,6 +1321,7 @@ export default function Templates() {
                         <SelectValue placeholder="Select service type" />
                       </SelectTrigger>
                       <SelectContent>
+                        <SelectItem value="universal">Universal (All Services)</SelectItem>
                         {serviceTypes.map((type) => (
                           <SelectItem key={type.id} value={type.id}>
                             {type.name}
@@ -1394,7 +1397,7 @@ export default function Templates() {
                             <div className="flex-1 min-w-0">
                               <CardTitle className="text-lg">{question.question}</CardTitle>
                               <CardDescription className="mt-1">
-                                Service Type: {serviceType?.name || 'Unknown'}
+                                Service Type: {question.service_type_id ? (serviceType?.name || 'Unknown') : 'Universal (All Services)'}
                               </CardDescription>
                             </div>
                           </div>
