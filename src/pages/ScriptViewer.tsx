@@ -97,6 +97,7 @@ export default function ScriptViewer() {
   const [qualificationResponses, setQualificationResponses] = useState<Record<string, QualificationResponse>>({});
   const [qualificationSummary, setQualificationSummary] = useState<string | null>(null);
   const [generatingSummary, setGeneratingSummary] = useState(false);
+  const [serviceTypeId, setServiceTypeId] = useState<string | null>(null);
   const responseTimeouts = useRef<Record<string, number>>({});
   const responsesRef = useRef<Record<string, QualificationResponse>>({});
   useEffect(() => {
@@ -133,7 +134,7 @@ export default function ScriptViewer() {
       const faqsChannel = supabase
         .channel('script-faqs-changes')
         .on('postgres_changes', { event: '*', schema: 'public', table: 'faqs' }, () => {
-          loadClientData();
+          loadFaqsOnly();
         })
         .subscribe();
 
@@ -144,6 +145,26 @@ export default function ScriptViewer() {
       };
     }
   }, [scriptId]);
+
+  const loadFaqsOnly = async () => {
+    if (!serviceTypeId) return;
+    
+    try {
+      const { data, error } = await supabase
+        .from("faqs")
+        .select("*")
+        .eq('service_type_id', serviceTypeId)
+        .order("created_at", { ascending: false });
+
+      if (error) {
+        console.error('Error loading FAQs:', error);
+      } else {
+        setFaqs(data || []);
+      }
+    } catch (error) {
+      console.error("Error loading FAQs:", error);
+    }
+  };
 
   const loadClientData = async () => {
     try {
@@ -156,10 +177,10 @@ export default function ScriptViewer() {
 
       if (scriptResult.error) throw scriptResult.error;
       setScript(scriptResult.data);
+      setServiceTypeId(scriptResult.data.service_type_id);
 
       // Load FAQs if service_type_id exists
       if (scriptResult.data.service_type_id) {
-        console.log('Loading FAQs for service_type_id:', scriptResult.data.service_type_id);
         const [faqResult, qualQuestionsResult, qualResponsesResult, summaryCheck] = await Promise.all([
           supabase
             .from("faqs")
@@ -185,7 +206,6 @@ export default function ScriptViewer() {
         if (faqResult.error) {
           console.error('Error loading FAQs:', faqResult.error);
         } else {
-          console.log('Loaded FAQs:', faqResult.data);
           setFaqs(faqResult.data || []);
         }
 
@@ -208,8 +228,6 @@ export default function ScriptViewer() {
         if (summaryCheck.data?.qualification_summary) {
           setQualificationSummary(summaryCheck.data.qualification_summary);
         }
-      } else {
-        console.log('No service_type_id found on script');
       }
 
       // Then load client and details
