@@ -748,9 +748,15 @@ export default function ScriptViewer() {
     for (let i = 0; i < lines.length; i++) {
       const line = lines[i];
 
-      // Handle blank lines
+      // Handle consecutive blank lines -> add proportional spacer matching template paragraph margins
       if (!line.trim()) {
-        elements.push(<div key={`spacer-${i}`} className="h-1" />);
+        let count = 1;
+        while (i + 1 < lines.length && !lines[i + 1].trim()) {
+          count++;
+          i++;
+        }
+        const height = 8 * count; // 0.5rem per blank line
+        elements.push(<div key={`spacer-${i}`} style={{ height }} aria-hidden="true" />);
         continue;
       }
 
@@ -803,9 +809,9 @@ export default function ScriptViewer() {
     }
     
     return (
-      <>
+      <div className="html-content text-sm text-foreground/80">
         {elements}
-      </>
+      </div>
     );
   };
 
