@@ -579,13 +579,13 @@ export default function ScriptViewer() {
 
   const FormattedScript = ({ content }: { content: string }) => {
     // If content contains HTML tags, render it as HTML preserving exact spacing
-    const hasAllowedHtml = /<\s*(p|br|strong|em|b|i|u|span|mark|ul|ol|li|h[1-6]|div|section|article|header|footer|blockquote)\b/i.test(content);
+    const hasAllowedHtml = /<\s*(p|br|hr|strong|em|b|i|u|span|mark|ul|ol|li|h[1-6]|div|section|article|header|footer|blockquote)\b/i.test(content);
     if (hasAllowedHtml) {
       // If there are no block paragraphs or <br>, convert newlines to <br> to ensure spacing
       const needsBr = !content.includes('<p') && !content.includes('<br');
       const prepared = needsBr ? content.replace(/\n/g, '<br />') : content;
       // Escape any unknown/accidental tags like <10-min> to prevent the browser from dropping content
-      const safeHtml = prepared.replace(/<(?!\/?(p|br|strong|em|b|i|u|span|mark|ul|ol|li|h[1-6]|div|section|article|header|footer|blockquote)(\s|>|\/))/gi, '&lt;');
+      const safeHtml = prepared.replace(/<(?!\/?(p|br|hr|strong|em|b|i|u|span|mark|ul|ol|li|h[1-6]|div|section|article|header|footer|blockquote)(\s|>|\/))/gi, '&lt;');
       return (
         <div 
           className="html-content whitespace-pre-wrap text-sm text-foreground/80"
