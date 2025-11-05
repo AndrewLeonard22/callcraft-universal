@@ -94,6 +94,7 @@ export type Database = {
         Row: {
           answer: string
           created_at: string
+          display_order: number | null
           id: string
           question: string
           service_type_id: string | null
@@ -101,6 +102,7 @@ export type Database = {
         Insert: {
           answer: string
           created_at?: string
+          display_order?: number | null
           id?: string
           question: string
           service_type_id?: string | null
@@ -108,6 +110,7 @@ export type Database = {
         Update: {
           answer?: string
           created_at?: string
+          display_order?: number | null
           id?: string
           question?: string
           service_type_id?: string | null
@@ -186,6 +189,7 @@ export type Database = {
         Row: {
           content: string
           created_at: string
+          display_order: number | null
           id: string
           organization_id: string
           service_name: string
@@ -193,6 +197,7 @@ export type Database = {
         Insert: {
           content: string
           created_at?: string
+          display_order?: number | null
           id?: string
           organization_id: string
           service_name: string
@@ -200,6 +205,7 @@ export type Database = {
         Update: {
           content?: string
           created_at?: string
+          display_order?: number | null
           id?: string
           organization_id?: string
           service_name?: string
@@ -381,6 +387,7 @@ export type Database = {
         Row: {
           client_id: string
           created_at: string | null
+          display_order: number | null
           id: string
           image_url: string | null
           is_template: boolean
@@ -395,6 +402,7 @@ export type Database = {
         Insert: {
           client_id: string
           created_at?: string | null
+          display_order?: number | null
           id?: string
           image_url?: string | null
           is_template?: boolean
@@ -409,6 +417,7 @@ export type Database = {
         Update: {
           client_id?: string
           created_at?: string | null
+          display_order?: number | null
           id?: string
           image_url?: string | null
           is_template?: boolean

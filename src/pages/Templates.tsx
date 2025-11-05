@@ -2,8 +2,9 @@ import { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import { Plus, Trash2, FileText, Edit2, MessageSquare, HelpCircle, ClipboardCheck, GripVertical } from "lucide-react";
 import { DndContext, closestCenter, KeyboardSensor, PointerSensor, useSensor, useSensors, DragEndEvent } from '@dnd-kit/core';
-import { arrayMove, SortableContext, sortableKeyboardCoordinates, useSortable, verticalListSortingStrategy } from '@dnd-kit/sortable';
+import { arrayMove, SortableContext, sortableKeyboardCoordinates, verticalListSortingStrategy } from '@dnd-kit/sortable';
 import { CSS } from '@dnd-kit/utilities';
+import { SortableItem } from "@/components/SortableItem";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
@@ -1010,80 +1011,86 @@ export default function Templates() {
             </CardContent>
           </Card>
         ) : (
-          <div className="space-y-4">
-            {templates.map((template) => (
-              <Card key={template.id}>
-                <CardHeader>
-                    <div className="flex items-start gap-4 justify-between">
-                      <div className="flex items-start gap-3 flex-1">
-                        <div className="h-12 w-12 rounded-lg bg-muted border border-border overflow-hidden flex-shrink-0 flex items-center justify-center">
-                          {template.image_url ? (
-                            <img src={template.image_url} alt="Template preview" className="h-full w-full object-cover" onError={(e) => { (e.currentTarget as HTMLImageElement).src = '/placeholder.svg'; }} />
-                          ) : (
-                            <FileText className="h-5 w-5 text-muted-foreground" />
-                          )}
+          <DndContext sensors={sensors} collisionDetection={closestCenter} onDragEnd={handleDragEndTemplates}>
+            <SortableContext items={templates.map(t => t.id)} strategy={verticalListSortingStrategy}>
+              <div className="space-y-4">
+                {templates.map((template) => (
+                  <SortableItem key={template.id} id={template.id}>
+                    <Card>
+                      <CardHeader>
+                        <div className="flex items-start gap-4 justify-between">
+                          <div className="flex items-start gap-3 flex-1">
+                            <div className="h-12 w-12 rounded-lg bg-muted border border-border overflow-hidden flex-shrink-0 flex items-center justify-center">
+                              {template.image_url ? (
+                                <img src={template.image_url} alt="Template preview" className="h-full w-full object-cover" onError={(e) => { (e.currentTarget as HTMLImageElement).src = '/placeholder.svg'; }} />
+                              ) : (
+                                <FileText className="h-5 w-5 text-muted-foreground" />
+                              )}
+                            </div>
+                            <div className="flex-1 min-w-0">
+                              <CardTitle className="text-lg">{template.service_name}</CardTitle>
+                              <CardDescription 
+                                className="mt-1 line-clamp-2 text-sm leading-relaxed"
+                                dangerouslySetInnerHTML={{
+                                  __html: template.script_content
+                                    .substring(0, 200)
+                                    .replace(/\*\*([^*]+)\*\*/g, '<strong>$1</strong>')
+                                    .replace(/\[([^\]]+)\]/g, '<mark class="bg-yellow-200 px-1">$1</mark>')
+                                    .replace(/\{red:([^}]+)\}/g, '<span style="color: rgb(220, 38, 38)">$1</span>')
+                                    .replace(/\{blue:([^}]+)\}/g, '<span style="color: rgb(37, 99, 235)">$1</span>')
+                                    .replace(/\{green:([^}]+)\}/g, '<span style="color: rgb(22, 163, 74)">$1</span>')
+                                    .replace(/\{yellow:([^}]+)\}/g, '<span style="color: rgb(202, 138, 4)">$1</span>')
+                                    .replace(/\{purple:([^}]+)\}/g, '<span style="color: rgb(168, 85, 247)">$1</span>')
+                                    .replace(/\{orange:([^}]+)\}/g, '<span style="color: rgb(249, 115, 22)">$1</span>')
+                                    .replace(/\{small:([^}]+)\}/g, '<span style="font-size: 0.875rem">$1</span>')
+                                    .replace(/\{large:([^}]+)\}/g, '<span style="font-size: 1.25rem">$1</span>')
+                                    + '...'
+                                }}
+                              />
+                            </div>
+                          </div>
+                          <div className="flex gap-2 flex-shrink-0">
+                            <Button
+                              variant="ghost"
+                              size="icon"
+                              onClick={() => handleEdit(template)}
+                            >
+                              <Edit2 className="h-4 w-4" />
+                            </Button>
+                            <AlertDialog>
+                              <AlertDialogTrigger asChild>
+                                <Button variant="ghost" size="icon" className="text-destructive flex-shrink-0">
+                                  <Trash2 className="h-4 w-4" />
+                                </Button>
+                              </AlertDialogTrigger>
+                              <AlertDialogContent>
+                                <AlertDialogHeader>
+                                  <AlertDialogTitle>Delete Template?</AlertDialogTitle>
+                                  <AlertDialogDescription>
+                                    This will permanently delete the "{template.service_name}" template.
+                                    This action cannot be undone.
+                                  </AlertDialogDescription>
+                                </AlertDialogHeader>
+                                <AlertDialogFooter>
+                                  <AlertDialogCancel>Cancel</AlertDialogCancel>
+                                  <AlertDialogAction
+                                    onClick={() => handleDelete(template.id)}
+                                    className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
+                                  >
+                                    Delete
+                                  </AlertDialogAction>
+                                </AlertDialogFooter>
+                              </AlertDialogContent>
+                            </AlertDialog>
+                          </div>
                         </div>
-                        <div className="flex-1 min-w-0">
-                          <CardTitle className="text-lg">{template.service_name}</CardTitle>
-                          <CardDescription 
-                            className="mt-1 line-clamp-2 text-sm leading-relaxed"
-                            dangerouslySetInnerHTML={{
-                              __html: template.script_content
-                                .substring(0, 200)
-                                .replace(/\*\*([^*]+)\*\*/g, '<strong>$1</strong>')
-                                .replace(/\[([^\]]+)\]/g, '<mark class="bg-yellow-200 px-1">$1</mark>')
-                                .replace(/\{red:([^}]+)\}/g, '<span style="color: rgb(220, 38, 38)">$1</span>')
-                                .replace(/\{blue:([^}]+)\}/g, '<span style="color: rgb(37, 99, 235)">$1</span>')
-                                .replace(/\{green:([^}]+)\}/g, '<span style="color: rgb(22, 163, 74)">$1</span>')
-                                .replace(/\{yellow:([^}]+)\}/g, '<span style="color: rgb(202, 138, 4)">$1</span>')
-                                .replace(/\{purple:([^}]+)\}/g, '<span style="color: rgb(168, 85, 247)">$1</span>')
-                                .replace(/\{orange:([^}]+)\}/g, '<span style="color: rgb(249, 115, 22)">$1</span>')
-                                .replace(/\{small:([^}]+)\}/g, '<span style="font-size: 0.875rem">$1</span>')
-                                .replace(/\{large:([^}]+)\}/g, '<span style="font-size: 1.25rem">$1</span>')
-                                + '...'
-                            }}
-                          />
-                        </div>
-                      </div>
-                      <div className="flex gap-2 flex-shrink-0">
-                        <Button
-                          variant="ghost"
-                          size="icon"
-                          onClick={() => handleEdit(template)}
-                        >
-                          <Edit2 className="h-4 w-4" />
-                        </Button>
-                        <AlertDialog>
-                      <AlertDialogTrigger asChild>
-                        <Button variant="ghost" size="icon" className="text-destructive flex-shrink-0">
-                          <Trash2 className="h-4 w-4" />
-                        </Button>
-                      </AlertDialogTrigger>
-                      <AlertDialogContent>
-                        <AlertDialogHeader>
-                          <AlertDialogTitle>Delete Template?</AlertDialogTitle>
-                          <AlertDialogDescription>
-                            This will permanently delete the "{template.service_name}" template.
-                            This action cannot be undone.
-                          </AlertDialogDescription>
-                        </AlertDialogHeader>
-                        <AlertDialogFooter>
-                          <AlertDialogCancel>Cancel</AlertDialogCancel>
-                          <AlertDialogAction
-                            onClick={() => handleDelete(template.id)}
-                            className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
-                          >
-                            Delete
-                          </AlertDialogAction>
-                        </AlertDialogFooter>
-                       </AlertDialogContent>
-                        </AlertDialog>
-                      </div>
-                    </div>
-                </CardHeader>
-              </Card>
-            ))}
-          </div>
+                      </CardHeader>
+                    </Card>
+                  </SortableItem>
+                ))}
+              </div>
+            </SortableContext>
+          </DndContext>
         )}
           </TabsContent>
 
@@ -1165,61 +1172,67 @@ export default function Templates() {
                 </CardContent>
               </Card>
             ) : (
-              <div className="space-y-4">
-                {objectionTemplates.map((template) => (
-                  <Card key={template.id}>
-                    <CardHeader>
-                      <div className="flex items-start gap-4 justify-between">
-                        <div className="flex items-start gap-3 flex-1">
-                          <div className="h-12 w-12 rounded-lg bg-muted border border-border flex-shrink-0 flex items-center justify-center">
-                            <MessageSquare className="h-5 w-5 text-muted-foreground" />
-                          </div>
-                          <div className="flex-1 min-w-0">
-                            <CardTitle className="text-lg">{template.service_name}</CardTitle>
-                            <div className="text-sm text-muted-foreground mt-1 line-clamp-3">
-                              <FormattedContent content={template.content} />
-                            </div>
-                          </div>
-                        </div>
-                        <div className="flex gap-2 flex-shrink-0">
-                          <Button
-                            variant="ghost"
-                            size="icon"
-                            onClick={() => handleEditObjection(template)}
-                          >
-                            <Edit2 className="h-4 w-4" />
-                          </Button>
-                          <AlertDialog>
-                            <AlertDialogTrigger asChild>
-                              <Button variant="ghost" size="icon" className="text-destructive">
-                                <Trash2 className="h-4 w-4" />
-                              </Button>
-                            </AlertDialogTrigger>
-                            <AlertDialogContent>
-                              <AlertDialogHeader>
-                                <AlertDialogTitle>Delete Objection Template?</AlertDialogTitle>
-                                <AlertDialogDescription>
-                                  This will permanently delete the "{template.service_name}" objection template.
-                                  This action cannot be undone.
-                                </AlertDialogDescription>
-                              </AlertDialogHeader>
-                              <AlertDialogFooter>
-                                <AlertDialogCancel>Cancel</AlertDialogCancel>
-                                <AlertDialogAction
-                                  onClick={() => handleDeleteObjection(template.id)}
-                                  className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
+              <DndContext sensors={sensors} collisionDetection={closestCenter} onDragEnd={handleDragEndObjections}>
+                <SortableContext items={objectionTemplates.map(t => t.id)} strategy={verticalListSortingStrategy}>
+                  <div className="space-y-4">
+                    {objectionTemplates.map((template) => (
+                      <SortableItem key={template.id} id={template.id}>
+                        <Card>
+                          <CardHeader>
+                            <div className="flex items-start gap-4 justify-between">
+                              <div className="flex items-start gap-3 flex-1">
+                                <div className="h-12 w-12 rounded-lg bg-muted border border-border flex-shrink-0 flex items-center justify-center">
+                                  <MessageSquare className="h-5 w-5 text-muted-foreground" />
+                                </div>
+                                <div className="flex-1 min-w-0">
+                                  <CardTitle className="text-lg">{template.service_name}</CardTitle>
+                                  <div className="text-sm text-muted-foreground mt-1 line-clamp-3">
+                                    <FormattedContent content={template.content} />
+                                  </div>
+                                </div>
+                              </div>
+                              <div className="flex gap-2 flex-shrink-0">
+                                <Button
+                                  variant="ghost"
+                                  size="icon"
+                                  onClick={() => handleEditObjection(template)}
                                 >
-                                  Delete
-                                </AlertDialogAction>
-                              </AlertDialogFooter>
-                            </AlertDialogContent>
-                          </AlertDialog>
-                        </div>
-                      </div>
-                    </CardHeader>
-                  </Card>
-                ))}
-              </div>
+                                  <Edit2 className="h-4 w-4" />
+                                </Button>
+                                <AlertDialog>
+                                  <AlertDialogTrigger asChild>
+                                    <Button variant="ghost" size="icon" className="text-destructive">
+                                      <Trash2 className="h-4 w-4" />
+                                    </Button>
+                                  </AlertDialogTrigger>
+                                  <AlertDialogContent>
+                                    <AlertDialogHeader>
+                                      <AlertDialogTitle>Delete Objection Template?</AlertDialogTitle>
+                                      <AlertDialogDescription>
+                                        This will permanently delete the "{template.service_name}" objection template.
+                                        This action cannot be undone.
+                                      </AlertDialogDescription>
+                                    </AlertDialogHeader>
+                                    <AlertDialogFooter>
+                                      <AlertDialogCancel>Cancel</AlertDialogCancel>
+                                      <AlertDialogAction
+                                        onClick={() => handleDeleteObjection(template.id)}
+                                        className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
+                                      >
+                                        Delete
+                                      </AlertDialogAction>
+                                    </AlertDialogFooter>
+                                  </AlertDialogContent>
+                                </AlertDialog>
+                              </div>
+                            </div>
+                          </CardHeader>
+                        </Card>
+                      </SortableItem>
+                    ))}
+                  </div>
+                </SortableContext>
+              </DndContext>
             )}
           </TabsContent>
 
@@ -1317,83 +1330,89 @@ export default function Templates() {
                 </CardContent>
               </Card>
             ) : (
-              <div className="space-y-4">
-                {faqs.map((faq) => {
-                  const serviceType = faq.service_type_id ? serviceTypes.find(st => st.id === faq.service_type_id) : null;
-                  return (
-                    <Card key={faq.id}>
-                      <CardHeader>
-                        <div className="flex items-start gap-4 justify-between">
-                          <div className="flex items-start gap-3 flex-1">
-                            <div className="h-12 w-12 rounded-lg bg-muted border border-border flex-shrink-0 flex items-center justify-center">
-                              <HelpCircle className="h-5 w-5 text-muted-foreground" />
-                            </div>
-                            <div className="flex-1 min-w-0">
-                              <CardTitle className="text-lg">{faq.question}</CardTitle>
-                              <div className="mt-1 text-sm text-muted-foreground line-clamp-2">
-                                {serviceType ? (
-                                  <span className="font-medium">{serviceType.name} • </span>
-                                ) : null}
-                                <span
-                                  dangerouslySetInnerHTML={{
-                                    __html: faq.answer
-                                      .substring(0, 150)
-                                      .replace(/\*\*([^*]+)\*\*/g, '<strong>$1</strong>')
-                                      .replace(/\[([^\]]+)\]/g, '<mark class="bg-yellow-200 px-1">$1</mark>')
-                                      .replace(/\{red:([^}]+)\}/g, '<span style="color: rgb(220, 38, 38)">$1</span>')
-                                      .replace(/\{blue:([^}]+)\}/g, '<span style="color: rgb(37, 99, 235)">$1</span>')
-                                      .replace(/\{green:([^}]+)\}/g, '<span style="color: rgb(22, 163, 74)">$1</span>')
-                                      .replace(/\{yellow:([^}]+)\}/g, '<span style="color: rgb(202, 138, 4)">$1</span>')
-                                      .replace(/\{purple:([^}]+)\}/g, '<span style="color: rgb(168, 85, 247)">$1</span>')
-                                      .replace(/\{orange:([^}]+)\}/g, '<span style="color: rgb(249, 115, 22)">$1</span>')
-                                      .replace(/\{small:([^}]+)\}/g, '<span style="font-size: 0.875rem">$1</span>')
-                                      .replace(/\{large:([^}]+)\}/g, '<span style="font-size: 1.25rem">$1</span>')
-                                      + '...'
-                                  }}
-                                />
-                              </div>
-                            </div>
-                          </div>
-                          <div className="flex gap-2 flex-shrink-0">
-                            <Button
-                              variant="ghost"
-                              size="icon"
-                              onClick={() => handleEditFaq(faq)}
-                            >
-                              <Edit2 className="h-4 w-4" />
-                            </Button>
-                            <AlertDialog>
-                              <AlertDialogTrigger asChild>
-                                <Button variant="ghost" size="icon" className="text-destructive">
-                                  <Trash2 className="h-4 w-4" />
-                                </Button>
-                              </AlertDialogTrigger>
-                              <AlertDialogContent>
-                                <AlertDialogHeader>
-                                  <AlertDialogTitle>Delete FAQ?</AlertDialogTitle>
-                                  <AlertDialogDescription>
-                                    This will permanently delete this FAQ.
-                                    This action cannot be undone.
-                                  </AlertDialogDescription>
-                                </AlertDialogHeader>
-                                <AlertDialogFooter>
-                                  <AlertDialogCancel>Cancel</AlertDialogCancel>
-                                  <AlertDialogAction
-                                    onClick={() => handleDeleteFaq(faq.id)}
-                                    className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
+              <DndContext sensors={sensors} collisionDetection={closestCenter} onDragEnd={handleDragEndFaqs}>
+                <SortableContext items={faqs.map(f => f.id)} strategy={verticalListSortingStrategy}>
+                  <div className="space-y-4">
+                    {faqs.map((faq) => {
+                      const serviceType = faq.service_type_id ? serviceTypes.find(st => st.id === faq.service_type_id) : null;
+                      return (
+                        <SortableItem key={faq.id} id={faq.id}>
+                          <Card>
+                            <CardHeader>
+                              <div className="flex items-start gap-4 justify-between">
+                                <div className="flex items-start gap-3 flex-1">
+                                  <div className="h-12 w-12 rounded-lg bg-muted border border-border flex-shrink-0 flex items-center justify-center">
+                                    <HelpCircle className="h-5 w-5 text-muted-foreground" />
+                                  </div>
+                                  <div className="flex-1 min-w-0">
+                                    <CardTitle className="text-lg">{faq.question}</CardTitle>
+                                    <div className="mt-1 text-sm text-muted-foreground line-clamp-2">
+                                      {serviceType ? (
+                                        <span className="font-medium">{serviceType.name} • </span>
+                                      ) : null}
+                                      <span
+                                        dangerouslySetInnerHTML={{
+                                          __html: faq.answer
+                                            .substring(0, 150)
+                                            .replace(/\*\*([^*]+)\*\*/g, '<strong>$1</strong>')
+                                            .replace(/\[([^\]]+)\]/g, '<mark class="bg-yellow-200 px-1">$1</mark>')
+                                            .replace(/\{red:([^}]+)\}/g, '<span style="color: rgb(220, 38, 38)">$1</span>')
+                                            .replace(/\{blue:([^}]+)\}/g, '<span style="color: rgb(37, 99, 235)">$1</span>')
+                                            .replace(/\{green:([^}]+)\}/g, '<span style="color: rgb(22, 163, 74)">$1</span>')
+                                            .replace(/\{yellow:([^}]+)\}/g, '<span style="color: rgb(202, 138, 4)">$1</span>')
+                                            .replace(/\{purple:([^}]+)\}/g, '<span style="color: rgb(168, 85, 247)">$1</span>')
+                                            .replace(/\{orange:([^}]+)\}/g, '<span style="color: rgb(249, 115, 22)">$1</span>')
+                                            .replace(/\{small:([^}]+)\}/g, '<span style="font-size: 0.875rem">$1</span>')
+                                            .replace(/\{large:([^}]+)\}/g, '<span style="font-size: 1.25rem">$1</span>')
+                                            + '...'
+                                        }}
+                                      />
+                                    </div>
+                                  </div>
+                                </div>
+                                <div className="flex gap-2 flex-shrink-0">
+                                  <Button
+                                    variant="ghost"
+                                    size="icon"
+                                    onClick={() => handleEditFaq(faq)}
                                   >
-                                    Delete
-                                  </AlertDialogAction>
-                                </AlertDialogFooter>
-                              </AlertDialogContent>
-                            </AlertDialog>
-                          </div>
-                        </div>
-                      </CardHeader>
-                    </Card>
-                  );
-                })}
-              </div>
+                                    <Edit2 className="h-4 w-4" />
+                                  </Button>
+                                  <AlertDialog>
+                                    <AlertDialogTrigger asChild>
+                                      <Button variant="ghost" size="icon" className="text-destructive">
+                                        <Trash2 className="h-4 w-4" />
+                                      </Button>
+                                    </AlertDialogTrigger>
+                                    <AlertDialogContent>
+                                      <AlertDialogHeader>
+                                        <AlertDialogTitle>Delete FAQ?</AlertDialogTitle>
+                                        <AlertDialogDescription>
+                                          This will permanently delete this FAQ.
+                                          This action cannot be undone.
+                                        </AlertDialogDescription>
+                                      </AlertDialogHeader>
+                                      <AlertDialogFooter>
+                                        <AlertDialogCancel>Cancel</AlertDialogCancel>
+                                        <AlertDialogAction
+                                          onClick={() => handleDeleteFaq(faq.id)}
+                                          className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
+                                        >
+                                          Delete
+                                        </AlertDialogAction>
+                                      </AlertDialogFooter>
+                                    </AlertDialogContent>
+                                  </AlertDialog>
+                                </div>
+                              </div>
+                            </CardHeader>
+                          </Card>
+                        </SortableItem>
+                      );
+                    })}
+                  </div>
+                </SortableContext>
+              </DndContext>
             )}
           </TabsContent>
 
@@ -1490,58 +1509,64 @@ export default function Templates() {
                 {qualificationQuestions.filter(q => !q.service_type_id).length > 0 && (
                   <div>
                     <h3 className="text-lg font-semibold mb-3 text-foreground">Universal Questions (All Services)</h3>
-                    <div className="space-y-3">
-                      {qualificationQuestions.filter(q => !q.service_type_id).map((question) => (
-                        <Card key={question.id}>
-                          <CardHeader>
-                            <div className="flex items-start gap-4 justify-between">
-                              <div className="flex items-start gap-3 flex-1">
-                                <div className="h-12 w-12 rounded-lg bg-muted border border-border flex-shrink-0 flex items-center justify-center">
-                                  <ClipboardCheck className="h-5 w-5 text-muted-foreground" />
-                                </div>
-                                <div className="flex-1 min-w-0">
-                                  <CardTitle className="text-lg">{question.question}</CardTitle>
-                                </div>
-                              </div>
-                              <div className="flex gap-2 flex-shrink-0">
-                                <Button
-                                  variant="ghost"
-                                  size="icon"
-                                  onClick={() => handleEditQualification(question)}
-                                >
-                                  <Edit2 className="h-4 w-4" />
-                                </Button>
-                                <AlertDialog>
-                                  <AlertDialogTrigger asChild>
-                                    <Button variant="ghost" size="icon" className="text-destructive flex-shrink-0">
-                                      <Trash2 className="h-4 w-4" />
-                                    </Button>
-                                  </AlertDialogTrigger>
-                                  <AlertDialogContent>
-                                    <AlertDialogHeader>
-                                      <AlertDialogTitle>Delete Question?</AlertDialogTitle>
-                                      <AlertDialogDescription>
-                                        This will permanently delete this qualification question.
-                                        This action cannot be undone.
-                                      </AlertDialogDescription>
-                                    </AlertDialogHeader>
-                                    <AlertDialogFooter>
-                                      <AlertDialogCancel>Cancel</AlertDialogCancel>
-                                      <AlertDialogAction
-                                        onClick={() => handleDeleteQualification(question.id)}
-                                        className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
+                    <DndContext sensors={sensors} collisionDetection={closestCenter} onDragEnd={handleDragEndQualifications}>
+                      <SortableContext items={qualificationQuestions.filter(q => !q.service_type_id).map(q => q.id)} strategy={verticalListSortingStrategy}>
+                        <div className="space-y-3">
+                          {qualificationQuestions.filter(q => !q.service_type_id).map((question) => (
+                            <SortableItem key={question.id} id={question.id}>
+                              <Card>
+                                <CardHeader>
+                                  <div className="flex items-start gap-4 justify-between">
+                                    <div className="flex items-start gap-3 flex-1">
+                                      <div className="h-12 w-12 rounded-lg bg-muted border border-border flex-shrink-0 flex items-center justify-center">
+                                        <ClipboardCheck className="h-5 w-5 text-muted-foreground" />
+                                      </div>
+                                      <div className="flex-1 min-w-0">
+                                        <CardTitle className="text-lg">{question.question}</CardTitle>
+                                      </div>
+                                    </div>
+                                    <div className="flex gap-2 flex-shrink-0">
+                                      <Button
+                                        variant="ghost"
+                                        size="icon"
+                                        onClick={() => handleEditQualification(question)}
                                       >
-                                        Delete
-                                      </AlertDialogAction>
-                                    </AlertDialogFooter>
-                                  </AlertDialogContent>
-                                </AlertDialog>
-                              </div>
-                            </div>
-                          </CardHeader>
-                        </Card>
-                      ))}
-                    </div>
+                                        <Edit2 className="h-4 w-4" />
+                                      </Button>
+                                      <AlertDialog>
+                                        <AlertDialogTrigger asChild>
+                                          <Button variant="ghost" size="icon" className="text-destructive flex-shrink-0">
+                                            <Trash2 className="h-4 w-4" />
+                                          </Button>
+                                        </AlertDialogTrigger>
+                                        <AlertDialogContent>
+                                          <AlertDialogHeader>
+                                            <AlertDialogTitle>Delete Question?</AlertDialogTitle>
+                                            <AlertDialogDescription>
+                                              This will permanently delete this qualification question.
+                                              This action cannot be undone.
+                                            </AlertDialogDescription>
+                                          </AlertDialogHeader>
+                                          <AlertDialogFooter>
+                                            <AlertDialogCancel>Cancel</AlertDialogCancel>
+                                            <AlertDialogAction
+                                              onClick={() => handleDeleteQualification(question.id)}
+                                              className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
+                                            >
+                                              Delete
+                                            </AlertDialogAction>
+                                          </AlertDialogFooter>
+                                        </AlertDialogContent>
+                                      </AlertDialog>
+                                    </div>
+                                  </div>
+                                </CardHeader>
+                              </Card>
+                            </SortableItem>
+                          ))}
+                        </div>
+                      </SortableContext>
+                    </DndContext>
                   </div>
                 )}
 
@@ -1553,58 +1578,64 @@ export default function Templates() {
                   return (
                     <div key={serviceType.id}>
                       <h3 className="text-lg font-semibold mb-3 text-foreground">{serviceType.name} Questions</h3>
-                      <div className="space-y-3">
-                        {typeQuestions.map((question) => (
-                          <Card key={question.id}>
-                            <CardHeader>
-                              <div className="flex items-start gap-4 justify-between">
-                                <div className="flex items-start gap-3 flex-1">
-                                  <div className="h-12 w-12 rounded-lg bg-muted border border-border flex-shrink-0 flex items-center justify-center">
-                                    <ClipboardCheck className="h-5 w-5 text-muted-foreground" />
-                                  </div>
-                                  <div className="flex-1 min-w-0">
-                                    <CardTitle className="text-lg">{question.question}</CardTitle>
-                                  </div>
-                                </div>
-                                <div className="flex gap-2 flex-shrink-0">
-                                  <Button
-                                    variant="ghost"
-                                    size="icon"
-                                    onClick={() => handleEditQualification(question)}
-                                  >
-                                    <Edit2 className="h-4 w-4" />
-                                  </Button>
-                                  <AlertDialog>
-                                    <AlertDialogTrigger asChild>
-                                      <Button variant="ghost" size="icon" className="text-destructive flex-shrink-0">
-                                        <Trash2 className="h-4 w-4" />
-                                      </Button>
-                                    </AlertDialogTrigger>
-                                    <AlertDialogContent>
-                                      <AlertDialogHeader>
-                                        <AlertDialogTitle>Delete Question?</AlertDialogTitle>
-                                        <AlertDialogDescription>
-                                          This will permanently delete this qualification question.
-                                          This action cannot be undone.
-                                        </AlertDialogDescription>
-                                      </AlertDialogHeader>
-                                      <AlertDialogFooter>
-                                        <AlertDialogCancel>Cancel</AlertDialogCancel>
-                                        <AlertDialogAction
-                                          onClick={() => handleDeleteQualification(question.id)}
-                                          className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
+                      <DndContext sensors={sensors} collisionDetection={closestCenter} onDragEnd={handleDragEndQualifications}>
+                        <SortableContext items={typeQuestions.map(q => q.id)} strategy={verticalListSortingStrategy}>
+                          <div className="space-y-3">
+                            {typeQuestions.map((question) => (
+                              <SortableItem key={question.id} id={question.id}>
+                                <Card>
+                                  <CardHeader>
+                                    <div className="flex items-start gap-4 justify-between">
+                                      <div className="flex items-start gap-3 flex-1">
+                                        <div className="h-12 w-12 rounded-lg bg-muted border border-border flex-shrink-0 flex items-center justify-center">
+                                          <ClipboardCheck className="h-5 w-5 text-muted-foreground" />
+                                        </div>
+                                        <div className="flex-1 min-w-0">
+                                          <CardTitle className="text-lg">{question.question}</CardTitle>
+                                        </div>
+                                      </div>
+                                      <div className="flex gap-2 flex-shrink-0">
+                                        <Button
+                                          variant="ghost"
+                                          size="icon"
+                                          onClick={() => handleEditQualification(question)}
                                         >
-                                          Delete
-                                        </AlertDialogAction>
-                                      </AlertDialogFooter>
-                                    </AlertDialogContent>
-                                  </AlertDialog>
-                                </div>
-                              </div>
-                            </CardHeader>
-                          </Card>
-                        ))}
-                      </div>
+                                          <Edit2 className="h-4 w-4" />
+                                        </Button>
+                                        <AlertDialog>
+                                          <AlertDialogTrigger asChild>
+                                            <Button variant="ghost" size="icon" className="text-destructive flex-shrink-0">
+                                              <Trash2 className="h-4 w-4" />
+                                            </Button>
+                                          </AlertDialogTrigger>
+                                          <AlertDialogContent>
+                                            <AlertDialogHeader>
+                                              <AlertDialogTitle>Delete Question?</AlertDialogTitle>
+                                              <AlertDialogDescription>
+                                                This will permanently delete this qualification question.
+                                                This action cannot be undone.
+                                              </AlertDialogDescription>
+                                            </AlertDialogHeader>
+                                            <AlertDialogFooter>
+                                              <AlertDialogCancel>Cancel</AlertDialogCancel>
+                                              <AlertDialogAction
+                                                onClick={() => handleDeleteQualification(question.id)}
+                                                className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
+                                              >
+                                                Delete
+                                              </AlertDialogAction>
+                                            </AlertDialogFooter>
+                                          </AlertDialogContent>
+                                        </AlertDialog>
+                                      </div>
+                                    </div>
+                                  </CardHeader>
+                                </Card>
+                              </SortableItem>
+                            ))}
+                          </div>
+                        </SortableContext>
+                      </DndContext>
                     </div>
                   );
                 })}
