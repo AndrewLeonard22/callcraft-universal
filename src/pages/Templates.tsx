@@ -1,6 +1,9 @@
 import { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
-import { Plus, Trash2, FileText, Edit2, MessageSquare, HelpCircle, ClipboardCheck } from "lucide-react";
+import { Plus, Trash2, FileText, Edit2, MessageSquare, HelpCircle, ClipboardCheck, GripVertical } from "lucide-react";
+import { DndContext, closestCenter, KeyboardSensor, PointerSensor, useSensor, useSensors, DragEndEvent } from '@dnd-kit/core';
+import { arrayMove, SortableContext, sortableKeyboardCoordinates, useSortable, verticalListSortingStrategy } from '@dnd-kit/sortable';
+import { CSS } from '@dnd-kit/utilities';
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
@@ -347,6 +350,7 @@ export default function Templates() {
         .select("*")
         .eq("is_template", true)
         .eq("organization_id", userOrganizationId)
+        .order("display_order", { ascending: true })
         .order("created_at", { ascending: false });
 
       if (error) throw error;
@@ -367,6 +371,7 @@ export default function Templates() {
         .from("objection_handling_templates")
         .select("*")
         .eq("organization_id", userOrganizationId)
+        .order("display_order", { ascending: true })
         .order("created_at", { ascending: false });
 
       if (error) throw error;
@@ -382,6 +387,7 @@ export default function Templates() {
       const { data, error } = await supabase
         .from("faqs")
         .select("*")
+        .order("display_order", { ascending: true })
         .order("created_at", { ascending: false });
 
       if (error) throw error;
@@ -748,6 +754,102 @@ export default function Templates() {
     } catch (error: any) {
       console.error("Error deleting qualification question:", error);
       toast.error(error.message || "Failed to delete question");
+    }
+  };
+
+  // Drag and drop handlers
+  const sensors = useSensors(
+    useSensor(PointerSensor),
+    useSensor(KeyboardSensor, {
+      coordinateGetter: sortableKeyboardCoordinates,
+    })
+  );
+
+  const handleDragEndTemplates = async (event: DragEndEvent) => {
+    const { active, over } = event;
+    if (!over || active.id === over.id) return;
+
+    const oldIndex = templates.findIndex(t => t.id === active.id);
+    const newIndex = templates.findIndex(t => t.id === over.id);
+    
+    const reordered = arrayMove(templates, oldIndex, newIndex);
+    setTemplates(reordered);
+
+    try {
+      const updates = reordered.map((item, index) => 
+        supabase.from('scripts').update({ display_order: index }).eq('id', item.id)
+      );
+      await Promise.all(updates);
+    } catch (error) {
+      console.error('Error updating template order:', error);
+      toast.error('Failed to update order');
+      loadTemplates();
+    }
+  };
+
+  const handleDragEndObjections = async (event: DragEndEvent) => {
+    const { active, over } = event;
+    if (!over || active.id === over.id) return;
+
+    const oldIndex = objectionTemplates.findIndex(t => t.id === active.id);
+    const newIndex = objectionTemplates.findIndex(t => t.id === over.id);
+    
+    const reordered = arrayMove(objectionTemplates, oldIndex, newIndex);
+    setObjectionTemplates(reordered);
+
+    try {
+      const updates = reordered.map((item, index) => 
+        supabase.from('objection_handling_templates').update({ display_order: index }).eq('id', item.id)
+      );
+      await Promise.all(updates);
+    } catch (error) {
+      console.error('Error updating objection order:', error);
+      toast.error('Failed to update order');
+      loadObjectionTemplates();
+    }
+  };
+
+  const handleDragEndFaqs = async (event: DragEndEvent) => {
+    const { active, over } = event;
+    if (!over || active.id === over.id) return;
+
+    const oldIndex = faqs.findIndex(t => t.id === active.id);
+    const newIndex = faqs.findIndex(t => t.id === over.id);
+    
+    const reordered = arrayMove(faqs, oldIndex, newIndex);
+    setFaqs(reordered);
+
+    try {
+      const updates = reordered.map((item, index) => 
+        supabase.from('faqs').update({ display_order: index }).eq('id', item.id)
+      );
+      await Promise.all(updates);
+    } catch (error) {
+      console.error('Error updating FAQ order:', error);
+      toast.error('Failed to update order');
+      loadFaqs();
+    }
+  };
+
+  const handleDragEndQualifications = async (event: DragEndEvent) => {
+    const { active, over } = event;
+    if (!over || active.id === over.id) return;
+
+    const oldIndex = qualificationQuestions.findIndex(t => t.id === active.id);
+    const newIndex = qualificationQuestions.findIndex(t => t.id === over.id);
+    
+    const reordered = arrayMove(qualificationQuestions, oldIndex, newIndex);
+    setQualificationQuestions(reordered);
+
+    try {
+      const updates = reordered.map((item, index) => 
+        supabase.from('qualification_questions').update({ display_order: index }).eq('id', item.id)
+      );
+      await Promise.all(updates);
+    } catch (error) {
+      console.error('Error updating question order:', error);
+      toast.error('Failed to update order');
+      loadQualificationQuestions();
     }
   };
 
