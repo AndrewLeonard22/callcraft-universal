@@ -1067,7 +1067,7 @@ export default function ScriptViewer() {
                             <div className="text-xs font-medium text-muted-foreground">Appointment Calendar</div>
                             <a href={getDetailValue("appointment_calendar")} target="_blank" rel="noopener noreferrer" 
                                className="text-xs text-primary hover:text-primary/80 break-all transition-colors block">
-                              Schedule
+                              {getDetailValue("appointment_calendar")}
                             </a>
                           </div>
                         )}
@@ -1077,7 +1077,7 @@ export default function ScriptViewer() {
                             <div className="text-xs font-medium text-muted-foreground">Reschedule Calendar</div>
                             <a href={getDetailValue("reschedule_calendar")} target="_blank" rel="noopener noreferrer" 
                                className="text-xs text-primary hover:text-primary/80 break-all transition-colors block">
-                              Reschedule
+                              {getDetailValue("reschedule_calendar")}
                             </a>
                           </div>
                         )}
@@ -1087,7 +1087,7 @@ export default function ScriptViewer() {
                             <div className="text-xs font-medium text-muted-foreground">Appointment Link</div>
                             <a href={getDetailValue("appointment_link")} target="_blank" rel="noopener noreferrer" 
                                className="text-xs text-primary hover:text-primary/80 break-all transition-colors block">
-                              Book Now
+                              {getDetailValue("appointment_link")}
                             </a>
                           </div>
                         )}
