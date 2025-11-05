@@ -544,6 +544,17 @@ export default function ScriptViewer() {
     return details.find((d) => d.field_name === fieldName)?.field_value || "N/A";
   };
 
+  // Normalize and sanitize URLs so clicks open the correct destination
+  const safeUrl = (raw: string) => {
+    const value = (raw || "").trim();
+    if (!value) return "#";
+    const lower = value.toLowerCase();
+    // Basic protocol allowlist to avoid javascript:/data:/vbscript:
+    if (lower.startsWith("javascript:") || lower.startsWith("data:") || lower.startsWith("vbscript:")) return "#";
+    if (!/^https?:\/\//i.test(value)) return `https://${value.replace(/^\/+/, "")}`;
+    return value;
+  };
+  
   // Calculator logic
   const calculatedPricePerSqFt = () => {
     const minPrice = getDetailValue("starting_price");
@@ -1025,7 +1036,7 @@ export default function ScriptViewer() {
                         {getDetailValue("website") !== "N/A" && (
                           <div className="space-y-1">
                             <div className="text-xs font-medium text-muted-foreground">Website</div>
-                            <a href={getDetailValue("website")} target="_blank" rel="noopener noreferrer" 
+                            <a href={safeUrl(getDetailValue("website"))} target="_blank" rel="noopener noreferrer" 
                                className="text-xs text-primary hover:text-primary/80 break-all transition-colors block">
                               {getDetailValue("website")}
                             </a>
@@ -1035,7 +1046,7 @@ export default function ScriptViewer() {
                         {getDetailValue("facebook_page") !== "N/A" && (
                           <div className="space-y-1">
                             <div className="text-xs font-medium text-muted-foreground">Facebook</div>
-                            <a href={getDetailValue("facebook_page")} target="_blank" rel="noopener noreferrer" 
+                            <a href={safeUrl(getDetailValue("facebook_page"))} target="_blank" rel="noopener noreferrer" 
                                className="text-xs text-primary hover:text-primary/80 break-all transition-colors block">
                               View Page
                             </a>
@@ -1045,7 +1056,7 @@ export default function ScriptViewer() {
                         {getDetailValue("instagram") !== "N/A" && (
                           <div className="space-y-1">
                             <div className="text-xs font-medium text-muted-foreground">Instagram</div>
-                            <a href={getDetailValue("instagram")} target="_blank" rel="noopener noreferrer" 
+                            <a href={safeUrl(getDetailValue("instagram"))} target="_blank" rel="noopener noreferrer" 
                                className="text-xs text-primary hover:text-primary/80 break-all transition-colors block">
                               View Profile
                             </a>
@@ -1055,7 +1066,7 @@ export default function ScriptViewer() {
                         {getDetailValue("crm_account_link") !== "N/A" && (
                           <div className="space-y-1">
                             <div className="text-xs font-medium text-muted-foreground">CRM Account</div>
-                            <a href={getDetailValue("crm_account_link")} target="_blank" rel="noopener noreferrer" 
+                            <a href={safeUrl(getDetailValue("crm_account_link"))} target="_blank" rel="noopener noreferrer" 
                                className="text-xs text-primary hover:text-primary/80 break-all transition-colors block">
                               Open CRM
                             </a>
@@ -1065,7 +1076,7 @@ export default function ScriptViewer() {
                         {getDetailValue("appointment_calendar") !== "N/A" && (
                           <div className="space-y-1">
                             <div className="text-xs font-medium text-muted-foreground">Appointment Calendar</div>
-                            <a href={getDetailValue("appointment_calendar")} target="_blank" rel="noopener noreferrer" 
+                            <a href={safeUrl(getDetailValue("appointment_calendar"))} target="_blank" rel="noopener noreferrer" 
                                className="text-xs text-primary hover:text-primary/80 break-all transition-colors block">
                               {getDetailValue("appointment_calendar")}
                             </a>
@@ -1075,7 +1086,7 @@ export default function ScriptViewer() {
                         {getDetailValue("reschedule_calendar") !== "N/A" && (
                           <div className="space-y-1">
                             <div className="text-xs font-medium text-muted-foreground">Reschedule Calendar</div>
-                            <a href={getDetailValue("reschedule_calendar")} target="_blank" rel="noopener noreferrer" 
+                            <a href={safeUrl(getDetailValue("reschedule_calendar"))} target="_blank" rel="noopener noreferrer" 
                                className="text-xs text-primary hover:text-primary/80 break-all transition-colors block">
                               {getDetailValue("reschedule_calendar")}
                             </a>
@@ -1085,7 +1096,7 @@ export default function ScriptViewer() {
                         {getDetailValue("appointment_link") !== "N/A" && (
                           <div className="space-y-1">
                             <div className="text-xs font-medium text-muted-foreground">Appointment Link</div>
-                            <a href={getDetailValue("appointment_link")} target="_blank" rel="noopener noreferrer" 
+                            <a href={safeUrl(getDetailValue("appointment_link"))} target="_blank" rel="noopener noreferrer" 
                                className="text-xs text-primary hover:text-primary/80 break-all transition-colors block">
                               {getDetailValue("appointment_link")}
                             </a>
