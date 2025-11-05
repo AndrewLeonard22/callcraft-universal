@@ -1,6 +1,6 @@
 import { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
-import { Plus, Trash2, FileText, Edit2, MessageSquare, HelpCircle, ClipboardCheck, GripVertical } from "lucide-react";
+import { Plus, Trash2, FileText, Edit2, MessageSquare, HelpCircle, ClipboardCheck, GripVertical, Copy } from "lucide-react";
 import { DndContext, closestCenter, KeyboardSensor, PointerSensor, useSensor, useSensors, DragEndEvent } from '@dnd-kit/core';
 import { arrayMove, SortableContext, sortableKeyboardCoordinates, verticalListSortingStrategy } from '@dnd-kit/sortable';
 import { CSS } from '@dnd-kit/utilities';
@@ -205,6 +205,8 @@ interface Template {
   created_at: string;
   image_url?: string;
   service_type_id?: string;
+  objection_handling?: string;
+  client_id: string;
 }
 
 interface ObjectionTemplate {
@@ -537,6 +539,36 @@ export default function Templates() {
     } catch (error: any) {
       console.error("Error deleting template:", error);
       toast.error(error.message || "Failed to delete template");
+    }
+  };
+
+  const handleDuplicate = async (template: Template) => {
+    if (!userOrganizationId) {
+      toast.error("Organization not found");
+      return;
+    }
+
+    try {
+      const { error } = await supabase
+        .from("scripts")
+        .insert({
+          service_name: `${template.service_name} (Copy)`,
+          script_content: template.script_content,
+          objection_handling: template.objection_handling,
+          is_template: true,
+          client_id: template.client_id,
+          organization_id: userOrganizationId,
+          service_type_id: template.service_type_id,
+          image_url: template.image_url,
+        });
+
+      if (error) throw error;
+
+      toast.success("Template duplicated successfully!");
+      loadTemplates();
+    } catch (error: any) {
+      console.error("Error duplicating template:", error);
+      toast.error(error.message || "Failed to duplicate template");
     }
   };
 
@@ -1011,86 +1043,134 @@ export default function Templates() {
             </CardContent>
           </Card>
         ) : (
-          <DndContext sensors={sensors} collisionDetection={closestCenter} onDragEnd={handleDragEndTemplates}>
-            <SortableContext items={templates.map(t => t.id)} strategy={verticalListSortingStrategy}>
-              <div className="space-y-4">
-                {templates.map((template) => (
-                  <SortableItem key={template.id} id={template.id}>
-                    <Card>
-                      <CardHeader>
-                        <div className="flex items-start gap-4 justify-between">
-                          <div className="flex items-start gap-3 flex-1">
-                            <div className="h-12 w-12 rounded-lg bg-muted border border-border overflow-hidden flex-shrink-0 flex items-center justify-center">
-                              {template.image_url ? (
-                                <img src={template.image_url} alt="Template preview" className="h-full w-full object-cover" onError={(e) => { (e.currentTarget as HTMLImageElement).src = '/placeholder.svg'; }} />
-                              ) : (
-                                <FileText className="h-5 w-5 text-muted-foreground" />
-                              )}
-                            </div>
-                            <div className="flex-1 min-w-0">
-                              <CardTitle className="text-lg">{template.service_name}</CardTitle>
-                              <CardDescription 
-                                className="mt-1 line-clamp-2 text-sm leading-relaxed"
-                                dangerouslySetInnerHTML={{
-                                  __html: template.script_content
-                                    .substring(0, 200)
-                                    .replace(/\*\*([^*]+)\*\*/g, '<strong>$1</strong>')
-                                    .replace(/\[([^\]]+)\]/g, '<mark class="bg-yellow-200 px-1">$1</mark>')
-                                    .replace(/\{red:([^}]+)\}/g, '<span style="color: rgb(220, 38, 38)">$1</span>')
-                                    .replace(/\{blue:([^}]+)\}/g, '<span style="color: rgb(37, 99, 235)">$1</span>')
-                                    .replace(/\{green:([^}]+)\}/g, '<span style="color: rgb(22, 163, 74)">$1</span>')
-                                    .replace(/\{yellow:([^}]+)\}/g, '<span style="color: rgb(202, 138, 4)">$1</span>')
-                                    .replace(/\{purple:([^}]+)\}/g, '<span style="color: rgb(168, 85, 247)">$1</span>')
-                                    .replace(/\{orange:([^}]+)\}/g, '<span style="color: rgb(249, 115, 22)">$1</span>')
-                                    .replace(/\{small:([^}]+)\}/g, '<span style="font-size: 0.875rem">$1</span>')
-                                    .replace(/\{large:([^}]+)\}/g, '<span style="font-size: 1.25rem">$1</span>')
-                                    + '...'
-                                }}
-                              />
-                            </div>
-                          </div>
-                          <div className="flex gap-2 flex-shrink-0">
-                            <Button
-                              variant="ghost"
-                              size="icon"
-                              onClick={() => handleEdit(template)}
-                            >
-                              <Edit2 className="h-4 w-4" />
-                            </Button>
-                            <AlertDialog>
-                              <AlertDialogTrigger asChild>
-                                <Button variant="ghost" size="icon" className="text-destructive flex-shrink-0">
-                                  <Trash2 className="h-4 w-4" />
-                                </Button>
-                              </AlertDialogTrigger>
-                              <AlertDialogContent>
-                                <AlertDialogHeader>
-                                  <AlertDialogTitle>Delete Template?</AlertDialogTitle>
-                                  <AlertDialogDescription>
-                                    This will permanently delete the "{template.service_name}" template.
-                                    This action cannot be undone.
-                                  </AlertDialogDescription>
-                                </AlertDialogHeader>
-                                <AlertDialogFooter>
-                                  <AlertDialogCancel>Cancel</AlertDialogCancel>
-                                  <AlertDialogAction
-                                    onClick={() => handleDelete(template.id)}
-                                    className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
-                                  >
-                                    Delete
-                                  </AlertDialogAction>
-                                </AlertDialogFooter>
-                              </AlertDialogContent>
-                            </AlertDialog>
-                          </div>
+          <div className="space-y-6">
+            {/* Group templates by service type */}
+            {(() => {
+              const grouped = templates.reduce((acc, template) => {
+                const serviceTypeId = template.service_type_id || 'uncategorized';
+                if (!acc[serviceTypeId]) {
+                  acc[serviceTypeId] = [];
+                }
+                acc[serviceTypeId].push(template);
+                return acc;
+              }, {} as Record<string, Template[]>);
+
+              return Object.entries(grouped).map(([serviceTypeId, serviceTemplates]) => {
+                const serviceType = serviceTypes.find(st => st.id === serviceTypeId);
+                const serviceName = serviceType?.name || 'Uncategorized';
+
+                return (
+                  <div key={serviceTypeId} className="space-y-3">
+                    <div className="flex items-center gap-2 px-1">
+                      {serviceType?.icon_url && (
+                        <img src={serviceType.icon_url} alt="" className="h-5 w-5 object-contain" />
+                      )}
+                      <h3 className="text-sm font-semibold text-muted-foreground uppercase tracking-wide">
+                        {serviceName}
+                      </h3>
+                      <div className="flex-1 h-px bg-border" />
+                    </div>
+                    <DndContext sensors={sensors} collisionDetection={closestCenter} onDragEnd={handleDragEndTemplates}>
+                      <SortableContext items={serviceTemplates.map(t => t.id)} strategy={verticalListSortingStrategy}>
+                        <div className="space-y-3">
+                          {serviceTemplates.map((template) => (
+                            <SortableItem key={template.id} id={template.id}>
+                              <Card>
+                                <CardHeader className="p-4">
+                                  <div className="flex items-start gap-3 justify-between">
+                                    <div className="flex items-start gap-3 flex-1 min-w-0">
+                                      <div className="h-10 w-10 rounded-lg bg-muted border border-border overflow-hidden flex-shrink-0 flex items-center justify-center">
+                                        {template.image_url ? (
+                                          <img src={template.image_url} alt="Template preview" className="h-full w-full object-cover" onError={(e) => { (e.currentTarget as HTMLImageElement).src = '/placeholder.svg'; }} />
+                                        ) : (
+                                          <FileText className="h-4 w-4 text-muted-foreground" />
+                                        )}
+                                      </div>
+                                      <div className="flex-1 min-w-0">
+                                        <CardTitle className="text-base">{template.service_name}</CardTitle>
+                                        <CardDescription 
+                                          className="mt-1 line-clamp-2 text-xs leading-relaxed"
+                                          dangerouslySetInnerHTML={{
+                                            __html: template.script_content
+                                              .substring(0, 150)
+                                              .replace(/\*\*([^*]+)\*\*/g, '<strong>$1</strong>')
+                                              .replace(/\[([^\]]+)\]/g, '<mark class="bg-yellow-200 px-1">$1</mark>')
+                                              .replace(/\{red:([^}]+)\}/g, '<span style="color: rgb(220, 38, 38)">$1</span>')
+                                              .replace(/\{blue:([^}]+)\}/g, '<span style="color: rgb(37, 99, 235)">$1</span>')
+                                              .replace(/\{green:([^}]+)\}/g, '<span style="color: rgb(22, 163, 74)">$1</span>')
+                                              .replace(/\{yellow:([^}]+)\}/g, '<span style="color: rgb(202, 138, 4)">$1</span>')
+                                              .replace(/\{purple:([^}]+)\}/g, '<span style="color: rgb(168, 85, 247)">$1</span>')
+                                              .replace(/\{orange:([^}]+)\}/g, '<span style="color: rgb(249, 115, 22)">$1</span>')
+                                              .replace(/\{small:([^}]+)\}/g, '<span style="font-size: 0.875rem">$1</span>')
+                                              .replace(/\{large:([^}]+)\}/g, '<span style="font-size: 1.25rem">$1</span>')
+                                              + '...'
+                                          }}
+                                        />
+                                      </div>
+                                    </div>
+                                    <div className="flex gap-1 flex-shrink-0">
+                                      <Button
+                                        variant="ghost"
+                                        size="icon"
+                                        className="h-8 w-8"
+                                        onClick={() => handleDuplicate(template)}
+                                        title="Duplicate template"
+                                      >
+                                        <Copy className="h-3.5 w-3.5" />
+                                      </Button>
+                                      <Button
+                                        variant="ghost"
+                                        size="icon"
+                                        className="h-8 w-8"
+                                        onClick={() => handleEdit(template)}
+                                        title="Edit template"
+                                      >
+                                        <Edit2 className="h-3.5 w-3.5" />
+                                      </Button>
+                                      <AlertDialog>
+                                        <AlertDialogTrigger asChild>
+                                          <Button 
+                                            variant="ghost" 
+                                            size="icon" 
+                                            className="h-8 w-8 text-destructive"
+                                            title="Delete template"
+                                          >
+                                            <Trash2 className="h-3.5 w-3.5" />
+                                          </Button>
+                                        </AlertDialogTrigger>
+                                        <AlertDialogContent>
+                                          <AlertDialogHeader>
+                                            <AlertDialogTitle>Delete Template?</AlertDialogTitle>
+                                            <AlertDialogDescription>
+                                              This will permanently delete the "{template.service_name}" template.
+                                              This action cannot be undone.
+                                            </AlertDialogDescription>
+                                          </AlertDialogHeader>
+                                          <AlertDialogFooter>
+                                            <AlertDialogCancel>Cancel</AlertDialogCancel>
+                                            <AlertDialogAction
+                                              onClick={() => handleDelete(template.id)}
+                                              className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
+                                            >
+                                              Delete
+                                            </AlertDialogAction>
+                                          </AlertDialogFooter>
+                                        </AlertDialogContent>
+                                      </AlertDialog>
+                                    </div>
+                                  </div>
+                                </CardHeader>
+                              </Card>
+                            </SortableItem>
+                          ))}
                         </div>
-                      </CardHeader>
-                    </Card>
-                  </SortableItem>
-                ))}
-              </div>
-            </SortableContext>
-          </DndContext>
+                      </SortableContext>
+                    </DndContext>
+                  </div>
+                );
+              });
+            })()}
+          </div>
         )}
           </TabsContent>
 
