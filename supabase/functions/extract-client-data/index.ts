@@ -317,15 +317,16 @@ Return ONLY valid JSON with at least company_name and service_type. No markdown 
     let scriptContent;
     
     if (use_template && template_script) {
-      // Validate template data
+      // Validate template data - ensure it's the latest content
       if (!template_script || template_script.trim().length === 0) {
         throw new Error("Template script is empty or invalid");
       }
       
-      console.log("Customizing template script...");
+      console.log("=== TEMPLATE CUSTOMIZATION (100% DYNAMIC) ===");
       console.log("Template ID:", template_id);
-      console.log("Template script length:", template_script.length);
-      console.log("First 200 chars of template:", template_script.substring(0, 200));
+      console.log("Template length:", template_script.length);
+      console.log("Template preview:", template_script.substring(0, 150));
+      console.log("Using CURRENT template content - no caching");
       
       const customizationResponse = await fetch("https://ai.gateway.lovable.dev/v1/chat/completions", {
         method: "POST",

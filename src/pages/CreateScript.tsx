@@ -163,8 +163,10 @@ export default function CreateScript() {
 
     setLoading(true);
     try {
-      // Fetch the LATEST template data directly from database to ensure freshness
-      console.log("Fetching fresh template data for ID:", selectedTemplateId);
+      // CRITICAL: Always fetch the absolute LATEST template directly from database
+      // This ensures zero caching - we get the current version with all recent edits
+      toast.info("Fetching latest template version...");
+      
       const { data: freshTemplate, error: templateError } = await supabase
         .from("scripts")
         .select("id, service_name, script_content, image_url")
@@ -179,6 +181,13 @@ export default function CreateScript() {
         return;
       }
 
+      // Verify we have actual content
+      if (!freshTemplate.script_content || freshTemplate.script_content.trim().length === 0) {
+        toast.error("Template is empty. Please edit the template first.");
+        setLoading(false);
+        return;
+      }
+
       const selectedServiceType = serviceTypes.find(t => t.id === selectedServiceTypeId);
       if (!selectedServiceType) {
         toast.error("Invalid service type selected");
@@ -186,11 +195,14 @@ export default function CreateScript() {
         return;
       }
 
-      console.log("Using fresh template:", {
+      console.log("✓ Using LATEST template (no cache):", {
         id: freshTemplate.id,
-        service_name: freshTemplate.service_name,
-        script_length: freshTemplate.script_content?.length || 0
+        name: freshTemplate.service_name,
+        contentLength: freshTemplate.script_content.length,
+        contentPreview: freshTemplate.script_content.substring(0, 100)
       });
+
+      toast.success("Using latest template version");
 
       const { data, error } = await supabase.functions.invoke("extract-client-data", {
         body: {
