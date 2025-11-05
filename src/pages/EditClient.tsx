@@ -518,26 +518,6 @@ export default function EditClient() {
                         onChange={(e) => setCrmAccountLink(e.target.value)}
                       />
                     </div>
-                    <div>
-                      <Label htmlFor="appointment">Appointment Calendar</Label>
-                      <Input
-                        id="appointment"
-                        type="url"
-                        placeholder="https://calendly.com/yourlink"
-                        value={appointmentCalendar}
-                        onChange={(e) => setAppointmentCalendar(e.target.value)}
-                      />
-                    </div>
-                    <div>
-                      <Label htmlFor="reschedule">Reschedule Calendar</Label>
-                      <Input
-                        id="reschedule"
-                        type="url"
-                        placeholder="https://calendly.com/reschedule"
-                        value={rescheduleCalendar}
-                        onChange={(e) => setRescheduleCalendar(e.target.value)}
-                      />
-                    </div>
                   </div>
                 </TabsContent>
               </Tabs>
