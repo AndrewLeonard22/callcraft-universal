@@ -156,8 +156,12 @@ export default function EditScript() {
           if (fieldName === `${scriptPrefix}avg_install_time` || fieldName === "avg_install_time") {
             if (!avgInstallTime) setAvgInstallTime(fieldValue);
           }
-          if (fieldName === "appointment_calendar") setAppointmentCalendar(fieldValue);
-          if (fieldName === "reschedule_calendar") setRescheduleCalendar(fieldValue);
+          if (fieldName === `${scriptPrefix}appointment_calendar` || fieldName === "appointment_calendar") {
+            if (!appointmentCalendar) setAppointmentCalendar(fieldValue);
+          }
+          if (fieldName === `${scriptPrefix}reschedule_calendar` || fieldName === "reschedule_calendar") {
+            if (!rescheduleCalendar) setRescheduleCalendar(fieldValue);
+          }
         });
       }
     } catch (error) {
@@ -228,6 +232,8 @@ export default function EditScript() {
         { name: `${scriptPrefix}financing_options`, value: financingOptions },
         { name: `${scriptPrefix}video_of_service`, value: videoOfService },
         { name: `${scriptPrefix}avg_install_time`, value: avgInstallTime },
+        { name: `${scriptPrefix}appointment_calendar`, value: appointmentCalendar },
+        { name: `${scriptPrefix}reschedule_calendar`, value: rescheduleCalendar },
       ];
 
       // Delete existing script-specific details

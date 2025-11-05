@@ -251,6 +251,8 @@ export default function CreateScript() {
           { name: `${prefix}financing_options`, value: financingOptions },
           { name: `${prefix}video_of_service`, value: videoOfService },
           { name: `${prefix}avg_install_time`, value: avgInstallTime },
+          { name: `${prefix}appointment_calendar`, value: appointmentCalendar },
+          { name: `${prefix}reschedule_calendar`, value: rescheduleCalendar },
         ]
           .filter(d => d.value.trim())
           .map(d => ({
