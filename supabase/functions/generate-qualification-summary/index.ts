@@ -11,7 +11,7 @@ serve(async (req) => {
   }
 
   try {
-    const { responses, serviceName, clientName } = await req.json();
+    const { responses, serviceName, clientName, clientCity } = await req.json();
     
     if (!responses || responses.length === 0) {
       return new Response(
@@ -25,28 +25,25 @@ serve(async (req) => {
       throw new Error('LOVABLE_API_KEY not configured');
     }
 
-    // Build the prompt from responses
+    // Build the prompt from ALL responses
     const responsesText = responses
       .map((r: any) => `Q: ${r.question}\nA: ${r.customer_response || 'Not answered'}`)
       .join('\n\n');
 
-    const contextInfo = [];
-    if (serviceName) contextInfo.push(`Service: ${serviceName}`);
-    if (clientName) contextInfo.push(`Client: ${clientName}`);
-    const contextString = contextInfo.length > 0 ? contextInfo.join(' | ') : '';
+    const systemPrompt = `You are a professional sales assistant summarizing client qualification responses.
 
-    const systemPrompt = `You are a professional sales assistant summarizing client qualification responses${contextString ? ` for ${contextString}` : ''}.
-
-CRITICAL RULES:
-- Begin your summary with "The client ${clientName || '[Client Name]'}" to clearly identify who this lead is about
-- ONLY use information explicitly stated in the customer's responses
-- DO NOT add assumptions, inferences, or information not directly provided
+CRITICAL FORMATTING REQUIREMENTS:
+- Start with EXACTLY this format: "${clientName || '[Lead Name]'} from ${clientCity || '[City]'} is looking to get ${serviceName || '[Service]'} done."
+- Then, go down the list of ALL qualification questions and answers
+- Summarize each qualifier in a digestible but detailed format
+- Include ALL questions and their responses (even if marked as "Not answered")
+- Keep the summary structured and easy to read
+- Use bullet points or numbered lists for clarity
+- Be factual and detailed - include specific information from customer responses
+- DO NOT add assumptions or information not provided in the responses
 - DO NOT suggest next steps or make recommendations
-- DO NOT embellish or interpret beyond what was said
-- Keep it factual and concise (2-4 sentences overview + bullet points for key facts)
-- Use a straightforward, professional tone
 
-Your summary must reflect EXACTLY what was discussed - nothing more, nothing less.`;
+Your summary must be comprehensive and include information from ALL qualification questions.`;
 
     console.log('Generating summary for responses:', responsesText);
 

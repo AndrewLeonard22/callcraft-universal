@@ -442,28 +442,23 @@ export default function ScriptViewer() {
       return;
     }
 
-    const answeredQuestions = qualificationQuestions.filter(q => {
-      const response = qualificationResponses[q.id];
-      return response?.is_asked && response?.customer_response;
-    });
-
-    if (answeredQuestions.length === 0) {
-      toast.error("Please answer at least one qualification question");
-      return;
-    }
-
     setGeneratingSummary(true);
     try {
-      const responses = answeredQuestions.map(q => ({
-        question: q.question,
-        customer_response: qualificationResponses[q.id].customer_response,
-      }));
+      const responses = qualificationQuestions.map(q => {
+        const response = qualificationResponses[q.id];
+        return {
+          question: q.question,
+          customer_response: response?.customer_response || null,
+          is_asked: response?.is_asked || false
+        };
+      });
 
       const { data, error } = await supabase.functions.invoke('generate-qualification-summary', {
         body: { 
           responses,
           serviceName: (script as any)?.service_name || client?.service_type,
-          clientName: client?.name
+          clientName: client?.name,
+          clientCity: client?.city
         }
       });
 
