@@ -1061,14 +1061,14 @@ export default function Templates() {
 
                 return (
                   <div key={serviceTypeId} className="space-y-3">
-                    <div className="flex items-center gap-2 px-1">
+                    <div className="flex items-center gap-2 px-1 mb-2">
                       {serviceType?.icon_url && (
-                        <img src={serviceType.icon_url} alt="" className="h-5 w-5 object-contain" />
+                        <img src={serviceType.icon_url} alt="" className="h-4 w-4 object-contain opacity-60" />
                       )}
-                      <h3 className="text-sm font-semibold text-muted-foreground uppercase tracking-wide">
+                      <h3 className="text-xs font-medium text-muted-foreground/60 uppercase tracking-wider">
                         {serviceName}
                       </h3>
-                      <div className="flex-1 h-px bg-border" />
+                      <div className="flex-1 h-px bg-border/50" />
                     </div>
                     <DndContext sensors={sensors} collisionDetection={closestCenter} onDragEnd={handleDragEndTemplates}>
                       <SortableContext items={serviceTemplates.map(t => t.id)} strategy={verticalListSortingStrategy}>
