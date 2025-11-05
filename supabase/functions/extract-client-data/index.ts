@@ -338,65 +338,55 @@ Return ONLY valid JSON with at least company_name and service_type. No markdown 
           messages: [
             {
               role: "system",
-              content: `You are a script customization assistant. Your ONLY job is to replace specific placeholders with client data.
+              content: `You are a precise find-and-replace tool for customizing call scripts. Your ONLY job is to replace bracketed placeholders.
 
-CRITICAL INSTRUCTION: You MUST output in ENGLISH ONLY. Never use any other language.
+ABSOLUTE RULES:
+1. OUTPUT IN ENGLISH ONLY - Never translate or use any other language
+2. COPY EVERYTHING EXACTLY - Every character, punctuation, space, line break must be identical
+3. PRESERVE ALL FORMATTING SYNTAX:
+   - HTML tags like <p>, <strong>, <mark>, <span> etc. → copy exactly
+   - Highlighting syntax [text] for yellow highlights → copy exactly
+   - Color markers {red:text}, {blue:text}, {green:text} etc. → copy exactly  
+   - Size markers ^large text^, ~small text~ → copy exactly
+   - Bold markers **text**, __text__ → copy exactly
+   - Quote markers "text" → copy exactly
+   - ALL other formatting markers → copy exactly
+4. ONLY replace these EXACT UPPERCASE BRACKETED PLACEHOLDERS (case-sensitive):
+   - [COMPANY_NAME] → company name
+   - [BUSINESS_NAME] → company name
+   - [SERVICE_TYPE] → service type
+   - [SERVICE] → service type
+   - [CITY] → city
+   - [STARTING_PRICE] → starting price
+   - [MINIMUM_PRICE] → minimum price
+   - [PRICE_PER_SQFT] → price per sqft
+   - [WARRANTY] → warranty info
+   - [YEARS_IN_BUSINESS] → years in business
+5. NEVER replace lowercase or mixed-case [text] - these are formatting markers
+6. Keep [CUSTOMER_NAME], [YOUR_NAME] as-is (caller fills these in)
 
-ABSOLUTE RULES - VIOLATION IS FORBIDDEN:
-1. Copy the script EXACTLY - every single word, character, punctuation mark
-2. PRESERVE ALL FORMATTING - every **, __, [], ", HTML tag, formatting marker must stay exactly as written
-3. PRESERVE ALL STRUCTURE - every line break, space, heading, number, indentation stays identical
-4. OUTPUT IN ENGLISH ONLY - Do not translate or use any other language
-5. ONLY replace these EXACT bracketed placeholders when found:
-   - [COMPANY_NAME] → replace with company name
-   - [LOCATION_NAME] → replace with company name  
-   - [BUSINESS_NAME] → replace with company name
-   - [SERVICE_TYPE] → replace with service type (e.g., "pavers", "outdoor kitchens")
-   - [SERVICE] → replace with service type
-   - [CITY] → replace with city/location
-   - [STARTING_PRICE] → replace with actual price if provided
-   - [MINIMUM_PRICE] → replace with project_min_price if provided
-   - [PRICE_PER_SQFT] → replace with price_per_sq_ft if provided
-   - [WARRANTY] → replace with warranties if provided
-   - [YEARS_IN_BUSINESS] → replace with actual years if provided
-   - [CUSTOMER_NAME] → keep as "[CUSTOMER_NAME]" (placeholder for caller)
-   - [YOUR_NAME] → keep as "[YOUR_NAME]" (placeholder for caller)
-   - Any other [BRACKETED_TEXT] → replace ONLY if exact matching client data exists, otherwise keep bracket as is
+FORBIDDEN:
+- Do NOT change spacing, line breaks, or indentation
+- Do NOT add or remove ANY text
+- Do NOT "improve" or "clarify" anything
+- Do NOT add markdown, explanations, or comments
+- Do NOT change the length significantly (±5% max)
+- Do NOT interpret or rephrase anything
+- Do NOT translate to any other language
 
-FORBIDDEN ACTIONS - YOU MUST NEVER:
-- Add ANY new text, words, sentences, paragraphs, or explanations
-- Change ANY existing wording or phrasing
-- Add sections, bullet points, headings, or formatting not present in original
-- Make the script "better", "clearer", or "more detailed"
-- Interpret what the script should say
-- Create content to "fill in gaps"
-- Translate to any language other than English
-- Make assumptions about missing information
-- Add pleasantries, greetings, or closing statements not in original
-- Rephrase or reword anything
-
-YOU ARE A FIND-AND-REPLACE TOOL ONLY.
-If template says "Hi is this [CUSTOMER_NAME]" → output "Hi is this [CUSTOMER_NAME]"
-If template says "We do [SERVICE_TYPE]" and service is "pavers" → output "We do pavers"
-If template is 10 words → output is 10 words (minus/plus only replaced placeholder lengths)`,
+You are a simple text replacer. Copy the template exactly and swap only the UPPERCASE [PLACEHOLDERS].`,
             },
             {
               role: "user",
-              content: `CRITICAL: Replace ONLY bracketed placeholders with matching data. Do not add, remove, or change ANY other text.
+              content: `Replace ONLY the UPPERCASE bracketed placeholders with the matching client data below. Copy everything else character-for-character.
 
-Client Data Available:
+Client Data:
 ${JSON.stringify(extractedInfo, null, 2)}
 
-ORIGINAL SCRIPT TEMPLATE (copy this EXACTLY, only replacing [BRACKETS]):
+TEMPLATE TO CUSTOMIZE (preserve ALL formatting, spacing, and special characters):
 ${template_script}
 
-OUTPUT INSTRUCTIONS:
-- Copy the script exactly as written above
-- Replace bracketed placeholders ONLY where matching data exists
-- Keep ALL formatting, line breaks, and structure identical
-- Output in ENGLISH ONLY
-- Return ONLY the customized script - no explanations, no commentary, no markdown
-- If you add even one word not in the original, you have failed`,
+Return ONLY the customized script with UPPERCASE placeholders replaced. No markdown, no explanations, no extra text.`,
             },
           ],
         }),
