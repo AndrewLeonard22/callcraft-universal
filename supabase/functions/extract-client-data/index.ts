@@ -328,96 +328,38 @@ Return ONLY valid JSON with at least company_name and service_type. No markdown 
       console.log("Template preview:", template_script.substring(0, 150));
       console.log("Using CURRENT template content - no caching");
       
-      const customizationResponse = await fetch("https://ai.gateway.lovable.dev/v1/chat/completions", {
-        method: "POST",
-        headers: {
-          Authorization: `Bearer ${LOVABLE_API_KEY}`,
-          "Content-Type": "application/json",
-        },
-        body: JSON.stringify({
-          model: "google/gemini-2.5-flash",
-          messages: [
-            {
-              role: "system",
-              content: `You are a precise find-and-replace tool for customizing call scripts. Your ONLY job is to replace bracketed placeholders.
+      // Deterministic, lossless placeholder replacement (no AI) to preserve EXACT formatting
+      const mapping: Record<string, string | undefined> = {
+        COMPANY_NAME: extractedInfo.company_name,
+        BUSINESS_NAME: extractedInfo.company_name,
+        SERVICE_TYPE: extractedInfo.service_type,
+        SERVICE: extractedInfo.service_type,
+        CITY: extractedInfo.city,
+        STARTING_PRICE: extractedInfo.starting_price,
+        MINIMUM_PRICE: extractedInfo.project_min_price || extractedInfo.starting_price,
+        PRICE_PER_SQFT: extractedInfo.price_per_sq_ft,
+        WARRANTY: extractedInfo.warranty || extractedInfo.warranties,
+        YEARS_IN_BUSINESS: extractedInfo.years_in_business,
+      };
 
-ABSOLUTE RULES:
-1. OUTPUT IN ENGLISH ONLY - Never translate or use any other language
-2. COPY EVERYTHING EXACTLY - Every character, punctuation, space, line break must be identical
-3. PRESERVE ALL FORMATTING SYNTAX:
-   - HTML tags like <p>, <strong>, <mark>, <span> etc. → copy exactly
-   - Highlighting syntax [text] for yellow highlights → copy exactly
-   - Color markers {red:text}, {blue:text}, {green:text} etc. → copy exactly  
-   - Size markers ^large text^, ~small text~ → copy exactly
-   - Bold markers **text**, __text__ → copy exactly
-   - Quote markers "text" → copy exactly
-   - ALL other formatting markers → copy exactly
-4. ONLY replace these EXACT UPPERCASE BRACKETED PLACEHOLDERS (case-sensitive):
-   - [COMPANY_NAME] → company name
-   - [BUSINESS_NAME] → company name
-   - [SERVICE_TYPE] → service type
-   - [SERVICE] → service type
-   - [CITY] → city
-   - [STARTING_PRICE] → starting price
-   - [MINIMUM_PRICE] → minimum price
-   - [PRICE_PER_SQFT] → price per sqft
-   - [WARRANTY] → warranty info
-   - [YEARS_IN_BUSINESS] → years in business
-5. NEVER replace lowercase or mixed-case [text] - these are formatting markers
-6. Keep [CUSTOMER_NAME], [YOUR_NAME] as-is (caller fills these in)
+      const replacePlaceholders = (input: string, map: Record<string, string | undefined>) => {
+        return input.replace(/\[([A-Z_]+)\]/g, (match, key) => {
+          // Keep caller placeholders intact
+          if (key === 'CUSTOMER_NAME' || key === 'YOUR_NAME') return match;
+          const val = map[key];
+          return val && String(val).trim().length > 0 ? String(val) : match;
+        });
+      };
 
-FORBIDDEN:
-- Do NOT change spacing, line breaks, or indentation
-- Do NOT add or remove ANY text
-- Do NOT "improve" or "clarify" anything
-- Do NOT add markdown, explanations, or comments
-- Do NOT change the length significantly (±5% max)
-- Do NOT interpret or rephrase anything
-- Do NOT translate to any other language
+      scriptContent = replacePlaceholders(template_script, mapping);
 
-You are a simple text replacer. Copy the template exactly and swap only the UPPERCASE [PLACEHOLDERS].`,
-            },
-            {
-              role: "user",
-              content: `Replace ONLY the UPPERCASE bracketed placeholders with the matching client data below. Copy everything else character-for-character.
-
-Client Data:
-${JSON.stringify(extractedInfo, null, 2)}
-
-TEMPLATE TO CUSTOMIZE (preserve ALL formatting, spacing, and special characters):
-${template_script}
-
-Return ONLY the customized script with UPPERCASE placeholders replaced. No markdown, no explanations, no extra text.`,
-            },
-          ],
-        }),
-      });
-
-      if (!customizationResponse.ok) {
-        throw new Error("Failed to customize template script");
-      }
-
-      const customizationData = await customizationResponse.json();
-      scriptContent = customizationData.choices[0].message.content;
-      
-      // Validate the output
-      console.log("AI output length:", scriptContent.length);
-      console.log("First 200 chars of AI output:", scriptContent.substring(0, 200));
-      
-      // Check if AI added unexpected content (output should be similar length to input)
+      // Validate output characteristics for debugging
+      console.log("Output length:", scriptContent.length);
+      console.log("Output preview:", scriptContent.substring(0, 200));
       const lengthDifference = Math.abs(scriptContent.length - template_script.length);
       const percentageChange = (lengthDifference / template_script.length) * 100;
-      
       if (percentageChange > 50) {
-        console.warn(`WARNING: AI output changed length by ${percentageChange.toFixed(1)}%`);
-        console.warn("Template length:", template_script.length);
-        console.warn("Output length:", scriptContent.length);
-      }
-      
-      // Check for common hallucination patterns
-      if (scriptContent.includes('```') || scriptContent.includes('Here is') || scriptContent.includes('Here\'s')) {
-        console.error("CRITICAL: AI added explanatory text or markdown");
-        throw new Error("AI generated invalid output. Please try again.");
+        console.warn(`WARNING: Output length changed by ${percentageChange.toFixed(1)}%`);
       }
     } else {
       // Generate a fresh script
