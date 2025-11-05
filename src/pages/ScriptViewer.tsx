@@ -368,7 +368,7 @@ export default function ScriptViewer() {
     }
   };
 
-  const handleQualificationResponse = (questionId: string, response: string) => {
+  const handleQualificationResponse = async (questionId: string, response: string) => {
     // Update local state immediately for responsive UI
     setQualificationResponses(prev => ({
       ...prev,
@@ -383,7 +383,8 @@ export default function ScriptViewer() {
     // Debounce the database update (500ms after user stops typing)
     responseTimeouts.current[questionId] = window.setTimeout(async () => {
       try {
-        const existing = responsesRef.current[questionId];
+        const currentState = qualificationResponses[questionId];
+        const existing = currentState;
         let rowId = existing?.id;
 
         if (!rowId) {
@@ -406,11 +407,6 @@ export default function ScriptViewer() {
             .eq("id", rowId);
 
           if (error) throw error;
-
-          setQualificationResponses(prev => ({
-            ...prev,
-            [questionId]: { ...(prev[questionId] || {} as QualificationResponse), id: rowId!, customer_response: response } as QualificationResponse,
-          }));
         } else {
           const { data, error } = await supabase
             .from("qualification_responses")
@@ -444,6 +440,29 @@ export default function ScriptViewer() {
 
     setGeneratingSummary(true);
     try {
+      // Extract lead name and city from the first question's response (Homeowner Name & City)
+      const homeownerQuestion = qualificationQuestions.find(q => 
+        q.question.toLowerCase().includes('homeowner') && q.question.toLowerCase().includes('city')
+      );
+      
+      let leadName = '[Lead Name]';
+      let leadCity = '[City]';
+      
+      if (homeownerQuestion) {
+        const homeownerResponse = qualificationResponses[homeownerQuestion.id]?.customer_response;
+        if (homeownerResponse) {
+          // Try to parse "Name from City" format
+          const match = homeownerResponse.match(/^(.+?)\s+from\s+(.+)$/i);
+          if (match) {
+            leadName = match[1].trim();
+            leadCity = match[2].trim();
+          } else {
+            // If no "from" pattern, use the whole response as name
+            leadName = homeownerResponse;
+          }
+        }
+      }
+
       const responses = qualificationQuestions.map(q => {
         const response = qualificationResponses[q.id];
         return {
@@ -457,8 +476,8 @@ export default function ScriptViewer() {
         body: { 
           responses,
           serviceName: (script as any)?.service_name || client?.service_type,
-          clientName: client?.name,
-          clientCity: client?.city
+          leadName,
+          leadCity
         }
       });
 

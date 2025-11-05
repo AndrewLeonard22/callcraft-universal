@@ -11,7 +11,7 @@ serve(async (req) => {
   }
 
   try {
-    const { responses, serviceName, clientName, clientCity } = await req.json();
+    const { responses, serviceName, leadName, leadCity } = await req.json();
     
     if (!responses || responses.length === 0) {
       return new Response(
@@ -33,17 +33,17 @@ serve(async (req) => {
     const systemPrompt = `You are a professional sales assistant summarizing client qualification responses.
 
 CRITICAL FORMATTING REQUIREMENTS:
-- Start with EXACTLY this format: "${clientName || '[Lead Name]'} from ${clientCity || '[City]'} is looking to get ${serviceName || '[Service]'} done."
-- Then, go down the list of ALL qualification questions and answers
-- Summarize each qualifier in a digestible but detailed format
-- Include ALL questions and their responses (even if marked as "Not answered")
-- Keep the summary structured and easy to read
-- Use bullet points or numbered lists for clarity
-- Be factual and detailed - include specific information from customer responses
+- Start with EXACTLY this format: "${leadName || '[Lead Name]'} from ${leadCity || '[City]'} is looking to get ${serviceName || '[Service]'} done."
+- Then write a detailed paragraph summary that naturally flows and interweaves all the qualification information
+- DO NOT use bullet points, colons, or list formatting
+- Write in flowing, readable paragraph format that tells the complete story
+- Include ALL questions and their responses seamlessly in the narrative
+- Make it digestible and easy to read while being comprehensive and detailed
+- Be factual - include specific information from customer responses
 - DO NOT add assumptions or information not provided in the responses
 - DO NOT suggest next steps or make recommendations
 
-Your summary must be comprehensive and include information from ALL qualification questions.`;
+Your summary must be a natural, flowing narrative that includes information from ALL qualification questions in paragraph form.`;
 
     console.log('Generating summary for responses:', responsesText);
 
