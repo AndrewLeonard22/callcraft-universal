@@ -86,6 +86,7 @@ export default function ScriptViewer() {
   const [script, setScript] = useState<Script | null>(null);
   const [loading, setLoading] = useState(true);
   const [desiredSqFt, setDesiredSqFt] = useState("");
+  const [pergolaDimensions, setPergolaDimensions] = useState("");
   const [pergolaMaterial, setPergolaMaterial] = useState<"aluminum" | "wood">("aluminum");
   const [objectionTemplates, setObjectionTemplates] = useState<ObjectionTemplate[]>([]);
   const [faqs, setFaqs] = useState<FAQ[]>([]);
@@ -571,18 +572,37 @@ export default function ScriptViewer() {
     return priceNum / sizeNum;
   };
   
+  const calculatePergolaSquareFootage = (dimensions: string): number => {
+    // Parse dimensions like "15 x 20" or "15x20"
+    const match = dimensions.match(/(\d+\.?\d*)\s*x\s*(\d+\.?\d*)/i);
+    if (match) {
+      const length = parseFloat(match[1]);
+      const width = parseFloat(match[2]);
+      return length * width;
+    }
+    return 0;
+  };
+  
   const calculateEstimate = () => {
-    if (!desiredSqFt) return null;
-    
-    const sqFt = parseFloat(desiredSqFt);
-    if (isNaN(sqFt) || sqFt === 0) return null;
-    
-    let pricePerSqFtNum: number | null = null;
-    
-    // Check if this is a pergola service and use material-specific pricing
+    // Check if this is a pergola service
     const aluminumPrice = getDetailValue("price_per_sq_ft_aluminum");
     const woodPrice = getDetailValue("price_per_sq_ft_wood");
     const isPergola = aluminumPrice !== "N/A" || woodPrice !== "N/A";
+    
+    let sqFt: number;
+    
+    if (isPergola) {
+      // For pergola, calculate from dimensions
+      sqFt = calculatePergolaSquareFootage(pergolaDimensions);
+      if (sqFt === 0) return null;
+    } else {
+      // For other services, use direct square footage input
+      if (!desiredSqFt) return null;
+      sqFt = parseFloat(desiredSqFt);
+      if (isNaN(sqFt) || sqFt === 0) return null;
+    }
+    
+    let pricePerSqFtNum: number | null = null;
     
     if (isPergola) {
       const selectedPrice = pergolaMaterial === "aluminum" ? aluminumPrice : woodPrice;
@@ -1264,21 +1284,41 @@ export default function ScriptViewer() {
                             </button>
                           </div>
                         </div>
-                      )}
-                      
-                      <div>
-                        <Label htmlFor="calc-sqft" className="text-sm font-medium">
-                          Customer's Desired Square Footage
-                        </Label>
-                        <Input
-                          id="calc-sqft"
-                          type="number"
-                          placeholder="e.g., 750"
-                          value={desiredSqFt}
-                          onChange={(e) => setDesiredSqFt(e.target.value)}
-                          className="mt-1.5"
-                        />
-                      </div>
+                       )}
+                       
+                       {/* Show dimension input for Pergola, square footage for others */}
+                       {(getDetailValue("price_per_sq_ft_aluminum") !== "N/A" || getDetailValue("price_per_sq_ft_wood") !== "N/A") ? (
+                         <div>
+                           <Label htmlFor="pergola-dimensions" className="text-sm font-medium">
+                             Pergola Dimensions
+                           </Label>
+                           <Input
+                             id="pergola-dimensions"
+                             type="text"
+                             placeholder="e.g., 15 x 20"
+                             value={pergolaDimensions}
+                             onChange={(e) => setPergolaDimensions(e.target.value)}
+                             className="mt-1.5"
+                           />
+                           <p className="text-xs text-muted-foreground mt-1">
+                             Enter dimensions as length x width (e.g., 15 x 20)
+                           </p>
+                         </div>
+                       ) : (
+                         <div>
+                           <Label htmlFor="calc-sqft" className="text-sm font-medium">
+                             Customer's Desired Square Footage
+                           </Label>
+                           <Input
+                             id="calc-sqft"
+                             type="number"
+                             placeholder="e.g., 750"
+                             value={desiredSqFt}
+                             onChange={(e) => setDesiredSqFt(e.target.value)}
+                             className="mt-1.5"
+                           />
+                         </div>
+                       )}
                       
                       {estimate && (
                         <div className="space-y-3 pt-3 border-t border-border">
@@ -1303,9 +1343,9 @@ export default function ScriptViewer() {
                               </p>
                             </div>
                           </div>
-                          <p className="text-xs text-muted-foreground text-center">
-                            ±10% variation • {desiredSqFt} sq ft × ${(estimate.mid / parseFloat(desiredSqFt)).toFixed(2)}/sq ft
-                          </p>
+                           <p className="text-xs text-muted-foreground text-center">
+                             ±10% variation • {(getDetailValue("price_per_sq_ft_aluminum") !== "N/A" || getDetailValue("price_per_sq_ft_wood") !== "N/A") ? calculatePergolaSquareFootage(pergolaDimensions) : parseFloat(desiredSqFt)} sq ft × ${((getDetailValue("price_per_sq_ft_aluminum") !== "N/A" || getDetailValue("price_per_sq_ft_wood") !== "N/A") ? (estimate.mid / calculatePergolaSquareFootage(pergolaDimensions)) : (estimate.mid / parseFloat(desiredSqFt))).toFixed(2)}/sq ft
+                           </p>
                         </div>
                       )}
                     </div>
