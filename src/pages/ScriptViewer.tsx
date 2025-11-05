@@ -86,6 +86,7 @@ export default function ScriptViewer() {
   const [script, setScript] = useState<Script | null>(null);
   const [loading, setLoading] = useState(true);
   const [desiredSqFt, setDesiredSqFt] = useState("");
+  const [pergolaMaterial, setPergolaMaterial] = useState<"aluminum" | "wood">("aluminum");
   const [objectionTemplates, setObjectionTemplates] = useState<ObjectionTemplate[]>([]);
   const [faqs, setFaqs] = useState<FAQ[]>([]);
   const [showObjections, setShowObjections] = useState(false);
@@ -577,12 +578,28 @@ export default function ScriptViewer() {
     if (isNaN(sqFt) || sqFt === 0) return null;
     
     let pricePerSqFtNum: number | null = null;
-    const pricePerSqFtValue = getDetailValue("price_per_sq_ft");
     
-    if (pricePerSqFtValue !== "N/A") {
-      const match = pricePerSqFtValue.match(/\d+/);
-      if (match) {
-        pricePerSqFtNum = parseFloat(match[0]);
+    // Check if this is a pergola service and use material-specific pricing
+    const aluminumPrice = getDetailValue("price_per_sq_ft_aluminum");
+    const woodPrice = getDetailValue("price_per_sq_ft_wood");
+    const isPergola = aluminumPrice !== "N/A" || woodPrice !== "N/A";
+    
+    if (isPergola) {
+      const selectedPrice = pergolaMaterial === "aluminum" ? aluminumPrice : woodPrice;
+      if (selectedPrice !== "N/A") {
+        const match = selectedPrice.match(/\d+\.?\d*/);
+        if (match) {
+          pricePerSqFtNum = parseFloat(match[0]);
+        }
+      }
+    } else {
+      // Regular service - check price_per_sq_ft
+      const pricePerSqFtValue = getDetailValue("price_per_sq_ft");
+      if (pricePerSqFtValue !== "N/A") {
+        const match = pricePerSqFtValue.match(/\d+/);
+        if (match) {
+          pricePerSqFtNum = parseFloat(match[0]);
+        }
       }
     }
     
@@ -1196,7 +1213,7 @@ export default function ScriptViewer() {
               )}
 
               {/* Estimate Calculator */}
-              {(getDetailValue("starting_price") !== "N/A" || getDetailValue("price_per_sq_ft") !== "N/A") && (
+              {(getDetailValue("starting_price") !== "N/A" || getDetailValue("price_per_sq_ft") !== "N/A" || getDetailValue("price_per_sq_ft_aluminum") !== "N/A" || getDetailValue("price_per_sq_ft_wood") !== "N/A") && (
                 <Card className="border border-border shadow-sm">
                   <CardContent className="p-6">
                     <h2 className="text-base font-semibold mb-4 text-foreground">Estimate Calculator</h2>
@@ -1214,6 +1231,41 @@ export default function ScriptViewer() {
                     )}
                     
                     <div className="space-y-3">
+                      {/* Pergola Material Selection */}
+                      {(getDetailValue("price_per_sq_ft_aluminum") !== "N/A" || getDetailValue("price_per_sq_ft_wood") !== "N/A") && (
+                        <div>
+                          <Label className="text-sm font-medium mb-2 block">Material Type</Label>
+                          <div className="grid grid-cols-2 gap-2">
+                            <button
+                              onClick={() => setPergolaMaterial("aluminum")}
+                              className={`p-3 rounded-lg border-2 transition-all ${
+                                pergolaMaterial === "aluminum"
+                                  ? "border-primary bg-primary/10 text-primary font-semibold"
+                                  : "border-border bg-muted text-muted-foreground hover:border-primary/50"
+                              }`}
+                            >
+                              <div className="text-sm">Aluminum</div>
+                              {getDetailValue("price_per_sq_ft_aluminum") !== "N/A" && (
+                                <div className="text-xs mt-1">${getDetailValue("price_per_sq_ft_aluminum")}/sq ft</div>
+                              )}
+                            </button>
+                            <button
+                              onClick={() => setPergolaMaterial("wood")}
+                              className={`p-3 rounded-lg border-2 transition-all ${
+                                pergolaMaterial === "wood"
+                                  ? "border-primary bg-primary/10 text-primary font-semibold"
+                                  : "border-border bg-muted text-muted-foreground hover:border-primary/50"
+                              }`}
+                            >
+                              <div className="text-sm">Wood</div>
+                              {getDetailValue("price_per_sq_ft_wood") !== "N/A" && (
+                                <div className="text-xs mt-1">${getDetailValue("price_per_sq_ft_wood")}/sq ft</div>
+                              )}
+                            </button>
+                          </div>
+                        </div>
+                      )}
+                      
                       <div>
                         <Label htmlFor="calc-sqft" className="text-sm font-medium">
                           Customer's Desired Square Footage

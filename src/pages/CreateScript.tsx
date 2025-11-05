@@ -46,6 +46,8 @@ export default function CreateScript() {
   const [projectMinPrice, setProjectMinPrice] = useState("");
   const [projectMinSize, setProjectMinSize] = useState("");
   const [pricePerSqFt, setPricePerSqFt] = useState("");
+  const [pricePerSqFtAluminum, setPricePerSqFtAluminum] = useState("");
+  const [pricePerSqFtWood, setPricePerSqFtWood] = useState("");
   const [warranties, setWarranties] = useState("");
   const [financingOptions, setFinancingOptions] = useState("");
   const [videoOfService, setVideoOfService] = useState("");
@@ -217,6 +219,8 @@ export default function CreateScript() {
             project_min_price: projectMinPrice,
             project_min_size: projectMinSize,
             price_per_sq_ft: pricePerSqFt,
+            price_per_sq_ft_aluminum: pricePerSqFtAluminum,
+            price_per_sq_ft_wood: pricePerSqFtWood,
             warranties,
             financing_options: financingOptions,
             video_of_service: videoOfService,
@@ -247,6 +251,8 @@ export default function CreateScript() {
           { name: `${prefix}project_min_price`, value: projectMinPrice },
           { name: `${prefix}project_min_size`, value: projectMinSize },
           { name: `${prefix}price_per_sq_ft`, value: pricePerSqFt },
+          { name: `${prefix}price_per_sq_ft_aluminum`, value: pricePerSqFtAluminum },
+          { name: `${prefix}price_per_sq_ft_wood`, value: pricePerSqFtWood },
           { name: `${prefix}warranties`, value: warranties },
           { name: `${prefix}financing_options`, value: financingOptions },
           { name: `${prefix}video_of_service`, value: videoOfService },
@@ -435,15 +441,38 @@ export default function CreateScript() {
                   onChange={(e) => setProjectMinSize(e.target.value)}
                 />
               </div>
-              <div>
-                <Label htmlFor="price-sqft">Price Per Square Foot</Label>
-                <Input
-                  id="price-sqft"
-                  placeholder="e.g., $15-25/sq ft"
-                  value={pricePerSqFt}
-                  onChange={(e) => setPricePerSqFt(e.target.value)}
-                />
-              </div>
+              {serviceTypes.find(st => st.id === selectedServiceTypeId)?.name?.toLowerCase().includes('pergola') ? (
+                <>
+                  <div>
+                    <Label htmlFor="price-sqft-aluminum">Price Per Square Foot - Aluminum</Label>
+                    <Input
+                      id="price-sqft-aluminum"
+                      placeholder="e.g., 25"
+                      value={pricePerSqFtAluminum}
+                      onChange={(e) => setPricePerSqFtAluminum(e.target.value)}
+                    />
+                  </div>
+                  <div>
+                    <Label htmlFor="price-sqft-wood">Price Per Square Foot - Wood</Label>
+                    <Input
+                      id="price-sqft-wood"
+                      placeholder="e.g., 30"
+                      value={pricePerSqFtWood}
+                      onChange={(e) => setPricePerSqFtWood(e.target.value)}
+                    />
+                  </div>
+                </>
+              ) : (
+                <div>
+                  <Label htmlFor="price-sqft">Price Per Square Foot</Label>
+                  <Input
+                    id="price-sqft"
+                    placeholder="e.g., $15-25/sq ft"
+                    value={pricePerSqFt}
+                    onChange={(e) => setPricePerSqFt(e.target.value)}
+                  />
+                </div>
+              )}
               <div>
                 <Label htmlFor="warranties">Warranties/Guarantees</Label>
                 <Textarea
