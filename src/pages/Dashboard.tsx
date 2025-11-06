@@ -1,6 +1,6 @@
 import { useEffect, useState, useMemo, useCallback } from "react";
 import { Link, useNavigate } from "react-router-dom";
-import { Plus, FileText, Calendar, Search, Settings, Trash2, LogOut, User as UserIcon, Users, Wand2, Archive, ArchiveRestore } from "lucide-react";
+import { Plus, FileText, Calendar, Search, Settings, Trash2, LogOut, User as UserIcon, Users, Wand2, Archive, ArchiveRestore, GraduationCap } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
@@ -421,6 +421,12 @@ export default function Dashboard() {
             <div className="flex items-center gap-1 sm:gap-2 flex-shrink-0">
               {/* Desktop Navigation */}
               <div className="hidden lg:flex items-center gap-2">
+                <Link to="/training">
+                  <Button variant="outline" size="default" className="gap-2 shadow-sm hover:shadow transition-shadow">
+                    <GraduationCap className="h-4 w-4" />
+                    Training
+                  </Button>
+                </Link>
                 <Link to="/image-generator">
                   <Button variant="outline" size="default" className="gap-2 shadow-sm hover:shadow transition-shadow">
                     <Wand2 className="h-4 w-4" />
@@ -455,6 +461,12 @@ export default function Dashboard() {
                   </Button>
                 </DropdownMenuTrigger>
                 <DropdownMenuContent align="end" className="w-48 bg-background">
+                  <DropdownMenuItem asChild>
+                    <Link to="/training" className="flex items-center cursor-pointer">
+                      <GraduationCap className="mr-2 h-4 w-4" />
+                      <span>Training</span>
+                    </Link>
+                  </DropdownMenuItem>
                   <DropdownMenuItem asChild>
                     <Link to="/image-generator" className="flex items-center cursor-pointer">
                       <Wand2 className="mr-2 h-4 w-4" />
