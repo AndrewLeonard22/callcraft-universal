@@ -323,6 +323,8 @@ export default function Templates() {
       loadTemplates();
       loadObjectionTemplates();
       loadQualificationQuestions();
+      loadFaqs();
+      loadServiceTypes();
     }
   }, [userOrganizationId]);
 
@@ -387,9 +389,11 @@ export default function Templates() {
 
   const loadFaqs = async () => {
     try {
+      if (!userOrganizationId) return;
       const { data, error } = await supabase
         .from("faqs")
         .select("*")
+        .eq("organization_id", userOrganizationId)
         .order("display_order", { ascending: true })
         .order("created_at", { ascending: false });
 
@@ -681,6 +685,7 @@ export default function Templates() {
             service_type_id: faqServiceTypeId,
             question: faqQuestion,
             answer: faqAnswer,
+            organization_id: userOrganizationId,
           });
 
         if (error) throw error;
