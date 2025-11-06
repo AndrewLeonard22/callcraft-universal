@@ -36,8 +36,33 @@ export default function ServiceTypes() {
   const [iconPreview, setIconPreview] = useState<string | null>(null);
   const [saving, setSaving] = useState(false);
   const [editingService, setEditingService] = useState<ServiceType | null>(null);
+  const [userOrganizationId, setUserOrganizationId] = useState<string | null>(null);
+
+  const loadUserOrganization = async () => {
+    try {
+      const { data: { user } } = await supabase.auth.getUser();
+      if (!user) return;
+
+      const { data, error } = await supabase
+        .from('organization_members')
+        .select('organization_id')
+        .eq('user_id', user.id)
+        .single();
+
+      if (error) throw error;
+      setUserOrganizationId(data?.organization_id || null);
+    } catch (error) {
+      console.error('Error loading user organization:', error);
+    }
+  };
 
   useEffect(() => {
+    loadUserOrganization();
+  }, []);
+
+  useEffect(() => {
+    if (!userOrganizationId) return;
+
     loadServiceTypes();
 
     // Set up real-time subscription
@@ -51,13 +76,16 @@ export default function ServiceTypes() {
     return () => {
       supabase.removeChannel(serviceTypesChannel);
     };
-  }, []);
+  }, [userOrganizationId]);
 
   const loadServiceTypes = async () => {
     try {
+      if (!userOrganizationId) return;
+
       const { data, error } = await supabase
         .from("service_types")
         .select("*")
+        .eq("organization_id", userOrganizationId)
         .order("name");
 
       if (error) throw error;
@@ -92,6 +120,11 @@ export default function ServiceTypes() {
       return;
     }
 
+    if (!userOrganizationId) {
+      toast.error("Organization not found");
+      return;
+    }
+
     setSaving(true);
     try {
       let iconUrl = null;
@@ -115,6 +148,7 @@ export default function ServiceTypes() {
       const { error } = await supabase.from("service_types").insert({
         name: serviceName,
         icon_url: iconUrl,
+        organization_id: userOrganizationId,
       });
 
       if (error) throw error;
