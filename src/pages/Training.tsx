@@ -1,4 +1,4 @@
-import { GraduationCap, DollarSign, Phone, BookOpen, Lightbulb } from "lucide-react";
+import { GraduationCap, DollarSign, Phone, BookOpen, Lightbulb, Package, Shield, TrendingUp, Users2, Award, CheckCircle2, XCircle, AlertCircle } from "lucide-react";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from "@/components/ui/accordion";
 import { Badge } from "@/components/ui/badge";
@@ -32,124 +32,273 @@ export default function Training() {
         </div>
       </div>
 
-      <div className="container mx-auto px-4 sm:px-6 py-8 max-w-7xl">
-        <div className="mb-8">
-          <h2 className="text-3xl font-bold mb-3">Bootcamp Training Center</h2>
-          <p className="text-muted-foreground text-lg">
-            Everything you need to know about pricing, products, and best practices for client calls
+      <div className="container mx-auto px-4 sm:px-6 py-12 max-w-7xl">
+        {/* Hero Section */}
+        <div className="mb-12 text-center">
+          <div className="inline-flex items-center gap-3 bg-primary/10 rounded-full px-6 py-3 mb-6">
+            <GraduationCap className="h-6 w-6 text-primary" />
+            <span className="font-semibold text-primary">Team Bootcamp</span>
+          </div>
+          <h2 className="text-4xl font-bold mb-4">Training Center</h2>
+          <p className="text-muted-foreground text-lg max-w-2xl mx-auto">
+            Master pricing, products, and sales techniques to close more deals with confidence
           </p>
         </div>
 
-        <div className="grid gap-6">
+        <div className="grid gap-8">
           {/* Pricing Guidelines */}
-          <Card>
-            <CardHeader>
-              <div className="flex items-center gap-3">
-                <DollarSign className="h-6 w-6 text-primary" />
-                <CardTitle>Pricing Guidelines</CardTitle>
+          <Card className="border-2">
+            <CardHeader className="pb-6">
+              <div className="flex items-center gap-4 mb-2">
+                <div className="p-3 bg-primary/10 rounded-lg">
+                  <DollarSign className="h-6 w-6 text-primary" />
+                </div>
+                <div>
+                  <CardTitle className="text-2xl">Pricing Guidelines</CardTitle>
+                  <CardDescription className="text-base mt-1">
+                    Approximate pricing ranges to guide client conversations
+                  </CardDescription>
+                </div>
               </div>
-              <CardDescription>
-                Approximate pricing ranges for different services to help guide client conversations
-              </CardDescription>
             </CardHeader>
-            <CardContent>
+            <CardContent className="space-y-1">
               <Accordion type="single" collapsible className="w-full">
-                <AccordionItem value="pergola">
-                  <AccordionTrigger>
-                    <div className="flex items-center gap-2">
-                      Pergola Services
-                      <Badge variant="secondary">Popular</Badge>
+                <AccordionItem value="pergola" className="border-b">
+                  <AccordionTrigger className="hover:no-underline py-5">
+                    <div className="flex items-center gap-3">
+                      <Package className="h-5 w-5 text-primary" />
+                      <span className="font-semibold">Pergola Services</span>
+                      <Badge variant="secondary" className="ml-2">Popular</Badge>
                     </div>
                   </AccordionTrigger>
                   <AccordionContent>
-                    <div className="space-y-4 pt-2">
-                      <div>
-                        <h4 className="font-semibold mb-2">Aluminum Pergolas</h4>
-                        <ul className="list-disc list-inside space-y-1 text-muted-foreground">
-                          <li>Base price: ~$35-45 per square foot</li>
-                          <li>Typical 12x16 pergola: $6,700 - $8,600</li>
-                          <li>Typical 15x20 pergola: $10,500 - $13,500</li>
-                          <li>Benefits: Low maintenance, modern look, various colors</li>
-                        </ul>
+                    <div className="space-y-6 pt-4 pb-2">
+                      <div className="grid md:grid-cols-2 gap-6">
+                        <div className="border rounded-lg p-5 space-y-3 bg-card">
+                          <div className="flex items-center gap-2 mb-3">
+                            <Shield className="h-5 w-5 text-primary" />
+                            <h4 className="font-semibold text-lg">Aluminum Pergolas</h4>
+                          </div>
+                          <div className="space-y-2">
+                            <div className="flex items-start gap-2">
+                              <TrendingUp className="h-4 w-4 text-primary mt-0.5 flex-shrink-0" />
+                              <span className="text-sm"><strong>$35-45</strong> per square foot</span>
+                            </div>
+                            <div className="flex items-start gap-2">
+                              <DollarSign className="h-4 w-4 text-primary mt-0.5 flex-shrink-0" />
+                              <span className="text-sm">12x16: <strong>$6,700 - $8,600</strong></span>
+                            </div>
+                            <div className="flex items-start gap-2">
+                              <DollarSign className="h-4 w-4 text-primary mt-0.5 flex-shrink-0" />
+                              <span className="text-sm">15x20: <strong>$10,500 - $13,500</strong></span>
+                            </div>
+                          </div>
+                          <div className="pt-3 border-t space-y-1.5">
+                            <p className="text-xs font-medium text-muted-foreground uppercase tracking-wide">Benefits</p>
+                            <div className="flex items-start gap-2">
+                              <CheckCircle2 className="h-3.5 w-3.5 text-green-500 mt-0.5" />
+                              <span className="text-sm text-muted-foreground">Low maintenance</span>
+                            </div>
+                            <div className="flex items-start gap-2">
+                              <CheckCircle2 className="h-3.5 w-3.5 text-green-500 mt-0.5" />
+                              <span className="text-sm text-muted-foreground">Modern aesthetic</span>
+                            </div>
+                            <div className="flex items-start gap-2">
+                              <CheckCircle2 className="h-3.5 w-3.5 text-green-500 mt-0.5" />
+                              <span className="text-sm text-muted-foreground">Various colors available</span>
+                            </div>
+                          </div>
+                        </div>
+                        
+                        <div className="border rounded-lg p-5 space-y-3 bg-card">
+                          <div className="flex items-center gap-2 mb-3">
+                            <Package className="h-5 w-5 text-primary" />
+                            <h4 className="font-semibold text-lg">Wood Pergolas</h4>
+                          </div>
+                          <div className="space-y-2">
+                            <div className="flex items-start gap-2">
+                              <TrendingUp className="h-4 w-4 text-primary mt-0.5 flex-shrink-0" />
+                              <span className="text-sm"><strong>$30-40</strong> per square foot</span>
+                            </div>
+                            <div className="flex items-start gap-2">
+                              <DollarSign className="h-4 w-4 text-primary mt-0.5 flex-shrink-0" />
+                              <span className="text-sm">12x16: <strong>$5,800 - $7,700</strong></span>
+                            </div>
+                            <div className="flex items-start gap-2">
+                              <DollarSign className="h-4 w-4 text-primary mt-0.5 flex-shrink-0" />
+                              <span className="text-sm">15x20: <strong>$9,000 - $12,000</strong></span>
+                            </div>
+                          </div>
+                          <div className="pt-3 border-t space-y-1.5">
+                            <p className="text-xs font-medium text-muted-foreground uppercase tracking-wide">Benefits</p>
+                            <div className="flex items-start gap-2">
+                              <CheckCircle2 className="h-3.5 w-3.5 text-green-500 mt-0.5" />
+                              <span className="text-sm text-muted-foreground">Natural beauty</span>
+                            </div>
+                            <div className="flex items-start gap-2">
+                              <CheckCircle2 className="h-3.5 w-3.5 text-green-500 mt-0.5" />
+                              <span className="text-sm text-muted-foreground">Customizable finish</span>
+                            </div>
+                            <div className="flex items-start gap-2">
+                              <AlertCircle className="h-3.5 w-3.5 text-amber-500 mt-0.5" />
+                              <span className="text-sm text-muted-foreground">Requires maintenance</span>
+                            </div>
+                          </div>
+                        </div>
                       </div>
-                      <div>
-                        <h4 className="font-semibold mb-2">Wood Pergolas</h4>
-                        <ul className="list-disc list-inside space-y-1 text-muted-foreground">
-                          <li>Base price: ~$30-40 per square foot</li>
-                          <li>Typical 12x16 pergola: $5,800 - $7,700</li>
-                          <li>Typical 15x20 pergola: $9,000 - $12,000</li>
-                          <li>Benefits: Natural look, customizable, classic appeal</li>
-                        </ul>
-                      </div>
-                      <div className="bg-accent/10 p-4 rounded-lg">
-                        <p className="text-sm font-medium">💡 Pro Tip</p>
-                        <p className="text-sm text-muted-foreground mt-1">
-                          Always ask about the square footage first, then discuss materials. Use the dimension calculator in scripts for accurate pricing.
-                        </p>
+                      
+                      <div className="bg-primary/5 border border-primary/20 p-5 rounded-lg">
+                        <div className="flex items-start gap-3">
+                          <Lightbulb className="h-5 w-5 text-primary mt-0.5 flex-shrink-0" />
+                          <div>
+                            <p className="font-semibold mb-1">Pro Tip</p>
+                            <p className="text-sm text-muted-foreground leading-relaxed">
+                              Always ask about the square footage first, then discuss materials. Use the dimension calculator in scripts for accurate pricing.
+                            </p>
+                          </div>
+                        </div>
                       </div>
                     </div>
                   </AccordionContent>
                 </AccordionItem>
 
-                <AccordionItem value="hvac">
-                  <AccordionTrigger>HVAC Services</AccordionTrigger>
+                <AccordionItem value="hvac" className="border-b">
+                  <AccordionTrigger className="hover:no-underline py-5">
+                    <div className="flex items-center gap-3">
+                      <Package className="h-5 w-5 text-primary" />
+                      <span className="font-semibold">HVAC Services</span>
+                    </div>
+                  </AccordionTrigger>
                   <AccordionContent>
-                    <div className="space-y-4 pt-2">
-                      <div>
-                        <h4 className="font-semibold mb-2">System Installation</h4>
-                        <ul className="list-disc list-inside space-y-1 text-muted-foreground">
-                          <li>Standard AC unit: $3,500 - $7,000</li>
-                          <li>High-efficiency system: $5,000 - $10,000</li>
-                          <li>Complete HVAC system: $8,000 - $15,000</li>
-                        </ul>
-                      </div>
-                      <div>
-                        <h4 className="font-semibold mb-2">Maintenance & Repairs</h4>
-                        <ul className="list-disc list-inside space-y-1 text-muted-foreground">
-                          <li>Seasonal tune-up: $100 - $200</li>
-                          <li>Minor repairs: $150 - $500</li>
-                          <li>Major repairs: $500 - $2,000</li>
-                        </ul>
+                    <div className="space-y-6 pt-4 pb-2">
+                      <div className="grid md:grid-cols-2 gap-6">
+                        <div className="border rounded-lg p-5 space-y-3 bg-card">
+                          <h4 className="font-semibold text-lg mb-3">System Installation</h4>
+                          <div className="space-y-2.5">
+                            <div className="flex justify-between items-center py-2 border-b">
+                              <span className="text-sm text-muted-foreground">Standard AC unit</span>
+                              <span className="font-semibold">$3,500 - $7,000</span>
+                            </div>
+                            <div className="flex justify-between items-center py-2 border-b">
+                              <span className="text-sm text-muted-foreground">High-efficiency system</span>
+                              <span className="font-semibold">$5,000 - $10,000</span>
+                            </div>
+                            <div className="flex justify-between items-center py-2">
+                              <span className="text-sm text-muted-foreground">Complete HVAC</span>
+                              <span className="font-semibold">$8,000 - $15,000</span>
+                            </div>
+                          </div>
+                        </div>
+                        
+                        <div className="border rounded-lg p-5 space-y-3 bg-card">
+                          <h4 className="font-semibold text-lg mb-3">Maintenance & Repairs</h4>
+                          <div className="space-y-2.5">
+                            <div className="flex justify-between items-center py-2 border-b">
+                              <span className="text-sm text-muted-foreground">Seasonal tune-up</span>
+                              <span className="font-semibold">$100 - $200</span>
+                            </div>
+                            <div className="flex justify-between items-center py-2 border-b">
+                              <span className="text-sm text-muted-foreground">Minor repairs</span>
+                              <span className="font-semibold">$150 - $500</span>
+                            </div>
+                            <div className="flex justify-between items-center py-2">
+                              <span className="text-sm text-muted-foreground">Major repairs</span>
+                              <span className="font-semibold">$500 - $2,000</span>
+                            </div>
+                          </div>
+                        </div>
                       </div>
                     </div>
                   </AccordionContent>
                 </AccordionItem>
 
-                <AccordionItem value="solar">
-                  <AccordionTrigger>Solar Services</AccordionTrigger>
+                <AccordionItem value="solar" className="border-b">
+                  <AccordionTrigger className="hover:no-underline py-5">
+                    <div className="flex items-center gap-3">
+                      <Package className="h-5 w-5 text-primary" />
+                      <span className="font-semibold">Solar Services</span>
+                    </div>
+                  </AccordionTrigger>
                   <AccordionContent>
-                    <div className="space-y-4 pt-2">
-                      <div>
-                        <h4 className="font-semibold mb-2">Residential Solar</h4>
-                        <ul className="list-disc list-inside space-y-1 text-muted-foreground">
-                          <li>Average 6kW system: $12,000 - $18,000</li>
-                          <li>Average 8kW system: $16,000 - $24,000</li>
-                          <li>Price per watt: $2.00 - $3.00</li>
-                          <li>Federal tax credit: 30% of total cost</li>
-                        </ul>
+                    <div className="space-y-6 pt-4 pb-2">
+                      <div className="border rounded-lg p-5 space-y-4 bg-card">
+                        <h4 className="font-semibold text-lg">Residential Solar</h4>
+                        <div className="grid sm:grid-cols-2 gap-4">
+                          <div className="space-y-2">
+                            <div className="flex items-start gap-2">
+                              <DollarSign className="h-4 w-4 text-primary mt-0.5" />
+                              <div>
+                                <p className="text-sm font-medium">6kW System</p>
+                                <p className="text-lg font-bold">$12,000 - $18,000</p>
+                              </div>
+                            </div>
+                          </div>
+                          <div className="space-y-2">
+                            <div className="flex items-start gap-2">
+                              <DollarSign className="h-4 w-4 text-primary mt-0.5" />
+                              <div>
+                                <p className="text-sm font-medium">8kW System</p>
+                                <p className="text-lg font-bold">$16,000 - $24,000</p>
+                              </div>
+                            </div>
+                          </div>
+                        </div>
+                        <div className="pt-3 border-t">
+                          <div className="flex items-center gap-2 mb-2">
+                            <TrendingUp className="h-4 w-4 text-primary" />
+                            <span className="text-sm font-medium">Price per watt: $2.00 - $3.00</span>
+                          </div>
+                          <div className="flex items-center gap-2 bg-green-500/10 p-3 rounded">
+                            <Award className="h-5 w-5 text-green-600" />
+                            <span className="text-sm font-semibold text-green-700 dark:text-green-400">Federal Tax Credit: 30% of total cost</span>
+                          </div>
+                        </div>
                       </div>
-                      <div className="bg-accent/10 p-4 rounded-lg">
-                        <p className="text-sm font-medium">💡 Pro Tip</p>
-                        <p className="text-sm text-muted-foreground mt-1">
-                          Always mention the 30% federal tax credit and potential state incentives. Calculate the monthly savings vs. their current electric bill.
-                        </p>
+                      
+                      <div className="bg-primary/5 border border-primary/20 p-5 rounded-lg">
+                        <div className="flex items-start gap-3">
+                          <Lightbulb className="h-5 w-5 text-primary mt-0.5 flex-shrink-0" />
+                          <div>
+                            <p className="font-semibold mb-1">Pro Tip</p>
+                            <p className="text-sm text-muted-foreground leading-relaxed">
+                              Always mention the 30% federal tax credit and potential state incentives. Calculate the monthly savings vs. their current electric bill.
+                            </p>
+                          </div>
+                        </div>
                       </div>
                     </div>
                   </AccordionContent>
                 </AccordionItem>
 
                 <AccordionItem value="landscaping">
-                  <AccordionTrigger>Landscaping Services</AccordionTrigger>
+                  <AccordionTrigger className="hover:no-underline py-5">
+                    <div className="flex items-center gap-3">
+                      <Package className="h-5 w-5 text-primary" />
+                      <span className="font-semibold">Landscaping Services</span>
+                    </div>
+                  </AccordionTrigger>
                   <AccordionContent>
-                    <div className="space-y-4 pt-2">
-                      <div>
-                        <h4 className="font-semibold mb-2">Common Projects</h4>
-                        <ul className="list-disc list-inside space-y-1 text-muted-foreground">
-                          <li>Basic lawn installation: $1,000 - $3,000</li>
-                          <li>Paver patio (12x16): $2,500 - $5,000</li>
-                          <li>Retaining wall (per linear foot): $40 - $100</li>
-                          <li>Full landscape design: $5,000 - $20,000+</li>
-                        </ul>
+                    <div className="space-y-4 pt-4 pb-2">
+                      <div className="border rounded-lg p-5 space-y-3 bg-card">
+                        <h4 className="font-semibold text-lg mb-3">Common Projects</h4>
+                        <div className="space-y-2.5">
+                          <div className="flex justify-between items-center py-2 border-b">
+                            <span className="text-sm text-muted-foreground">Basic lawn installation</span>
+                            <span className="font-semibold">$1,000 - $3,000</span>
+                          </div>
+                          <div className="flex justify-between items-center py-2 border-b">
+                            <span className="text-sm text-muted-foreground">Paver patio (12x16)</span>
+                            <span className="font-semibold">$2,500 - $5,000</span>
+                          </div>
+                          <div className="flex justify-between items-center py-2 border-b">
+                            <span className="text-sm text-muted-foreground">Retaining wall (per linear ft)</span>
+                            <span className="font-semibold">$40 - $100</span>
+                          </div>
+                          <div className="flex justify-between items-center py-2">
+                            <span className="text-sm text-muted-foreground">Full landscape design</span>
+                            <span className="font-semibold">$5,000 - $20,000+</span>
+                          </div>
+                        </div>
                       </div>
                     </div>
                   </AccordionContent>
@@ -159,17 +308,21 @@ export default function Training() {
           </Card>
 
           {/* Product Knowledge */}
-          <Card>
-            <CardHeader>
-              <div className="flex items-center gap-3">
-                <BookOpen className="h-6 w-6 text-primary" />
-                <CardTitle>Product Knowledge</CardTitle>
+          <Card className="border-2">
+            <CardHeader className="pb-6">
+              <div className="flex items-center gap-4 mb-2">
+                <div className="p-3 bg-primary/10 rounded-lg">
+                  <BookOpen className="h-6 w-6 text-primary" />
+                </div>
+                <div>
+                  <CardTitle className="text-2xl">Product Knowledge</CardTitle>
+                  <CardDescription className="text-base mt-1">
+                    Materials, warranties, and specifications
+                  </CardDescription>
+                </div>
               </div>
-              <CardDescription>
-                Key information about materials, warranties, and product specifications
-              </CardDescription>
             </CardHeader>
-            <CardContent>
+            <CardContent className="space-y-1">
               <Accordion type="single" collapsible className="w-full">
                 <AccordionItem value="materials">
                   <AccordionTrigger>Material Specifications</AccordionTrigger>
@@ -225,17 +378,21 @@ export default function Training() {
           </Card>
 
           {/* Call Best Practices */}
-          <Card>
-            <CardHeader>
-              <div className="flex items-center gap-3">
-                <Phone className="h-6 w-6 text-primary" />
-                <CardTitle>Call Best Practices</CardTitle>
+          <Card className="border-2">
+            <CardHeader className="pb-6">
+              <div className="flex items-center gap-4 mb-2">
+                <div className="p-3 bg-primary/10 rounded-lg">
+                  <Phone className="h-6 w-6 text-primary" />
+                </div>
+                <div>
+                  <CardTitle className="text-2xl">Call Best Practices</CardTitle>
+                  <CardDescription className="text-base mt-1">
+                    Proven techniques for successful conversations
+                  </CardDescription>
+                </div>
               </div>
-              <CardDescription>
-                Tips for successful client conversations and closing deals
-              </CardDescription>
             </CardHeader>
-            <CardContent>
+            <CardContent className="space-y-1">
               <Accordion type="single" collapsible className="w-full">
                 <AccordionItem value="opening">
                   <AccordionTrigger>Opening the Call</AccordionTrigger>
@@ -326,41 +483,85 @@ export default function Training() {
           </Card>
 
           {/* Quick Tips */}
-          <Card>
-            <CardHeader>
-              <div className="flex items-center gap-3">
-                <Lightbulb className="h-6 w-6 text-primary" />
-                <CardTitle>Quick Tips & Reminders</CardTitle>
+          <Card className="border-2">
+            <CardHeader className="pb-6">
+              <div className="flex items-center gap-4 mb-2">
+                <div className="p-3 bg-primary/10 rounded-lg">
+                  <Lightbulb className="h-6 w-6 text-primary" />
+                </div>
+                <div>
+                  <CardTitle className="text-2xl">Quick Tips & Reminders</CardTitle>
+                </div>
               </div>
             </CardHeader>
             <CardContent>
-              <div className="grid md:grid-cols-2 gap-4">
-                <div className="border rounded-lg p-4">
-                  <h4 className="font-semibold mb-3 flex items-center gap-2">
-                    <span className="text-2xl">✅</span>
-                    Do's
-                  </h4>
-                  <ul className="space-y-2 text-sm text-muted-foreground">
-                    <li>✓ Use the script as a guide, not a strict rule</li>
-                    <li>✓ Listen actively and take notes</li>
-                    <li>✓ Build rapport before talking price</li>
-                    <li>✓ Use the dimension calculator for accurate quotes</li>
-                    <li>✓ Always confirm contact info before ending</li>
-                    <li>✓ Send follow-up information promptly</li>
+              <div className="grid md:grid-cols-2 gap-6">
+                <div className="border-2 border-green-500/20 rounded-lg p-6 bg-green-500/5">
+                  <div className="flex items-center gap-3 mb-5">
+                    <div className="p-2 bg-green-500/20 rounded-full">
+                      <CheckCircle2 className="h-6 w-6 text-green-600" />
+                    </div>
+                    <h4 className="font-bold text-xl">Do's</h4>
+                  </div>
+                  <ul className="space-y-3">
+                    <li className="flex items-start gap-3">
+                      <CheckCircle2 className="h-5 w-5 text-green-600 mt-0.5 flex-shrink-0" />
+                      <span className="text-sm">Use the script as a guide, not a strict rule</span>
+                    </li>
+                    <li className="flex items-start gap-3">
+                      <CheckCircle2 className="h-5 w-5 text-green-600 mt-0.5 flex-shrink-0" />
+                      <span className="text-sm">Listen actively and take notes</span>
+                    </li>
+                    <li className="flex items-start gap-3">
+                      <CheckCircle2 className="h-5 w-5 text-green-600 mt-0.5 flex-shrink-0" />
+                      <span className="text-sm">Build rapport before talking price</span>
+                    </li>
+                    <li className="flex items-start gap-3">
+                      <CheckCircle2 className="h-5 w-5 text-green-600 mt-0.5 flex-shrink-0" />
+                      <span className="text-sm">Use the dimension calculator for accurate quotes</span>
+                    </li>
+                    <li className="flex items-start gap-3">
+                      <CheckCircle2 className="h-5 w-5 text-green-600 mt-0.5 flex-shrink-0" />
+                      <span className="text-sm">Always confirm contact info before ending</span>
+                    </li>
+                    <li className="flex items-start gap-3">
+                      <CheckCircle2 className="h-5 w-5 text-green-600 mt-0.5 flex-shrink-0" />
+                      <span className="text-sm">Send follow-up information promptly</span>
+                    </li>
                   </ul>
                 </div>
-                <div className="border rounded-lg p-4">
-                  <h4 className="font-semibold mb-3 flex items-center gap-2">
-                    <span className="text-2xl">❌</span>
-                    Don'ts
-                  </h4>
-                  <ul className="space-y-2 text-sm text-muted-foreground">
-                    <li>✗ Don't give pricing before qualifying</li>
-                    <li>✗ Don't bad-mouth competitors</li>
-                    <li>✗ Don't make promises you can't keep</li>
-                    <li>✗ Don't rush through the call</li>
-                    <li>✗ Don't assume what they want</li>
-                    <li>✗ Don't forget to set next steps</li>
+                <div className="border-2 border-red-500/20 rounded-lg p-6 bg-red-500/5">
+                  <div className="flex items-center gap-3 mb-5">
+                    <div className="p-2 bg-red-500/20 rounded-full">
+                      <XCircle className="h-6 w-6 text-red-600" />
+                    </div>
+                    <h4 className="font-bold text-xl">Don'ts</h4>
+                  </div>
+                  <ul className="space-y-3">
+                    <li className="flex items-start gap-3">
+                      <XCircle className="h-5 w-5 text-red-600 mt-0.5 flex-shrink-0" />
+                      <span className="text-sm">Don't give pricing before qualifying</span>
+                    </li>
+                    <li className="flex items-start gap-3">
+                      <XCircle className="h-5 w-5 text-red-600 mt-0.5 flex-shrink-0" />
+                      <span className="text-sm">Don't bad-mouth competitors</span>
+                    </li>
+                    <li className="flex items-start gap-3">
+                      <XCircle className="h-5 w-5 text-red-600 mt-0.5 flex-shrink-0" />
+                      <span className="text-sm">Don't make promises you can't keep</span>
+                    </li>
+                    <li className="flex items-start gap-3">
+                      <XCircle className="h-5 w-5 text-red-600 mt-0.5 flex-shrink-0" />
+                      <span className="text-sm">Don't rush through the call</span>
+                    </li>
+                    <li className="flex items-start gap-3">
+                      <XCircle className="h-5 w-5 text-red-600 mt-0.5 flex-shrink-0" />
+                      <span className="text-sm">Don't assume what they want</span>
+                    </li>
+                    <li className="flex items-start gap-3">
+                      <XCircle className="h-5 w-5 text-red-600 mt-0.5 flex-shrink-0" />
+                      <span className="text-sm">Don't forget to set next steps</span>
+                    </li>
                   </ul>
                 </div>
               </div>
