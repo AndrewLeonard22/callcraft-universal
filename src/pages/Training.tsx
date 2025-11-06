@@ -25,9 +25,16 @@ export default function Training() {
                 <h1 className="text-2xl font-semibold tracking-tight">Team Training</h1>
               </div>
             </div>
-            <Link to="/">
-              <Button variant="outline">Back to Dashboard</Button>
-            </Link>
+            <div className="flex items-center gap-2">
+              <Link to="/training-management">
+                <Button variant="default">
+                  Manage Content
+                </Button>
+              </Link>
+              <Link to="/">
+                <Button variant="outline">Back to Dashboard</Button>
+              </Link>
+            </div>
           </div>
         </div>
       </div>
