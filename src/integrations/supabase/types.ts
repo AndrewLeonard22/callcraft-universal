@@ -96,6 +96,7 @@ export type Database = {
           created_at: string
           display_order: number | null
           id: string
+          organization_id: string | null
           question: string
           service_type_id: string | null
         }
@@ -104,6 +105,7 @@ export type Database = {
           created_at?: string
           display_order?: number | null
           id?: string
+          organization_id?: string | null
           question: string
           service_type_id?: string | null
         }
@@ -112,6 +114,7 @@ export type Database = {
           created_at?: string
           display_order?: number | null
           id?: string
+          organization_id?: string | null
           question?: string
           service_type_id?: string | null
         }

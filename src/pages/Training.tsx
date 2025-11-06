@@ -1,12 +1,186 @@
-import { GraduationCap, DollarSign, Phone, BookOpen, Lightbulb, Package, Shield, TrendingUp, Users2, Award, CheckCircle2, XCircle, AlertCircle } from "lucide-react";
+import { useEffect, useState } from "react";
+import { GraduationCap, DollarSign, Phone, BookOpen, Lightbulb, Package, Shield, TrendingUp, Award, CheckCircle2, XCircle, AlertCircle, Video, ExternalLink } from "lucide-react";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from "@/components/ui/accordion";
 import { Badge } from "@/components/ui/badge";
 import { Link } from "react-router-dom";
 import { Button } from "@/components/ui/button";
+import { supabase } from "@/integrations/supabase/client";
+import { useToast } from "@/hooks/use-toast";
 import socialWorksLogo from "@/assets/social-works-logo.png";
 
+interface TrainingModule {
+  id: string;
+  title: string;
+  description: string;
+  category: string;
+  icon_name: string;
+  display_order: number;
+  sections?: TrainingSection[];
+}
+
+interface TrainingSection {
+  id: string;
+  module_id: string;
+  title: string;
+  content: string;
+  display_order: number;
+  benefits?: TrainingBenefit[];
+  features?: TrainingFeature[];
+  videos?: TrainingVideo[];
+}
+
+interface TrainingBenefit {
+  id: string;
+  section_id: string;
+  benefit_text: string;
+  benefit_type: string;
+  display_order: number;
+}
+
+interface TrainingFeature {
+  id: string;
+  section_id: string;
+  feature_name: string;
+  feature_value: string;
+  display_order: number;
+}
+
+interface TrainingVideo {
+  id: string;
+  module_id?: string;
+  section_id?: string;
+  title: string;
+  video_url: string;
+  description: string;
+  display_order: number;
+}
+
 export default function Training() {
+  const [modules, setModules] = useState<TrainingModule[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [organizationId, setOrganizationId] = useState<string | null>(null);
+  const { toast } = useToast();
+
+  useEffect(() => {
+    loadOrganization();
+  }, []);
+
+  useEffect(() => {
+    if (organizationId) {
+      loadModules();
+    }
+  }, [organizationId]);
+
+  const loadOrganization = async () => {
+    const { data: { user } } = await supabase.auth.getUser();
+    if (!user) return;
+
+    const { data: orgMember } = await supabase
+      .from("organization_members")
+      .select("organization_id")
+      .eq("user_id", user.id)
+      .single();
+
+    if (orgMember) {
+      setOrganizationId(orgMember.organization_id);
+    }
+  };
+
+  const loadModules = async () => {
+    try {
+      const { data: modulesData, error: modulesError } = await supabase
+        .from("training_modules")
+        .select("*")
+        .eq("organization_id", organizationId)
+        .eq("is_active", true)
+        .order("display_order");
+
+      if (modulesError) throw modulesError;
+
+      // Load sections for each module
+      const modulesWithSections = await Promise.all(
+        (modulesData || []).map(async (module) => {
+          const { data: sectionsData } = await supabase
+            .from("training_sections")
+            .select("*")
+            .eq("module_id", module.id)
+            .order("display_order");
+
+          // Load benefits, features, and videos for each section
+          const sectionsWithDetails = await Promise.all(
+            (sectionsData || []).map(async (section) => {
+              const [benefitsRes, featuresRes, videosRes] = await Promise.all([
+                supabase
+                  .from("training_benefits")
+                  .select("*")
+                  .eq("section_id", section.id)
+                  .order("display_order"),
+                supabase
+                  .from("training_features")
+                  .select("*")
+                  .eq("section_id", section.id)
+                  .order("display_order"),
+                supabase
+                  .from("training_videos")
+                  .select("*")
+                  .eq("section_id", section.id)
+                  .order("display_order"),
+              ]);
+
+              return {
+                ...section,
+                benefits: benefitsRes.data || [],
+                features: featuresRes.data || [],
+                videos: videosRes.data || [],
+              };
+            })
+          );
+
+          return {
+            ...module,
+            sections: sectionsWithDetails,
+          };
+        })
+      );
+
+      setModules(modulesWithSections);
+    } catch (error) {
+      console.error("Error loading modules:", error);
+      toast({
+        title: "Error",
+        description: "Failed to load training modules",
+        variant: "destructive",
+      });
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const getIconComponent = (iconName: string) => {
+    const icons: Record<string, any> = {
+      DollarSign,
+      Package,
+      BookOpen,
+      Phone,
+      Lightbulb,
+      Shield,
+      TrendingUp,
+      Award,
+    };
+    return icons[iconName] || Package;
+  };
+
+  const getCategoryColor = (category: string) => {
+    const colors: Record<string, string> = {
+      pricing: "text-green-600",
+      product: "text-blue-600",
+      sales: "text-purple-600",
+      tips: "text-amber-600",
+    };
+    return colors[category] || "text-primary";
+  };
+
   return (
     <div className="min-h-screen bg-background">
       {/* Header */}
@@ -52,529 +226,184 @@ export default function Training() {
           </p>
         </div>
 
-        <div className="grid gap-8">
-          {/* Pricing Guidelines */}
+        {loading ? (
+          <div className="text-center py-12">
+            <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-primary mx-auto"></div>
+            <p className="mt-4 text-muted-foreground">Loading training content...</p>
+          </div>
+        ) : modules.length === 0 ? (
           <Card className="border-2">
-            <CardHeader className="pb-6">
-              <div className="flex items-center gap-4 mb-2">
-                <div className="p-3 bg-primary/10 rounded-lg">
-                  <DollarSign className="h-6 w-6 text-primary" />
-                </div>
-                <div>
-                  <CardTitle className="text-2xl">Pricing Guidelines</CardTitle>
-                  <CardDescription className="text-base mt-1">
-                    Approximate pricing ranges to guide client conversations
-                  </CardDescription>
-                </div>
-              </div>
-            </CardHeader>
-            <CardContent className="space-y-1">
-              <Accordion type="single" collapsible className="w-full">
-                <AccordionItem value="pergola" className="border-b">
-                  <AccordionTrigger className="hover:no-underline py-5">
-                    <div className="flex items-center gap-3">
-                      <Package className="h-5 w-5 text-primary" />
-                      <span className="font-semibold">Pergola Services</span>
-                      <Badge variant="secondary" className="ml-2">Popular</Badge>
-                    </div>
-                  </AccordionTrigger>
-                  <AccordionContent>
-                    <div className="space-y-6 pt-4 pb-2">
-                      <div className="grid md:grid-cols-2 gap-6">
-                        <div className="border rounded-lg p-5 space-y-3 bg-card">
-                          <div className="flex items-center gap-2 mb-3">
-                            <Shield className="h-5 w-5 text-primary" />
-                            <h4 className="font-semibold text-lg">Aluminum Pergolas</h4>
-                          </div>
-                          <div className="space-y-2">
-                            <div className="flex items-start gap-2">
-                              <TrendingUp className="h-4 w-4 text-primary mt-0.5 flex-shrink-0" />
-                              <span className="text-sm"><strong>$35-45</strong> per square foot</span>
-                            </div>
-                            <div className="flex items-start gap-2">
-                              <DollarSign className="h-4 w-4 text-primary mt-0.5 flex-shrink-0" />
-                              <span className="text-sm">12x16: <strong>$6,700 - $8,600</strong></span>
-                            </div>
-                            <div className="flex items-start gap-2">
-                              <DollarSign className="h-4 w-4 text-primary mt-0.5 flex-shrink-0" />
-                              <span className="text-sm">15x20: <strong>$10,500 - $13,500</strong></span>
-                            </div>
-                          </div>
-                          <div className="pt-3 border-t space-y-1.5">
-                            <p className="text-xs font-medium text-muted-foreground uppercase tracking-wide">Benefits</p>
-                            <div className="flex items-start gap-2">
-                              <CheckCircle2 className="h-3.5 w-3.5 text-green-500 mt-0.5" />
-                              <span className="text-sm text-muted-foreground">Low maintenance</span>
-                            </div>
-                            <div className="flex items-start gap-2">
-                              <CheckCircle2 className="h-3.5 w-3.5 text-green-500 mt-0.5" />
-                              <span className="text-sm text-muted-foreground">Modern aesthetic</span>
-                            </div>
-                            <div className="flex items-start gap-2">
-                              <CheckCircle2 className="h-3.5 w-3.5 text-green-500 mt-0.5" />
-                              <span className="text-sm text-muted-foreground">Various colors available</span>
-                            </div>
-                          </div>
-                        </div>
-                        
-                        <div className="border rounded-lg p-5 space-y-3 bg-card">
-                          <div className="flex items-center gap-2 mb-3">
-                            <Package className="h-5 w-5 text-primary" />
-                            <h4 className="font-semibold text-lg">Wood Pergolas</h4>
-                          </div>
-                          <div className="space-y-2">
-                            <div className="flex items-start gap-2">
-                              <TrendingUp className="h-4 w-4 text-primary mt-0.5 flex-shrink-0" />
-                              <span className="text-sm"><strong>$30-40</strong> per square foot</span>
-                            </div>
-                            <div className="flex items-start gap-2">
-                              <DollarSign className="h-4 w-4 text-primary mt-0.5 flex-shrink-0" />
-                              <span className="text-sm">12x16: <strong>$5,800 - $7,700</strong></span>
-                            </div>
-                            <div className="flex items-start gap-2">
-                              <DollarSign className="h-4 w-4 text-primary mt-0.5 flex-shrink-0" />
-                              <span className="text-sm">15x20: <strong>$9,000 - $12,000</strong></span>
-                            </div>
-                          </div>
-                          <div className="pt-3 border-t space-y-1.5">
-                            <p className="text-xs font-medium text-muted-foreground uppercase tracking-wide">Benefits</p>
-                            <div className="flex items-start gap-2">
-                              <CheckCircle2 className="h-3.5 w-3.5 text-green-500 mt-0.5" />
-                              <span className="text-sm text-muted-foreground">Natural beauty</span>
-                            </div>
-                            <div className="flex items-start gap-2">
-                              <CheckCircle2 className="h-3.5 w-3.5 text-green-500 mt-0.5" />
-                              <span className="text-sm text-muted-foreground">Customizable finish</span>
-                            </div>
-                            <div className="flex items-start gap-2">
-                              <AlertCircle className="h-3.5 w-3.5 text-amber-500 mt-0.5" />
-                              <span className="text-sm text-muted-foreground">Requires maintenance</span>
-                            </div>
-                          </div>
-                        </div>
-                      </div>
-                      
-                      <div className="bg-primary/5 border border-primary/20 p-5 rounded-lg">
-                        <div className="flex items-start gap-3">
-                          <Lightbulb className="h-5 w-5 text-primary mt-0.5 flex-shrink-0" />
-                          <div>
-                            <p className="font-semibold mb-1">Pro Tip</p>
-                            <p className="text-sm text-muted-foreground leading-relaxed">
-                              Always ask about the square footage first, then discuss materials. Use the dimension calculator in scripts for accurate pricing.
-                            </p>
-                          </div>
-                        </div>
-                      </div>
-                    </div>
-                  </AccordionContent>
-                </AccordionItem>
+            <CardContent className="py-12 text-center">
+              <GraduationCap className="h-16 w-16 text-muted-foreground mx-auto mb-4" />
+              <h3 className="text-xl font-semibold mb-2">No Training Content Yet</h3>
+              <p className="text-muted-foreground mb-6">
+                Get started by creating your first training module
+              </p>
+              <Link to="/training-management">
+                <Button>
+                  Create Training Content
+                </Button>
+              </Link>
+            </CardContent>
+          </Card>
+        ) : (
+          <div className="grid gap-8">
+            {modules.map((module) => {
+              const IconComponent = getIconComponent(module.icon_name);
+              const categoryColor = getCategoryColor(module.category);
 
-                <AccordionItem value="hvac" className="border-b">
-                  <AccordionTrigger className="hover:no-underline py-5">
-                    <div className="flex items-center gap-3">
-                      <Package className="h-5 w-5 text-primary" />
-                      <span className="font-semibold">HVAC Services</span>
-                    </div>
-                  </AccordionTrigger>
-                  <AccordionContent>
-                    <div className="space-y-6 pt-4 pb-2">
-                      <div className="grid md:grid-cols-2 gap-6">
-                        <div className="border rounded-lg p-5 space-y-3 bg-card">
-                          <h4 className="font-semibold text-lg mb-3">System Installation</h4>
-                          <div className="space-y-2.5">
-                            <div className="flex justify-between items-center py-2 border-b">
-                              <span className="text-sm text-muted-foreground">Standard AC unit</span>
-                              <span className="font-semibold">$3,500 - $7,000</span>
-                            </div>
-                            <div className="flex justify-between items-center py-2 border-b">
-                              <span className="text-sm text-muted-foreground">High-efficiency system</span>
-                              <span className="font-semibold">$5,000 - $10,000</span>
-                            </div>
-                            <div className="flex justify-between items-center py-2">
-                              <span className="text-sm text-muted-foreground">Complete HVAC</span>
-                              <span className="font-semibold">$8,000 - $15,000</span>
-                            </div>
-                          </div>
+              return (
+                <Card key={module.id} className="border-2">
+                  <CardHeader className="pb-6">
+                    <div className="flex items-center gap-4 mb-2">
+                      <div className="p-3 bg-primary/10 rounded-lg">
+                        <IconComponent className={`h-6 w-6 ${categoryColor}`} />
+                      </div>
+                      <div>
+                        <div className="flex items-center gap-2 mb-1">
+                          <CardTitle className="text-2xl">{module.title}</CardTitle>
+                          <Badge variant="secondary" className="capitalize">
+                            {module.category}
+                          </Badge>
                         </div>
-                        
-                        <div className="border rounded-lg p-5 space-y-3 bg-card">
-                          <h4 className="font-semibold text-lg mb-3">Maintenance & Repairs</h4>
-                          <div className="space-y-2.5">
-                            <div className="flex justify-between items-center py-2 border-b">
-                              <span className="text-sm text-muted-foreground">Seasonal tune-up</span>
-                              <span className="font-semibold">$100 - $200</span>
-                            </div>
-                            <div className="flex justify-between items-center py-2 border-b">
-                              <span className="text-sm text-muted-foreground">Minor repairs</span>
-                              <span className="font-semibold">$150 - $500</span>
-                            </div>
-                            <div className="flex justify-between items-center py-2">
-                              <span className="text-sm text-muted-foreground">Major repairs</span>
-                              <span className="font-semibold">$500 - $2,000</span>
-                            </div>
-                          </div>
-                        </div>
+                        <CardDescription className="text-base mt-1">
+                          {module.description}
+                        </CardDescription>
                       </div>
                     </div>
-                  </AccordionContent>
-                </AccordionItem>
-
-                <AccordionItem value="solar" className="border-b">
-                  <AccordionTrigger className="hover:no-underline py-5">
-                    <div className="flex items-center gap-3">
-                      <Package className="h-5 w-5 text-primary" />
-                      <span className="font-semibold">Solar Services</span>
-                    </div>
-                  </AccordionTrigger>
-                  <AccordionContent>
-                    <div className="space-y-6 pt-4 pb-2">
-                      <div className="border rounded-lg p-5 space-y-4 bg-card">
-                        <h4 className="font-semibold text-lg">Residential Solar</h4>
-                        <div className="grid sm:grid-cols-2 gap-4">
-                          <div className="space-y-2">
-                            <div className="flex items-start gap-2">
-                              <DollarSign className="h-4 w-4 text-primary mt-0.5" />
-                              <div>
-                                <p className="text-sm font-medium">6kW System</p>
-                                <p className="text-lg font-bold">$12,000 - $18,000</p>
+                  </CardHeader>
+                  <CardContent className="space-y-1">
+                    {module.sections && module.sections.length > 0 ? (
+                      <Accordion type="single" collapsible className="w-full">
+                        {module.sections.map((section) => (
+                          <AccordionItem key={section.id} value={section.id} className="border-b">
+                            <AccordionTrigger className="hover:no-underline py-5">
+                              <div className="flex items-center gap-3">
+                                <Package className="h-5 w-5 text-primary" />
+                                <span className="font-semibold">{section.title}</span>
                               </div>
-                            </div>
-                          </div>
-                          <div className="space-y-2">
-                            <div className="flex items-start gap-2">
-                              <DollarSign className="h-4 w-4 text-primary mt-0.5" />
-                              <div>
-                                <p className="text-sm font-medium">8kW System</p>
-                                <p className="text-lg font-bold">$16,000 - $24,000</p>
+                            </AccordionTrigger>
+                            <AccordionContent>
+                              <div className="space-y-6 pt-4 pb-2">
+                                {section.content && (
+                                  <div className="prose prose-sm max-w-none">
+                                    <p className="text-muted-foreground whitespace-pre-wrap">
+                                      {section.content}
+                                    </p>
+                                  </div>
+                                )}
+
+                                {section.features && section.features.length > 0 && (
+                                  <div className="border rounded-lg p-5 space-y-3 bg-card">
+                                    <h4 className="font-semibold text-lg mb-3">Pricing & Details</h4>
+                                    <div className="space-y-2.5">
+                                      {section.features.map((feature) => (
+                                        <div
+                                          key={feature.id}
+                                          className="flex justify-between items-center py-2 border-b last:border-0"
+                                        >
+                                          <span className="text-sm text-muted-foreground">
+                                            {feature.feature_name}
+                                          </span>
+                                          <span className="font-semibold">{feature.feature_value}</span>
+                                        </div>
+                                      ))}
+                                    </div>
+                                  </div>
+                                )}
+
+                                {section.benefits && section.benefits.length > 0 && (
+                                  <div className="grid md:grid-cols-2 gap-4">
+                                    {section.benefits.filter(b => b.benefit_type === "pro").length > 0 && (
+                                      <div className="border-2 border-green-500/20 rounded-lg p-5 bg-green-500/5">
+                                        <div className="flex items-center gap-2 mb-4">
+                                          <CheckCircle2 className="h-5 w-5 text-green-600" />
+                                          <h5 className="font-semibold">Benefits</h5>
+                                        </div>
+                                        <div className="space-y-2">
+                                          {section.benefits
+                                            .filter(b => b.benefit_type === "pro")
+                                            .map((benefit) => (
+                                              <div key={benefit.id} className="flex items-start gap-2">
+                                                <CheckCircle2 className="h-4 w-4 text-green-600 mt-0.5 flex-shrink-0" />
+                                                <span className="text-sm">{benefit.benefit_text}</span>
+                                              </div>
+                                            ))}
+                                        </div>
+                                      </div>
+                                    )}
+
+                                    {section.benefits.filter(b => b.benefit_type === "con").length > 0 && (
+                                      <div className="border-2 border-amber-500/20 rounded-lg p-5 bg-amber-500/5">
+                                        <div className="flex items-center gap-2 mb-4">
+                                          <AlertCircle className="h-5 w-5 text-amber-600" />
+                                          <h5 className="font-semibold">Considerations</h5>
+                                        </div>
+                                        <div className="space-y-2">
+                                          {section.benefits
+                                            .filter(b => b.benefit_type === "con")
+                                            .map((benefit) => (
+                                              <div key={benefit.id} className="flex items-start gap-2">
+                                                <AlertCircle className="h-4 w-4 text-amber-600 mt-0.5 flex-shrink-0" />
+                                                <span className="text-sm">{benefit.benefit_text}</span>
+                                              </div>
+                                            ))}
+                                        </div>
+                                      </div>
+                                    )}
+                                  </div>
+                                )}
+
+                                {section.videos && section.videos.length > 0 && (
+                                  <div className="border rounded-lg p-5 bg-card">
+                                    <div className="flex items-center gap-2 mb-4">
+                                      <Video className="h-5 w-5 text-primary" />
+                                      <h5 className="font-semibold">Training Videos</h5>
+                                    </div>
+                                    <div className="space-y-3">
+                                      {section.videos.map((video) => (
+                                        <a
+                                          key={video.id}
+                                          href={video.video_url}
+                                          target="_blank"
+                                          rel="noopener noreferrer"
+                                          className="block p-4 border rounded-lg hover:bg-muted/50 transition-colors"
+                                        >
+                                          <div className="flex items-start justify-between gap-3">
+                                            <div className="flex-1">
+                                              <div className="flex items-center gap-2 mb-1">
+                                                <Video className="h-4 w-4 text-primary" />
+                                                <span className="font-medium">{video.title}</span>
+                                              </div>
+                                              {video.description && (
+                                                <p className="text-sm text-muted-foreground">
+                                                  {video.description}
+                                                </p>
+                                              )}
+                                            </div>
+                                            <ExternalLink className="h-4 w-4 text-muted-foreground flex-shrink-0" />
+                                          </div>
+                                        </a>
+                                      ))}
+                                    </div>
+                                  </div>
+                                )}
                               </div>
-                            </div>
-                          </div>
-                        </div>
-                        <div className="pt-3 border-t">
-                          <div className="flex items-center gap-2 mb-2">
-                            <TrendingUp className="h-4 w-4 text-primary" />
-                            <span className="text-sm font-medium">Price per watt: $2.00 - $3.00</span>
-                          </div>
-                          <div className="flex items-center gap-2 bg-green-500/10 p-3 rounded">
-                            <Award className="h-5 w-5 text-green-600" />
-                            <span className="text-sm font-semibold text-green-700 dark:text-green-400">Federal Tax Credit: 30% of total cost</span>
-                          </div>
-                        </div>
-                      </div>
-                      
-                      <div className="bg-primary/5 border border-primary/20 p-5 rounded-lg">
-                        <div className="flex items-start gap-3">
-                          <Lightbulb className="h-5 w-5 text-primary mt-0.5 flex-shrink-0" />
-                          <div>
-                            <p className="font-semibold mb-1">Pro Tip</p>
-                            <p className="text-sm text-muted-foreground leading-relaxed">
-                              Always mention the 30% federal tax credit and potential state incentives. Calculate the monthly savings vs. their current electric bill.
-                            </p>
-                          </div>
-                        </div>
-                      </div>
-                    </div>
-                  </AccordionContent>
-                </AccordionItem>
-
-                <AccordionItem value="landscaping">
-                  <AccordionTrigger className="hover:no-underline py-5">
-                    <div className="flex items-center gap-3">
-                      <Package className="h-5 w-5 text-primary" />
-                      <span className="font-semibold">Landscaping Services</span>
-                    </div>
-                  </AccordionTrigger>
-                  <AccordionContent>
-                    <div className="space-y-4 pt-4 pb-2">
-                      <div className="border rounded-lg p-5 space-y-3 bg-card">
-                        <h4 className="font-semibold text-lg mb-3">Common Projects</h4>
-                        <div className="space-y-2.5">
-                          <div className="flex justify-between items-center py-2 border-b">
-                            <span className="text-sm text-muted-foreground">Basic lawn installation</span>
-                            <span className="font-semibold">$1,000 - $3,000</span>
-                          </div>
-                          <div className="flex justify-between items-center py-2 border-b">
-                            <span className="text-sm text-muted-foreground">Paver patio (12x16)</span>
-                            <span className="font-semibold">$2,500 - $5,000</span>
-                          </div>
-                          <div className="flex justify-between items-center py-2 border-b">
-                            <span className="text-sm text-muted-foreground">Retaining wall (per linear ft)</span>
-                            <span className="font-semibold">$40 - $100</span>
-                          </div>
-                          <div className="flex justify-between items-center py-2">
-                            <span className="text-sm text-muted-foreground">Full landscape design</span>
-                            <span className="font-semibold">$5,000 - $20,000+</span>
-                          </div>
-                        </div>
-                      </div>
-                    </div>
-                  </AccordionContent>
-                </AccordionItem>
-              </Accordion>
-            </CardContent>
-          </Card>
-
-          {/* Product Knowledge */}
-          <Card className="border-2">
-            <CardHeader className="pb-6">
-              <div className="flex items-center gap-4 mb-2">
-                <div className="p-3 bg-primary/10 rounded-lg">
-                  <BookOpen className="h-6 w-6 text-primary" />
-                </div>
-                <div>
-                  <CardTitle className="text-2xl">Product Knowledge</CardTitle>
-                  <CardDescription className="text-base mt-1">
-                    Materials, warranties, and specifications
-                  </CardDescription>
-                </div>
-              </div>
-            </CardHeader>
-            <CardContent className="space-y-1">
-              <Accordion type="single" collapsible className="w-full">
-                <AccordionItem value="materials">
-                  <AccordionTrigger>Material Specifications</AccordionTrigger>
-                  <AccordionContent>
-                    <div className="space-y-4 pt-2">
-                      <div>
-                        <h4 className="font-semibold mb-2">Aluminum vs Wood Pergolas</h4>
-                        <div className="grid md:grid-cols-2 gap-4">
-                          <div className="border rounded-lg p-4">
-                            <h5 className="font-medium mb-2">Aluminum</h5>
-                            <ul className="text-sm text-muted-foreground space-y-1">
-                              <li>✓ Maintenance-free</li>
-                              <li>✓ Won't rot, warp, or crack</li>
-                              <li>✓ Multiple powder-coat colors</li>
-                              <li>✓ 20+ year lifespan</li>
-                              <li>✓ Modern aesthetic</li>
-                            </ul>
-                          </div>
-                          <div className="border rounded-lg p-4">
-                            <h5 className="font-medium mb-2">Wood</h5>
-                            <ul className="text-sm text-muted-foreground space-y-1">
-                              <li>✓ Natural beauty</li>
-                              <li>✓ Traditional look</li>
-                              <li>✓ Can be stained/painted</li>
-                              <li>⚠ Requires maintenance</li>
-                              <li>⚠ 10-15 year lifespan</li>
-                            </ul>
-                          </div>
-                        </div>
-                      </div>
-                    </div>
-                  </AccordionContent>
-                </AccordionItem>
-
-                <AccordionItem value="warranties">
-                  <AccordionTrigger>Warranties & Guarantees</AccordionTrigger>
-                  <AccordionContent>
-                    <div className="space-y-3 pt-2">
-                      <div>
-                        <h4 className="font-semibold mb-2">Standard Warranties</h4>
-                        <ul className="list-disc list-inside space-y-1 text-muted-foreground">
-                          <li>Aluminum structures: 10-20 year manufacturer warranty</li>
-                          <li>Labor/installation: 1-2 year workmanship guarantee</li>
-                          <li>Solar panels: 25 year manufacturer warranty</li>
-                          <li>HVAC equipment: 5-10 year parts warranty</li>
-                        </ul>
-                      </div>
-                    </div>
-                  </AccordionContent>
-                </AccordionItem>
-              </Accordion>
-            </CardContent>
-          </Card>
-
-          {/* Call Best Practices */}
-          <Card className="border-2">
-            <CardHeader className="pb-6">
-              <div className="flex items-center gap-4 mb-2">
-                <div className="p-3 bg-primary/10 rounded-lg">
-                  <Phone className="h-6 w-6 text-primary" />
-                </div>
-                <div>
-                  <CardTitle className="text-2xl">Call Best Practices</CardTitle>
-                  <CardDescription className="text-base mt-1">
-                    Proven techniques for successful conversations
-                  </CardDescription>
-                </div>
-              </div>
-            </CardHeader>
-            <CardContent className="space-y-1">
-              <Accordion type="single" collapsible className="w-full">
-                <AccordionItem value="opening">
-                  <AccordionTrigger>Opening the Call</AccordionTrigger>
-                  <AccordionContent>
-                    <div className="space-y-3 pt-2">
-                      <div className="bg-primary/5 p-4 rounded-lg">
-                        <h4 className="font-semibold mb-2">The Perfect Introduction</h4>
-                        <p className="text-sm text-muted-foreground mb-3">
-                          "Hi [Name], this is [Your Name] from [Company]. Thanks for your interest in [Service]. I have your information here. Do you have 5-10 minutes to discuss what you're looking for?"
-                        </p>
-                        <ul className="text-sm space-y-2 text-muted-foreground">
-                          <li>✓ Always use their name</li>
-                          <li>✓ Confirm their time availability</li>
-                          <li>✓ Be friendly but professional</li>
-                          <li>✓ Show you've done your homework</li>
-                        </ul>
-                      </div>
-                    </div>
-                  </AccordionContent>
-                </AccordionItem>
-
-                <AccordionItem value="qualifying">
-                  <AccordionTrigger>Qualifying Questions</AccordionTrigger>
-                  <AccordionContent>
-                    <div className="space-y-3 pt-2">
-                      <h4 className="font-semibold mb-2">Key Questions to Ask</h4>
-                      <ul className="list-disc list-inside space-y-2 text-muted-foreground">
-                        <li>What prompted you to look into [service] right now?</li>
-                        <li>Have you gotten any quotes or done research already?</li>
-                        <li>What's your timeline for this project?</li>
-                        <li>Are you the decision maker, or will anyone else be involved?</li>
-                        <li>What's most important to you - quality, price, or timeline?</li>
-                      </ul>
-                    </div>
-                  </AccordionContent>
-                </AccordionItem>
-
-                <AccordionItem value="objections">
-                  <AccordionTrigger>Handling Objections</AccordionTrigger>
-                  <AccordionContent>
-                    <div className="space-y-4 pt-2">
-                      <div>
-                        <h4 className="font-semibold mb-2">"It's too expensive"</h4>
-                        <p className="text-sm text-muted-foreground">
-                          "I understand budget is important. Let me break down exactly what you're getting for that investment. We use premium materials with [X year warranty], professional installation, and [other benefits]. What specific budget range were you thinking?"
-                        </p>
-                      </div>
-                      <div>
-                        <h4 className="font-semibold mb-2">"I need to think about it"</h4>
-                        <p className="text-sm text-muted-foreground">
-                          "Absolutely, I want you to feel comfortable. What specific aspects do you need to think about? Is it the price, the timeline, or something else? I'm happy to address any questions now."
-                        </p>
-                      </div>
-                      <div>
-                        <h4 className="font-semibold mb-2">"I'm getting other quotes"</h4>
-                        <p className="text-sm text-muted-foreground">
-                          "That's smart - you should compare. Just make sure you're comparing apples to apples. Ask about warranty, materials quality, and what's included. Can I schedule a follow-up after you've gotten your other quotes?"
-                        </p>
-                      </div>
-                    </div>
-                  </AccordionContent>
-                </AccordionItem>
-
-                <AccordionItem value="closing">
-                  <AccordionTrigger>Closing the Deal</AccordionTrigger>
-                  <AccordionContent>
-                    <div className="space-y-3 pt-2">
-                      <div className="bg-primary/5 p-4 rounded-lg">
-                        <h4 className="font-semibold mb-2">Trial Close Technique</h4>
-                        <p className="text-sm text-muted-foreground mb-2">
-                          "Based on what we've discussed, how does this sound so far?"
-                        </p>
-                        <p className="text-sm text-muted-foreground">
-                          Listen carefully to their response. If positive, move forward. If hesitant, address concerns.
-                        </p>
-                      </div>
-                      <div>
-                        <h4 className="font-semibold mb-2">Direct Close</h4>
-                        <p className="text-sm text-muted-foreground">
-                          "I can get you on the schedule for [specific date]. Shall we move forward and get this booked?"
-                        </p>
-                      </div>
-                    </div>
-                  </AccordionContent>
-                </AccordionItem>
-              </Accordion>
-            </CardContent>
-          </Card>
-
-          {/* Quick Tips */}
-          <Card className="border-2">
-            <CardHeader className="pb-6">
-              <div className="flex items-center gap-4 mb-2">
-                <div className="p-3 bg-primary/10 rounded-lg">
-                  <Lightbulb className="h-6 w-6 text-primary" />
-                </div>
-                <div>
-                  <CardTitle className="text-2xl">Quick Tips & Reminders</CardTitle>
-                </div>
-              </div>
-            </CardHeader>
-            <CardContent>
-              <div className="grid md:grid-cols-2 gap-6">
-                <div className="border-2 border-green-500/20 rounded-lg p-6 bg-green-500/5">
-                  <div className="flex items-center gap-3 mb-5">
-                    <div className="p-2 bg-green-500/20 rounded-full">
-                      <CheckCircle2 className="h-6 w-6 text-green-600" />
-                    </div>
-                    <h4 className="font-bold text-xl">Do's</h4>
-                  </div>
-                  <ul className="space-y-3">
-                    <li className="flex items-start gap-3">
-                      <CheckCircle2 className="h-5 w-5 text-green-600 mt-0.5 flex-shrink-0" />
-                      <span className="text-sm">Use the script as a guide, not a strict rule</span>
-                    </li>
-                    <li className="flex items-start gap-3">
-                      <CheckCircle2 className="h-5 w-5 text-green-600 mt-0.5 flex-shrink-0" />
-                      <span className="text-sm">Listen actively and take notes</span>
-                    </li>
-                    <li className="flex items-start gap-3">
-                      <CheckCircle2 className="h-5 w-5 text-green-600 mt-0.5 flex-shrink-0" />
-                      <span className="text-sm">Build rapport before talking price</span>
-                    </li>
-                    <li className="flex items-start gap-3">
-                      <CheckCircle2 className="h-5 w-5 text-green-600 mt-0.5 flex-shrink-0" />
-                      <span className="text-sm">Use the dimension calculator for accurate quotes</span>
-                    </li>
-                    <li className="flex items-start gap-3">
-                      <CheckCircle2 className="h-5 w-5 text-green-600 mt-0.5 flex-shrink-0" />
-                      <span className="text-sm">Always confirm contact info before ending</span>
-                    </li>
-                    <li className="flex items-start gap-3">
-                      <CheckCircle2 className="h-5 w-5 text-green-600 mt-0.5 flex-shrink-0" />
-                      <span className="text-sm">Send follow-up information promptly</span>
-                    </li>
-                  </ul>
-                </div>
-                <div className="border-2 border-red-500/20 rounded-lg p-6 bg-red-500/5">
-                  <div className="flex items-center gap-3 mb-5">
-                    <div className="p-2 bg-red-500/20 rounded-full">
-                      <XCircle className="h-6 w-6 text-red-600" />
-                    </div>
-                    <h4 className="font-bold text-xl">Don'ts</h4>
-                  </div>
-                  <ul className="space-y-3">
-                    <li className="flex items-start gap-3">
-                      <XCircle className="h-5 w-5 text-red-600 mt-0.5 flex-shrink-0" />
-                      <span className="text-sm">Don't give pricing before qualifying</span>
-                    </li>
-                    <li className="flex items-start gap-3">
-                      <XCircle className="h-5 w-5 text-red-600 mt-0.5 flex-shrink-0" />
-                      <span className="text-sm">Don't bad-mouth competitors</span>
-                    </li>
-                    <li className="flex items-start gap-3">
-                      <XCircle className="h-5 w-5 text-red-600 mt-0.5 flex-shrink-0" />
-                      <span className="text-sm">Don't make promises you can't keep</span>
-                    </li>
-                    <li className="flex items-start gap-3">
-                      <XCircle className="h-5 w-5 text-red-600 mt-0.5 flex-shrink-0" />
-                      <span className="text-sm">Don't rush through the call</span>
-                    </li>
-                    <li className="flex items-start gap-3">
-                      <XCircle className="h-5 w-5 text-red-600 mt-0.5 flex-shrink-0" />
-                      <span className="text-sm">Don't assume what they want</span>
-                    </li>
-                    <li className="flex items-start gap-3">
-                      <XCircle className="h-5 w-5 text-red-600 mt-0.5 flex-shrink-0" />
-                      <span className="text-sm">Don't forget to set next steps</span>
-                    </li>
-                  </ul>
-                </div>
-              </div>
-            </CardContent>
-          </Card>
-        </div>
+                            </AccordionContent>
+                          </AccordionItem>
+                        ))}
+                      </Accordion>
+                    ) : (
+                      <p className="text-sm text-muted-foreground py-4">
+                        No sections added yet. Go to Manage Content to add sections.
+                      </p>
+                    )}
+                  </CardContent>
+                </Card>
+              );
+            })}
+          </div>
+        )}
       </div>
     </div>
   );
