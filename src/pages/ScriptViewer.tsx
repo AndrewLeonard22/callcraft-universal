@@ -217,6 +217,35 @@ export default function ScriptViewer() {
     loadServiceDetailFields();
   }, [serviceTypeId, organizationId]);
 
+  // Realtime updates for client and client_details
+  useEffect(() => {
+    if (!client) return;
+    const clientId = client.id;
+
+    const clientChannel = supabase
+      .channel('script-client-changes')
+      .on('postgres_changes', { event: 'UPDATE', schema: 'public', table: 'clients', filter: `id=eq.${clientId}` }, () => {
+        supabase.from('clients').select('*').eq('id', clientId).single().then(({ data }) => {
+          if (data) setClient(data);
+        });
+      })
+      .subscribe();
+
+    const detailsChannel = supabase
+      .channel('script-client-details-changes')
+      .on('postgres_changes', { event: '*', schema: 'public', table: 'client_details', filter: `client_id=eq.${clientId}` }, () => {
+        supabase.from('client_details').select('*').eq('client_id', clientId).then(({ data }) => {
+          setDetails(data || []);
+        });
+      })
+      .subscribe();
+
+    return () => {
+      supabase.removeChannel(clientChannel);
+      supabase.removeChannel(detailsChannel);
+    };
+  }, [client]);
+
   const loadServiceDetailFields = async () => {
     if (!serviceTypeId || !organizationId) return;
 
