@@ -322,45 +322,71 @@ Return ONLY valid JSON with at least company_name and service_type. No markdown 
         throw new Error("Template script is empty or invalid");
       }
       
-      console.log("=== TEMPLATE CUSTOMIZATION (100% DYNAMIC) ===");
+      console.log("=== TEMPLATE CUSTOMIZATION (FIELD REPLACEMENT) ===");
       console.log("Template ID:", template_id);
       console.log("Template length:", template_script.length);
-      console.log("Template preview:", template_script.substring(0, 150));
       console.log("Using CURRENT template content - no caching");
       
-      // Deterministic, lossless placeholder replacement (no AI) to preserve EXACT formatting
-      const mapping: Record<string, string | undefined> = {
-        COMPANY_NAME: extractedInfo.company_name,
-        BUSINESS_NAME: extractedInfo.company_name,
-        SERVICE_TYPE: extractedInfo.service_type,
-        SERVICE: extractedInfo.service_type,
-        CITY: extractedInfo.city,
-        STARTING_PRICE: extractedInfo.starting_price,
-        MINIMUM_PRICE: extractedInfo.project_min_price || extractedInfo.starting_price,
-        PRICE_PER_SQFT: extractedInfo.price_per_sq_ft,
-        WARRANTY: extractedInfo.warranty || extractedInfo.warranties,
-        YEARS_IN_BUSINESS: extractedInfo.years_in_business,
-      };
-
-      const replacePlaceholders = (input: string, map: Record<string, string | undefined>) => {
-        return input.replace(/\[([A-Z_]+)\]/g, (match, key) => {
-          // Keep caller placeholders intact
-          if (key === 'CUSTOMER_NAME' || key === 'YOUR_NAME') return match;
-          const val = map[key];
-          return val && String(val).trim().length > 0 ? String(val) : match;
-        });
-      };
-
-      scriptContent = replacePlaceholders(template_script, mapping);
-
-      // Validate output characteristics for debugging
-      console.log("Output length:", scriptContent.length);
-      console.log("Output preview:", scriptContent.substring(0, 200));
-      const lengthDifference = Math.abs(scriptContent.length - template_script.length);
-      const percentageChange = (lengthDifference / template_script.length) * 100;
-      if (percentageChange > 50) {
-        console.warn(`WARNING: Output length changed by ${percentageChange.toFixed(1)}%`);
+      // Fetch ALL client details from database for field replacement
+      const { data: clientDetails, error: detailsError } = await supabase
+        .from("client_details")
+        .select("field_name, field_value")
+        .eq("client_id", client_id || "");
+      
+      if (detailsError) {
+        console.error("Error fetching client details:", detailsError);
       }
+      
+      // Build a mapping of all available fields
+      const fieldMap: Record<string, string> = {
+        // Basic client info
+        "business.name": extractedInfo.company_name || "",
+        "owner.name": extractedInfo.owners_name || "",
+        "service.type": extractedInfo.service_type || "",
+        "client.city": extractedInfo.city || "",
+        "client.address": extractedInfo.address || "",
+      };
+      
+      // Add all client_details fields to the map
+      if (clientDetails) {
+        clientDetails.forEach((detail) => {
+          // Map field names to template syntax
+          // e.g., "business_name" becomes available as {{business.name}}
+          const fieldName = detail.field_name.replace(/_/g, ".");
+          fieldMap[fieldName] = detail.field_value || "";
+          
+          // Also keep underscore version for backwards compatibility
+          fieldMap[detail.field_name] = detail.field_value || "";
+        });
+      }
+      
+      // Add service details if provided
+      if (service_details) {
+        Object.entries(service_details).forEach(([key, value]) => {
+          if (value) {
+            fieldMap[key] = String(value);
+            // Also add dot notation version
+            fieldMap[key.replace(/_/g, ".")] = String(value);
+          }
+        });
+      }
+      
+      console.log("Available fields for replacement:", Object.keys(fieldMap).length);
+      
+      // Replace all {{field.name}} placeholders with actual values
+      scriptContent = template_script.replace(/\{\{([^}]+)\}\}/g, (match: string, fieldPath: string) => {
+        const cleanPath = fieldPath.trim();
+        const value = fieldMap[cleanPath];
+        
+        if (value && String(value).trim().length > 0) {
+          return String(value);
+        }
+        
+        // Keep placeholder if no value found
+        return match;
+      });
+
+      console.log("Replacement complete. Output length:", scriptContent.length);
     } else {
       // Generate a fresh script
       const scriptResponse = await fetch("https://ai.gateway.lovable.dev/v1/chat/completions", {

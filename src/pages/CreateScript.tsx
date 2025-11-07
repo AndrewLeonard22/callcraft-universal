@@ -424,7 +424,7 @@ export default function CreateScript() {
               </Select>
               <p className="text-xs text-muted-foreground mt-2">
                 {selectedServiceTypeId && filteredTemplates.length > 0
-                  ? "AI will only replace UPPERCASE placeholders like [COMPANY_NAME], [SERVICE_TYPE], [CITY] in the template. All formatting, spacing, and styling will be preserved exactly as designed."
+                  ? "Use {{business.name}}, {{owner.name}}, {{service.type}}, and custom field names in your template. Fields will be replaced with actual client data."
                   : "Templates are filtered by the selected service type"}
               </p>
             </CardContent>

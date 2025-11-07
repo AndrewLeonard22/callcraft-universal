@@ -478,7 +478,7 @@ export default function EditScript() {
               </Select>
               <p className="text-xs text-muted-foreground mt-2">
                 {selectedServiceTypeId && filteredTemplates.length > 0
-                  ? "Optional: Select a template to regenerate the script. AI will only replace client-specific details."
+                  ? "Optional: Select a template to regenerate the script. Use {{business.name}}, {{owner.name}}, {{service.type}}, and custom field names in your template."
                   : "Templates are filtered by the selected service type"}
               </p>
             </CardContent>
