@@ -1017,6 +1017,13 @@ export default function ScriptViewer() {
                       </div>
                     )}
 
+                    {getDetailValue("services_offered") !== "N/A" && (
+                      <div className="space-y-1">
+                        <div className="text-xs font-medium text-muted-foreground uppercase tracking-wide">Services Offered</div>
+                        <div className="text-sm text-foreground whitespace-pre-wrap">{getDetailValue("services_offered")}</div>
+                      </div>
+                    )}
+
                     {(getDetailValue("sales_rep_name") !== "N/A" || getDetailValue("sales_rep_phone") !== "N/A") && (
                       <div className="space-y-1">
                         <div className="text-xs font-medium text-muted-foreground uppercase tracking-wide">Sales Rep</div>
