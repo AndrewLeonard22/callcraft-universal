@@ -1017,12 +1017,19 @@ export default function ScriptViewer() {
                       </div>
                     )}
 
-                    {getDetailValue("services_offered") !== "N/A" && (
-                      <div className="space-y-1">
-                        <div className="text-xs font-medium text-muted-foreground uppercase tracking-wide">Services Offered</div>
-                        <div className="text-sm text-foreground whitespace-pre-wrap">{getDetailValue("services_offered")}</div>
-                      </div>
-                    )}
+                    {(() => {
+                      const valCandidates = ["services_offered", "services", "services.offered"] as const;
+                      const firstVal = valCandidates
+                        .map((k) => getDetailValue(k))
+                        .find((v) => v !== "N/A");
+                      return firstVal ? (
+                        <div className="space-y-1">
+                          <div className="text-xs font-medium text-muted-foreground uppercase tracking-wide">Services Offered</div>
+                          <div className="text-sm text-foreground whitespace-pre-wrap">{firstVal}</div>
+                        </div>
+                      ) : null;
+                    })()}
+
 
                     {(getDetailValue("sales_rep_name") !== "N/A" || getDetailValue("sales_rep_phone") !== "N/A") && (
                       <div className="space-y-1">
