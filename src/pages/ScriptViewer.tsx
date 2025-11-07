@@ -62,6 +62,17 @@ interface QualificationResponse {
   customer_response: string | null;
 }
 
+interface ServiceDetailField {
+  id: string;
+  service_type_id: string;
+  field_name: string;
+  field_label: string;
+  field_type: string;
+  is_required: boolean;
+  placeholder?: string;
+  display_order: number;
+}
+
 // Helper to get logo based on service type
 const getClientLogo = (serviceType: string, customLogoUrl?: string): string => {
   // If custom logo exists, use it
@@ -101,6 +112,7 @@ export default function ScriptViewer() {
   const [generatingSummary, setGeneratingSummary] = useState(false);
   const [serviceTypeId, setServiceTypeId] = useState<string | null>(null);
   const [organizationId, setOrganizationId] = useState<string | null>(null);
+  const [serviceDetailFields, setServiceDetailFields] = useState<ServiceDetailField[]>([]);
   const responseTimeouts = useRef<Record<string, number>>({});
   const responsesRef = useRef<Record<string, QualificationResponse>>({});
   useEffect(() => {
@@ -202,7 +214,29 @@ export default function ScriptViewer() {
     if (!serviceTypeId || !organizationId) return;
     loadFaqsOnly();
     loadQualificationsOnly();
+    loadServiceDetailFields();
   }, [serviceTypeId, organizationId]);
+
+  const loadServiceDetailFields = async () => {
+    if (!serviceTypeId || !organizationId) return;
+
+    try {
+      const { data, error } = await supabase
+        .from("service_detail_fields")
+        .select("*")
+        .eq("service_type_id", serviceTypeId)
+        .eq("organization_id", organizationId)
+        .order("display_order");
+
+      if (error) {
+        console.error('Error loading service detail fields:', error);
+      } else {
+        setServiceDetailFields(data || []);
+      }
+    } catch (error) {
+      console.error("Error loading service detail fields:", error);
+    }
+  };
 
   const loadClientData = async () => {
     try {
@@ -1164,69 +1198,38 @@ export default function ScriptViewer() {
               </Card>
 
               {/* Service Details */}
-              {(getDetailValue("project_min_price") !== "N/A" || 
-                getDetailValue("project_min_size") !== "N/A" || 
-                getDetailValue("price_per_sq_ft") !== "N/A" || 
-                getDetailValue("warranties") !== "N/A" || 
-                getDetailValue("financing_options") !== "N/A" || 
-                getDetailValue("video_of_service") !== "N/A" || 
-                getDetailValue("avg_install_time") !== "N/A") && (
+              {serviceDetailFields.length > 0 && serviceDetailFields.some(field => getDetailValue(field.field_name) !== "N/A") && (
                 <Card className="border border-border shadow-sm">
                   <CardContent className="p-6">
                     <h2 className="text-base font-semibold mb-4 text-foreground">Service Details</h2>
                     
                     <div className="space-y-4">
-                      {getDetailValue("project_min_price") !== "N/A" && (
-                        <div className="space-y-1">
-                          <div className="text-xs font-medium text-muted-foreground uppercase tracking-wide">Project Minimum Price</div>
-                          <div className="text-sm font-medium text-foreground">{getDetailValue("project_min_price")}</div>
-                        </div>
-                      )}
-
-                      {getDetailValue("project_min_size") !== "N/A" && (
-                        <div className="space-y-1">
-                          <div className="text-xs font-medium text-muted-foreground uppercase tracking-wide">Project Minimum Size</div>
-                          <div className="text-sm font-medium text-foreground">{getDetailValue("project_min_size")}</div>
-                        </div>
-                      )}
-
-                      {getDetailValue("price_per_sq_ft") !== "N/A" && (
-                        <div className="space-y-1">
-                          <div className="text-xs font-medium text-muted-foreground uppercase tracking-wide">Price Per Square Foot</div>
-                          <div className="text-sm font-medium text-foreground">{getDetailValue("price_per_sq_ft")}</div>
-                        </div>
-                      )}
-
-                      {getDetailValue("warranties") !== "N/A" && (
-                        <div className="space-y-1">
-                          <div className="text-xs font-medium text-muted-foreground uppercase tracking-wide">Warranties/Guarantees</div>
-                          <div className="text-sm text-foreground whitespace-pre-wrap">{getDetailValue("warranties")}</div>
-                        </div>
-                      )}
-
-                      {getDetailValue("financing_options") !== "N/A" && (
-                        <div className="space-y-1">
-                          <div className="text-xs font-medium text-muted-foreground uppercase tracking-wide">Financing Options</div>
-                          <div className="text-sm text-foreground whitespace-pre-wrap">{getDetailValue("financing_options")}</div>
-                        </div>
-                      )}
-
-                      {getDetailValue("video_of_service") !== "N/A" && (
-                        <div className="space-y-1">
-                          <div className="text-xs font-medium text-muted-foreground uppercase tracking-wide">Video of Service</div>
-                          <a href={getDetailValue("video_of_service")} target="_blank" rel="noopener noreferrer" 
-                             className="text-sm text-primary hover:text-primary/80 break-all transition-colors block">
-                            Watch Video
-                          </a>
-                        </div>
-                      )}
-
-                      {getDetailValue("avg_install_time") !== "N/A" && (
-                        <div className="space-y-1">
-                          <div className="text-xs font-medium text-muted-foreground uppercase tracking-wide">Average Install Time After Booking</div>
-                          <div className="text-sm font-medium text-foreground">{getDetailValue("avg_install_time")}</div>
-                        </div>
-                      )}
+                      {serviceDetailFields.map((field) => {
+                        const value = getDetailValue(field.field_name);
+                        if (value === "N/A") return null;
+                        
+                        return (
+                          <div key={field.id} className="space-y-1">
+                            <div className="text-xs font-medium text-muted-foreground uppercase tracking-wide">
+                              {field.field_label}
+                            </div>
+                            <div className="text-sm font-medium text-foreground whitespace-pre-wrap">
+                              {field.field_type === 'url' ? (
+                                <a 
+                                  href={safeUrl(value)} 
+                                  target="_blank" 
+                                  rel="noopener noreferrer" 
+                                  className="text-primary hover:text-primary/80 break-all transition-colors"
+                                >
+                                  {value}
+                                </a>
+                              ) : (
+                                value
+                              )}
+                            </div>
+                          </div>
+                        );
+                      })}
                     </div>
                   </CardContent>
                 </Card>
