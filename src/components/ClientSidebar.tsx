@@ -1,6 +1,6 @@
 import { useState, useEffect } from "react";
 import { Link, useLocation } from "react-router-dom";
-import { Search, Plus, FileText, Wand2 } from "lucide-react";
+import { Search, Plus, FileText, Wand2, ListChecks } from "lucide-react";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { ScrollArea } from "@/components/ui/scroll-area";
@@ -90,6 +90,13 @@ export function ClientSidebar() {
             <Button variant="outline" className="w-full" size="sm">
               <Wand2 className="mr-2 h-4 w-4" />
               Image Generator
+            </Button>
+          </Link>
+
+          <Link to="/service-detail-fields">
+            <Button variant="outline" className="w-full" size="sm">
+              <ListChecks className="mr-2 h-4 w-4" />
+              Service Questions
             </Button>
           </Link>
         </div>
