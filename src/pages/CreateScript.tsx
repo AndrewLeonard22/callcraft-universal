@@ -439,15 +439,6 @@ export default function CreateScript() {
                     Provide specific information about this service
                   </CardDescription>
                 </div>
-                {selectedServiceTypeId && (
-                  <Button
-                    variant="outline"
-                    size="sm"
-                    onClick={() => navigate("/service-detail-fields")}
-                  >
-                    Configure Fields
-                  </Button>
-                )}
               </div>
             </CardHeader>
             <CardContent className="space-y-4">
@@ -458,14 +449,14 @@ export default function CreateScript() {
               ) : serviceDetailFields.length === 0 ? (
                 <div className="text-center py-8 border-2 border-dashed rounded-lg">
                   <p className="text-sm text-muted-foreground mb-4">
-                    No fields configured for this service type yet
+                    No questions configured for this service type yet
                   </p>
                   <Button
                     variant="outline"
                     size="sm"
-                    onClick={() => navigate("/service-detail-fields")}
+                    onClick={() => navigate("/service-types")}
                   >
-                    Configure Fields
+                    Configure in Service Types
                   </Button>
                 </div>
               ) : (

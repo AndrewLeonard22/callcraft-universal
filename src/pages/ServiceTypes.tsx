@@ -1,10 +1,14 @@
 import { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
-import { Plus, Trash2, Upload, Settings, Pencil } from "lucide-react";
+import { Plus, Trash2, Upload, Settings, Pencil, ChevronDown, ChevronUp, ListChecks, GripVertical, Save, X } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Label } from "@/components/ui/label";
+import { Textarea } from "@/components/ui/textarea";
+import { Switch } from "@/components/ui/switch";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "@/components/ui/collapsible";
 import {
   AlertDialog,
   AlertDialogAction,
@@ -16,6 +20,9 @@ import {
   AlertDialogTitle,
   AlertDialogTrigger,
 } from "@/components/ui/alert-dialog";
+import { DndContext, closestCenter, KeyboardSensor, PointerSensor, useSensor, useSensors, DragEndEvent } from '@dnd-kit/core';
+import { arrayMove, SortableContext, sortableKeyboardCoordinates, verticalListSortingStrategy } from '@dnd-kit/sortable';
+import { SortableItem } from "@/components/SortableItem";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
 
@@ -24,6 +31,17 @@ interface ServiceType {
   name: string;
   icon_url?: string;
   created_at: string;
+}
+
+interface ServiceDetailField {
+  id: string;
+  service_type_id: string;
+  field_name: string;
+  field_label: string;
+  field_type: string;
+  is_required: boolean;
+  placeholder?: string;
+  display_order: number;
 }
 
 export default function ServiceTypes() {
@@ -37,6 +55,22 @@ export default function ServiceTypes() {
   const [saving, setSaving] = useState(false);
   const [editingService, setEditingService] = useState<ServiceType | null>(null);
   const [userOrganizationId, setUserOrganizationId] = useState<string | null>(null);
+  
+  // Field management state
+  const [expandedServiceId, setExpandedServiceId] = useState<string | null>(null);
+  const [serviceFields, setServiceFields] = useState<Record<string, ServiceDetailField[]>>({});
+  const [showFieldForm, setShowFieldForm] = useState<string | null>(null);
+  const [editingField, setEditingField] = useState<ServiceDetailField | null>(null);
+  const [fieldName, setFieldName] = useState("");
+  const [fieldLabel, setFieldLabel] = useState("");
+  const [fieldType, setFieldType] = useState("text");
+  const [isRequired, setIsRequired] = useState(false);
+  const [placeholder, setPlaceholder] = useState("");
+
+  const sensors = useSensors(
+    useSensor(PointerSensor),
+    useSensor(KeyboardSensor, { coordinateGetter: sortableKeyboardCoordinates })
+  );
 
   const loadUserOrganization = async () => {
     try {
@@ -90,11 +124,61 @@ export default function ServiceTypes() {
 
       if (error) throw error;
       setServiceTypes(data || []);
+      
+      // Load fields for all service types
+      if (data) {
+        data.forEach(st => loadServiceFields(st.id));
+      }
     } catch (error) {
       console.error("Error loading service types:", error);
       toast.error("Failed to load service types");
     } finally {
       setLoading(false);
+    }
+  };
+
+  const loadServiceFields = async (serviceTypeId: string) => {
+    try {
+      if (!userOrganizationId) return;
+
+      const { data, error } = await supabase
+        .from("service_detail_fields")
+        .select("*")
+        .eq("service_type_id", serviceTypeId)
+        .eq("organization_id", userOrganizationId)
+        .order("display_order");
+
+      if (error) throw error;
+      setServiceFields(prev => ({ ...prev, [serviceTypeId]: data || [] }));
+    } catch (error) {
+      console.error("Error loading service fields:", error);
+    }
+  };
+
+  const handleDragEnd = (serviceTypeId: string) => async (event: DragEndEvent) => {
+    const { active, over } = event;
+    if (!over || active.id === over.id) return;
+
+    const fields = serviceFields[serviceTypeId] || [];
+    const oldIndex = fields.findIndex((f) => f.id === active.id);
+    const newIndex = fields.findIndex((f) => f.id === over.id);
+    const newFields = arrayMove(fields, oldIndex, newIndex);
+    
+    setServiceFields(prev => ({ ...prev, [serviceTypeId]: newFields }));
+
+    try {
+      const updates = newFields.map((field, index) => 
+        supabase
+          .from("service_detail_fields")
+          .update({ display_order: index })
+          .eq("id", field.id)
+      );
+      await Promise.all(updates);
+      toast.success("Field order updated");
+    } catch (error) {
+      console.error("Error updating order:", error);
+      toast.error("Failed to update order");
+      loadServiceFields(serviceTypeId);
     }
   };
 
@@ -247,6 +331,90 @@ export default function ServiceTypes() {
     setIconPreview(null);
   };
 
+  const handleFieldSubmit = async (serviceTypeId: string) => {
+    if (!fieldName || !fieldLabel) {
+      toast.error("Field name and label are required");
+      return;
+    }
+
+    try {
+      if (editingField) {
+        const { error } = await supabase
+          .from("service_detail_fields")
+          .update({
+            field_name: fieldName,
+            field_label: fieldLabel,
+            field_type: fieldType,
+            is_required: isRequired,
+            placeholder: placeholder || null,
+          })
+          .eq("id", editingField.id);
+
+        if (error) throw error;
+        toast.success("Field updated successfully");
+      } else {
+        const fields = serviceFields[serviceTypeId] || [];
+        const { error } = await supabase
+          .from("service_detail_fields")
+          .insert({
+            service_type_id: serviceTypeId,
+            organization_id: userOrganizationId,
+            field_name: fieldName,
+            field_label: fieldLabel,
+            field_type: fieldType,
+            is_required: isRequired,
+            placeholder: placeholder || null,
+            display_order: fields.length,
+          });
+
+        if (error) throw error;
+        toast.success("Field created successfully");
+      }
+
+      handleFieldCancel();
+      loadServiceFields(serviceTypeId);
+    } catch (error) {
+      console.error("Error saving field:", error);
+      toast.error("Failed to save field");
+    }
+  };
+
+  const handleEditField = (field: ServiceDetailField) => {
+    setEditingField(field);
+    setFieldName(field.field_name);
+    setFieldLabel(field.field_label);
+    setFieldType(field.field_type);
+    setIsRequired(field.is_required);
+    setPlaceholder(field.placeholder || "");
+    setShowFieldForm(field.service_type_id);
+  };
+
+  const handleDeleteField = async (fieldId: string, serviceTypeId: string) => {
+    try {
+      const { error } = await supabase
+        .from("service_detail_fields")
+        .delete()
+        .eq("id", fieldId);
+
+      if (error) throw error;
+      toast.success("Field deleted successfully");
+      loadServiceFields(serviceTypeId);
+    } catch (error) {
+      console.error("Error deleting field:", error);
+      toast.error("Failed to delete field");
+    }
+  };
+
+  const handleFieldCancel = () => {
+    setShowFieldForm(null);
+    setEditingField(null);
+    setFieldName("");
+    setFieldLabel("");
+    setFieldType("text");
+    setIsRequired(false);
+    setPlaceholder("");
+  };
+
   return (
     <div className="min-h-screen bg-background">
       <div className="container mx-auto px-4 sm:px-6 py-6 sm:py-8 max-w-5xl">
@@ -358,66 +526,248 @@ export default function ServiceTypes() {
             </CardContent>
           </Card>
         ) : (
-          <div className="grid gap-4 grid-cols-1 sm:grid-cols-2 lg:grid-cols-3">
-            {serviceTypes.map((serviceType) => (
-              <Card key={serviceType.id}>
-                <CardHeader>
-                  <div className="flex items-start justify-between gap-3">
-                    <div className="flex items-center gap-3 flex-1 min-w-0">
-                      {serviceType.icon_url ? (
-                        <div className="h-10 w-10 rounded-lg overflow-hidden bg-muted border border-border flex-shrink-0">
-                          <img 
-                            src={serviceType.icon_url} 
-                            alt={`${serviceType.name} icon`}
-                            className="h-full w-full object-cover"
-                          />
+          <div className="grid gap-4 grid-cols-1">
+            {serviceTypes.map((serviceType) => {
+              const fields = serviceFields[serviceType.id] || [];
+              const isExpanded = expandedServiceId === serviceType.id;
+              
+              return (
+                <Card key={serviceType.id}>
+                  <CardHeader>
+                    <div className="flex items-start justify-between gap-3">
+                      <div className="flex items-center gap-3 flex-1 min-w-0">
+                        {serviceType.icon_url ? (
+                          <div className="h-10 w-10 rounded-lg overflow-hidden bg-muted border border-border flex-shrink-0">
+                            <img 
+                              src={serviceType.icon_url} 
+                              alt={`${serviceType.name} icon`}
+                              className="h-full w-full object-cover"
+                            />
+                          </div>
+                        ) : (
+                          <div className="h-10 w-10 rounded-lg bg-muted border border-border flex-shrink-0 flex items-center justify-center">
+                            <Upload className="h-4 w-4 text-muted-foreground" />
+                          </div>
+                        )}
+                        <div className="flex-1">
+                          <CardTitle className="text-base">{serviceType.name}</CardTitle>
+                          <p className="text-xs text-muted-foreground mt-1">
+                            {fields.length} question{fields.length !== 1 ? 's' : ''} configured
+                          </p>
                         </div>
-                      ) : (
-                        <div className="h-10 w-10 rounded-lg bg-muted border border-border flex-shrink-0 flex items-center justify-center">
-                          <Upload className="h-4 w-4 text-muted-foreground" />
-                        </div>
-                      )}
-                      <CardTitle className="text-base truncate">{serviceType.name}</CardTitle>
+                      </div>
+                      <div className="flex gap-1 flex-shrink-0">
+                        <Button 
+                          variant="ghost" 
+                          size="icon" 
+                          className="h-8 w-8"
+                          onClick={() => setExpandedServiceId(isExpanded ? null : serviceType.id)}
+                        >
+                          {isExpanded ? <ChevronUp className="h-4 w-4" /> : <ChevronDown className="h-4 w-4" />}
+                        </Button>
+                        <Button 
+                          variant="ghost" 
+                          size="icon" 
+                          className="h-8 w-8"
+                          onClick={() => handleEdit(serviceType)}
+                        >
+                          <Pencil className="h-4 w-4" />
+                        </Button>
+                        <AlertDialog>
+                          <AlertDialogTrigger asChild>
+                            <Button variant="ghost" size="icon" className="text-destructive h-8 w-8">
+                              <Trash2 className="h-4 w-4" />
+                            </Button>
+                          </AlertDialogTrigger>
+                          <AlertDialogContent>
+                            <AlertDialogHeader>
+                              <AlertDialogTitle>Delete Service Type?</AlertDialogTitle>
+                              <AlertDialogDescription>
+                                This will permanently delete the "{serviceType.name}" service type and all its questions.
+                                This action cannot be undone.
+                              </AlertDialogDescription>
+                            </AlertDialogHeader>
+                            <AlertDialogFooter>
+                              <AlertDialogCancel>Cancel</AlertDialogCancel>
+                              <AlertDialogAction
+                                onClick={() => handleDelete(serviceType.id)}
+                                className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
+                              >
+                                Delete
+                              </AlertDialogAction>
+                            </AlertDialogFooter>
+                          </AlertDialogContent>
+                        </AlertDialog>
+                      </div>
                     </div>
-                    <div className="flex gap-1 flex-shrink-0">
-                      <Button 
-                        variant="ghost" 
-                        size="icon" 
-                        className="h-8 w-8"
-                        onClick={() => handleEdit(serviceType)}
-                      >
-                        <Pencil className="h-4 w-4" />
-                      </Button>
-                      <AlertDialog>
-                        <AlertDialogTrigger asChild>
-                          <Button variant="ghost" size="icon" className="text-destructive h-8 w-8">
-                            <Trash2 className="h-4 w-4" />
+                  </CardHeader>
+                  
+                  <Collapsible open={isExpanded}>
+                    <CollapsibleContent>
+                      <CardContent className="pt-0 space-y-4">
+                        <div className="flex items-center justify-between pb-2 border-b">
+                          <div className="flex items-center gap-2">
+                            <ListChecks className="h-4 w-4 text-muted-foreground" />
+                            <span className="text-sm font-medium">Service Questions</span>
+                          </div>
+                          <Button 
+                            size="sm" 
+                            variant="outline"
+                            onClick={() => {
+                              setShowFieldForm(serviceType.id);
+                              setEditingField(null);
+                              setFieldName("");
+                              setFieldLabel("");
+                              setFieldType("text");
+                              setIsRequired(false);
+                              setPlaceholder("");
+                            }}
+                          >
+                            <Plus className="h-3 w-3 mr-1" />
+                            Add Question
                           </Button>
-                        </AlertDialogTrigger>
-                        <AlertDialogContent>
-                          <AlertDialogHeader>
-                            <AlertDialogTitle>Delete Service Type?</AlertDialogTitle>
-                            <AlertDialogDescription>
-                              This will permanently delete the "{serviceType.name}" service type.
-                              This action cannot be undone.
-                            </AlertDialogDescription>
-                          </AlertDialogHeader>
-                          <AlertDialogFooter>
-                            <AlertDialogCancel>Cancel</AlertDialogCancel>
-                            <AlertDialogAction
-                              onClick={() => handleDelete(serviceType.id)}
-                              className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
-                            >
-                              Delete
-                            </AlertDialogAction>
-                          </AlertDialogFooter>
-                        </AlertDialogContent>
-                      </AlertDialog>
-                    </div>
-                  </div>
-                </CardHeader>
-              </Card>
-            ))}
+                        </div>
+
+                        {showFieldForm === serviceType.id && (
+                          <Card className="border-2 border-primary/20 bg-muted/30">
+                            <CardContent className="pt-4 space-y-3">
+                              <div className="grid grid-cols-2 gap-3">
+                                <div className="space-y-1">
+                                  <Label className="text-xs">Field Name (internal)</Label>
+                                  <Input
+                                    value={fieldName}
+                                    onChange={(e) => setFieldName(e.target.value)}
+                                    placeholder="e.g., project_min_price"
+                                    className="h-8 text-sm"
+                                  />
+                                </div>
+                                <div className="space-y-1">
+                                  <Label className="text-xs">Field Label (displayed)</Label>
+                                  <Input
+                                    value={fieldLabel}
+                                    onChange={(e) => setFieldLabel(e.target.value)}
+                                    placeholder="e.g., Project Minimum Price"
+                                    className="h-8 text-sm"
+                                  />
+                                </div>
+                              </div>
+                              <div className="grid grid-cols-2 gap-3">
+                                <div className="space-y-1">
+                                  <Label className="text-xs">Field Type</Label>
+                                  <Select value={fieldType} onValueChange={setFieldType}>
+                                    <SelectTrigger className="h-8 text-sm">
+                                      <SelectValue />
+                                    </SelectTrigger>
+                                    <SelectContent>
+                                      <SelectItem value="text">Text</SelectItem>
+                                      <SelectItem value="textarea">Text Area</SelectItem>
+                                      <SelectItem value="number">Number</SelectItem>
+                                      <SelectItem value="url">URL</SelectItem>
+                                    </SelectContent>
+                                  </Select>
+                                </div>
+                                <div className="space-y-1">
+                                  <Label className="text-xs">Placeholder</Label>
+                                  <Input
+                                    value={placeholder}
+                                    onChange={(e) => setPlaceholder(e.target.value)}
+                                    placeholder="Optional placeholder"
+                                    className="h-8 text-sm"
+                                  />
+                                </div>
+                              </div>
+                              <div className="flex items-center space-x-2">
+                                <Switch
+                                  id={`required-${serviceType.id}`}
+                                  checked={isRequired}
+                                  onCheckedChange={setIsRequired}
+                                />
+                                <Label htmlFor={`required-${serviceType.id}`} className="text-xs">Required field</Label>
+                              </div>
+                              <div className="flex gap-2">
+                                <Button onClick={() => handleFieldSubmit(serviceType.id)} size="sm">
+                                  <Save className="h-3 w-3 mr-1" />
+                                  {editingField ? "Update" : "Create"}
+                                </Button>
+                                <Button variant="outline" onClick={handleFieldCancel} size="sm">
+                                  <X className="h-3 w-3 mr-1" />
+                                  Cancel
+                                </Button>
+                              </div>
+                            </CardContent>
+                          </Card>
+                        )}
+
+                        {fields.length === 0 ? (
+                          <div className="text-center py-6 text-sm text-muted-foreground bg-muted/30 rounded-lg">
+                            No questions configured yet
+                          </div>
+                        ) : (
+                          <DndContext 
+                            sensors={sensors} 
+                            collisionDetection={closestCenter} 
+                            onDragEnd={handleDragEnd(serviceType.id)}
+                          >
+                            <SortableContext items={fields.map(f => f.id)} strategy={verticalListSortingStrategy}>
+                              <div className="space-y-2">
+                                {fields.map((field) => (
+                                  <SortableItem key={field.id} id={field.id}>
+                                    <div className="flex items-center gap-3 p-3 bg-card border rounded-lg hover:shadow-sm transition-shadow">
+                                      <GripVertical className="h-4 w-4 text-muted-foreground cursor-grab flex-shrink-0" />
+                                      <div className="flex-1 min-w-0">
+                                        <div className="font-medium text-sm truncate">{field.field_label}</div>
+                                        <div className="text-xs text-muted-foreground">
+                                          {field.field_name} • {field.field_type}
+                                          {field.is_required && <span className="text-destructive"> • Required</span>}
+                                        </div>
+                                      </div>
+                                      <div className="flex gap-1 flex-shrink-0">
+                                        <Button 
+                                          variant="ghost" 
+                                          size="icon"
+                                          className="h-7 w-7"
+                                          onClick={() => handleEditField(field)}
+                                        >
+                                          <Pencil className="h-3 w-3" />
+                                        </Button>
+                                        <AlertDialog>
+                                          <AlertDialogTrigger asChild>
+                                            <Button variant="ghost" size="icon" className="text-destructive h-7 w-7">
+                                              <Trash2 className="h-3 w-3" />
+                                            </Button>
+                                          </AlertDialogTrigger>
+                                          <AlertDialogContent>
+                                            <AlertDialogHeader>
+                                              <AlertDialogTitle>Delete Question?</AlertDialogTitle>
+                                              <AlertDialogDescription>
+                                                This will permanently delete "{field.field_label}". This action cannot be undone.
+                                              </AlertDialogDescription>
+                                            </AlertDialogHeader>
+                                            <AlertDialogFooter>
+                                              <AlertDialogCancel>Cancel</AlertDialogCancel>
+                                              <AlertDialogAction
+                                                onClick={() => handleDeleteField(field.id, serviceType.id)}
+                                                className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
+                                              >
+                                                Delete
+                                              </AlertDialogAction>
+                                            </AlertDialogFooter>
+                                          </AlertDialogContent>
+                                        </AlertDialog>
+                                      </div>
+                                    </div>
+                                  </SortableItem>
+                                ))}
+                              </div>
+                            </SortableContext>
+                          </DndContext>
+                        )}
+                      </CardContent>
+                    </CollapsibleContent>
+                  </Collapsible>
+                </Card>
+              );
+            })}
           </div>
         )}
       </div>
