@@ -182,9 +182,9 @@ export default function Training() {
   };
 
   return (
-    <div className="min-h-screen bg-background">
+    <div className="min-h-screen bg-gradient-to-b from-background via-muted/20 to-background">
       {/* Header */}
-      <div className="border-b border-border/50 bg-card/30 backdrop-blur-xl sticky top-0 z-50">
+      <div className="border-b bg-card/80 backdrop-blur-xl sticky top-0 z-50 shadow-sm">
         <div className="container mx-auto px-4 sm:px-6 py-4 sm:py-6 max-w-7xl">
           <div className="flex items-center justify-between">
             <div className="flex items-center gap-4">
@@ -193,15 +193,17 @@ export default function Training() {
                 alt="Social Works" 
                 className="h-8 sm:h-10 w-auto"
               />
-              <div className="h-6 sm:h-8 w-px bg-border/50" />
+              <div className="h-6 sm:h-8 w-px bg-border" />
               <div className="flex items-center gap-3">
-                <GraduationCap className="h-6 w-6 text-primary" />
-                <h1 className="text-2xl font-semibold tracking-tight">Team Training</h1>
+                <div className="p-2 bg-primary/10 rounded-lg">
+                  <GraduationCap className="h-5 w-5 text-primary" />
+                </div>
+                <h1 className="text-xl sm:text-2xl font-bold tracking-tight">Team Training</h1>
               </div>
             </div>
             <div className="flex items-center gap-2">
               <Link to="/training-management">
-                <Button variant="default">
+                <Button variant="default" className="shadow-sm">
                   Manage Content
                 </Button>
               </Link>
@@ -213,99 +215,106 @@ export default function Training() {
         </div>
       </div>
 
-      <div className="container mx-auto px-4 sm:px-6 py-12 max-w-7xl">
+      <div className="container mx-auto px-4 sm:px-6 py-16 max-w-7xl">
         {/* Hero Section */}
-        <div className="mb-12 text-center">
-          <div className="inline-flex items-center gap-3 bg-primary/10 rounded-full px-6 py-3 mb-6">
-            <GraduationCap className="h-6 w-6 text-primary" />
+        <div className="mb-16 text-center">
+          <div className="inline-flex items-center gap-3 bg-gradient-to-r from-primary/15 via-primary/10 to-primary/15 rounded-full px-6 py-3 mb-6 shadow-sm border border-primary/20">
+            <GraduationCap className="h-5 w-5 text-primary" />
             <span className="font-semibold text-primary">Team Bootcamp</span>
           </div>
-          <h2 className="text-4xl font-bold mb-4">Training Center</h2>
-          <p className="text-muted-foreground text-lg max-w-2xl mx-auto">
+          <h2 className="text-5xl font-bold mb-6 bg-gradient-to-r from-foreground via-foreground to-foreground/80 bg-clip-text">Training Center</h2>
+          <p className="text-muted-foreground text-lg max-w-2xl mx-auto leading-relaxed">
             Master pricing, products, and sales techniques to close more deals with confidence
           </p>
         </div>
 
         {loading ? (
-          <div className="text-center py-12">
-            <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-primary mx-auto"></div>
-            <p className="mt-4 text-muted-foreground">Loading training content...</p>
+          <div className="text-center py-20">
+            <div className="animate-spin rounded-full h-14 w-14 border-b-2 border-primary mx-auto mb-4"></div>
+            <p className="text-muted-foreground text-lg">Loading training content...</p>
           </div>
         ) : modules.length === 0 ? (
-          <Card className="border-2">
-            <CardContent className="py-12 text-center">
-              <GraduationCap className="h-16 w-16 text-muted-foreground mx-auto mb-4" />
-              <h3 className="text-xl font-semibold mb-2">No Training Content Yet</h3>
-              <p className="text-muted-foreground mb-6">
+          <Card className="border shadow-lg">
+            <CardContent className="py-16 text-center">
+              <div className="p-4 bg-muted/50 rounded-full w-fit mx-auto mb-6">
+                <GraduationCap className="h-16 w-16 text-muted-foreground" />
+              </div>
+              <h3 className="text-2xl font-bold mb-3">No Training Content Yet</h3>
+              <p className="text-muted-foreground mb-8 max-w-md mx-auto">
                 Get started by creating your first training module
               </p>
               <Link to="/training-management">
-                <Button>
+                <Button size="lg" className="shadow-md">
                   Create Training Content
                 </Button>
               </Link>
             </CardContent>
           </Card>
         ) : (
-          <div className="grid gap-8">
+          <div className="grid gap-6">
             {modules.map((module) => {
               const IconComponent = getIconComponent(module.icon_name);
               const categoryColor = getCategoryColor(module.category);
 
               return (
-                <Card key={module.id} className="border-2">
-                  <CardHeader className="pb-6">
-                    <div className="flex items-center gap-4 mb-2">
-                      <div className="p-3 bg-primary/10 rounded-lg">
-                        <IconComponent className={`h-6 w-6 ${categoryColor}`} />
+                <Card key={module.id} className="border shadow-md hover:shadow-xl transition-shadow duration-300 overflow-hidden">
+                  <CardHeader className="pb-6 bg-gradient-to-br from-muted/30 to-transparent">
+                    <div className="flex items-start gap-4">
+                      <div className="p-3 bg-background rounded-xl shadow-sm border">
+                        <IconComponent className={`h-7 w-7 ${categoryColor}`} />
                       </div>
-                      <div>
-                        <div className="flex items-center gap-2 mb-1">
-                          <CardTitle className="text-2xl">{module.title}</CardTitle>
-                          <Badge variant="secondary" className="capitalize">
+                      <div className="flex-1">
+                        <div className="flex items-center gap-3 mb-2">
+                          <CardTitle className="text-2xl font-bold">{module.title}</CardTitle>
+                          <Badge variant="secondary" className="capitalize font-medium">
                             {module.category}
                           </Badge>
                         </div>
-                        <CardDescription className="text-base mt-1">
+                        <CardDescription className="text-base leading-relaxed">
                           {module.description}
                         </CardDescription>
                       </div>
                     </div>
                   </CardHeader>
-                  <CardContent className="space-y-1">
+                  <CardContent className="pt-2">
                     {module.sections && module.sections.length > 0 ? (
                       <Accordion type="single" collapsible className="w-full">
                         {module.sections.map((section) => (
-                          <AccordionItem key={section.id} value={section.id} className="border-b">
-                            <AccordionTrigger className="hover:no-underline py-5">
+                          <AccordionItem key={section.id} value={section.id} className="border-b last:border-0">
+                            <AccordionTrigger className="hover:no-underline py-5 group">
                               <div className="flex items-center gap-3">
-                                <Package className="h-5 w-5 text-primary" />
-                                <span className="font-semibold">{section.title}</span>
+                                <div className="p-1.5 bg-primary/10 rounded-lg group-hover:bg-primary/20 transition-colors">
+                                  <Package className="h-5 w-5 text-primary" />
+                                </div>
+                                <span className="font-semibold text-left">{section.title}</span>
                               </div>
                             </AccordionTrigger>
                             <AccordionContent>
-                              <div className="space-y-6 pt-4 pb-2">
+                              <div className="space-y-6 pt-4 pb-4 px-1">
                                 {section.content && (
                                   <div className="prose prose-sm max-w-none">
-                                    <p className="text-muted-foreground whitespace-pre-wrap">
+                                    <p className="text-foreground/80 leading-relaxed whitespace-pre-wrap">
                                       {section.content}
                                     </p>
                                   </div>
                                 )}
 
                                 {section.features && section.features.length > 0 && (
-                                  <div className="border rounded-lg p-5 space-y-3 bg-card">
-                                    <h4 className="font-semibold text-lg mb-3">Pricing & Details</h4>
-                                    <div className="space-y-2.5">
+                                  <div className="border rounded-xl p-6 bg-gradient-to-br from-muted/30 to-muted/10 shadow-sm">
+                                    <h4 className="font-bold text-lg mb-4 flex items-center gap-2">
+                                      <DollarSign className="h-5 w-5 text-primary" />
+                                      Pricing & Details
+                                    </h4>
+                                    <div className="space-y-3">
                                       {section.features.map((feature) => (
                                         <div
                                           key={feature.id}
-                                          className="flex justify-between items-center py-2 border-b last:border-0"
+                                          className="flex justify-between items-center py-3 px-4 bg-background/60 rounded-lg border border-border/50"
                                         >
-                                          <span className="text-sm text-muted-foreground">
+                                          <span className="text-sm font-medium text-muted-foreground">
                                             {feature.feature_name}
                                           </span>
-                                          <span className="font-semibold">{feature.feature_value}</span>
+                                          <span className="font-bold text-foreground">{feature.feature_value}</span>
                                         </div>
                                       ))}
                                     </div>
@@ -315,18 +324,20 @@ export default function Training() {
                                 {section.benefits && section.benefits.length > 0 && (
                                   <div className="grid md:grid-cols-2 gap-4">
                                     {section.benefits.filter(b => b.benefit_type === "pro").length > 0 && (
-                                      <div className="border-2 border-green-500/20 rounded-lg p-5 bg-green-500/5">
+                                      <div className="border-2 border-green-500/30 rounded-xl p-6 bg-gradient-to-br from-green-500/10 to-green-500/5 shadow-sm">
                                         <div className="flex items-center gap-2 mb-4">
-                                          <CheckCircle2 className="h-5 w-5 text-green-600" />
-                                          <h5 className="font-semibold">Benefits</h5>
+                                          <div className="p-1.5 bg-green-500/20 rounded-lg">
+                                            <CheckCircle2 className="h-5 w-5 text-green-600 dark:text-green-500" />
+                                          </div>
+                                          <h5 className="font-bold text-lg">Benefits</h5>
                                         </div>
-                                        <div className="space-y-2">
+                                        <div className="space-y-3">
                                           {section.benefits
                                             .filter(b => b.benefit_type === "pro")
                                             .map((benefit) => (
-                                              <div key={benefit.id} className="flex items-start gap-2">
-                                                <CheckCircle2 className="h-4 w-4 text-green-600 mt-0.5 flex-shrink-0" />
-                                                <span className="text-sm">{benefit.benefit_text}</span>
+                                              <div key={benefit.id} className="flex items-start gap-3 text-sm">
+                                                <CheckCircle2 className="h-4 w-4 text-green-600 dark:text-green-500 mt-0.5 flex-shrink-0" />
+                                                <span className="leading-relaxed">{benefit.benefit_text}</span>
                                               </div>
                                             ))}
                                         </div>
@@ -334,18 +345,20 @@ export default function Training() {
                                     )}
 
                                     {section.benefits.filter(b => b.benefit_type === "con").length > 0 && (
-                                      <div className="border-2 border-amber-500/20 rounded-lg p-5 bg-amber-500/5">
+                                      <div className="border-2 border-amber-500/30 rounded-xl p-6 bg-gradient-to-br from-amber-500/10 to-amber-500/5 shadow-sm">
                                         <div className="flex items-center gap-2 mb-4">
-                                          <AlertCircle className="h-5 w-5 text-amber-600" />
-                                          <h5 className="font-semibold">Considerations</h5>
+                                          <div className="p-1.5 bg-amber-500/20 rounded-lg">
+                                            <AlertCircle className="h-5 w-5 text-amber-600 dark:text-amber-500" />
+                                          </div>
+                                          <h5 className="font-bold text-lg">Considerations</h5>
                                         </div>
-                                        <div className="space-y-2">
+                                        <div className="space-y-3">
                                           {section.benefits
                                             .filter(b => b.benefit_type === "con")
                                             .map((benefit) => (
-                                              <div key={benefit.id} className="flex items-start gap-2">
-                                                <AlertCircle className="h-4 w-4 text-amber-600 mt-0.5 flex-shrink-0" />
-                                                <span className="text-sm">{benefit.benefit_text}</span>
+                                              <div key={benefit.id} className="flex items-start gap-3 text-sm">
+                                                <AlertCircle className="h-4 w-4 text-amber-600 dark:text-amber-500 mt-0.5 flex-shrink-0" />
+                                                <span className="leading-relaxed">{benefit.benefit_text}</span>
                                               </div>
                                             ))}
                                         </div>
@@ -355,10 +368,12 @@ export default function Training() {
                                 )}
 
                                 {section.videos && section.videos.length > 0 && (
-                                  <div className="border rounded-lg p-5 bg-card">
-                                    <div className="flex items-center gap-2 mb-4">
-                                      <Video className="h-5 w-5 text-primary" />
-                                      <h5 className="font-semibold">Training Videos</h5>
+                                  <div className="border rounded-xl p-6 bg-gradient-to-br from-primary/5 to-primary/10 shadow-sm">
+                                    <div className="flex items-center gap-2 mb-5">
+                                      <div className="p-1.5 bg-primary/20 rounded-lg">
+                                        <Video className="h-5 w-5 text-primary" />
+                                      </div>
+                                      <h5 className="font-bold text-lg">Training Videos</h5>
                                     </div>
                                     <div className="space-y-3">
                                       {section.videos.map((video) => (
@@ -367,21 +382,21 @@ export default function Training() {
                                           href={video.video_url}
                                           target="_blank"
                                           rel="noopener noreferrer"
-                                          className="block p-4 border rounded-lg hover:bg-muted/50 transition-colors"
+                                          className="block p-4 border rounded-xl hover:bg-background/80 hover:shadow-md transition-all duration-200 bg-background/60 group"
                                         >
                                           <div className="flex items-start justify-between gap-3">
                                             <div className="flex-1">
-                                              <div className="flex items-center gap-2 mb-1">
+                                              <div className="flex items-center gap-2 mb-2">
                                                 <Video className="h-4 w-4 text-primary" />
-                                                <span className="font-medium">{video.title}</span>
+                                                <span className="font-semibold group-hover:text-primary transition-colors">{video.title}</span>
                                               </div>
                                               {video.description && (
-                                                <p className="text-sm text-muted-foreground">
+                                                <p className="text-sm text-muted-foreground leading-relaxed">
                                                   {video.description}
                                                 </p>
                                               )}
                                             </div>
-                                            <ExternalLink className="h-4 w-4 text-muted-foreground flex-shrink-0" />
+                                            <ExternalLink className="h-4 w-4 text-muted-foreground group-hover:text-primary transition-colors flex-shrink-0 mt-1" />
                                           </div>
                                         </a>
                                       ))}
@@ -394,7 +409,7 @@ export default function Training() {
                         ))}
                       </Accordion>
                     ) : (
-                      <p className="text-sm text-muted-foreground py-4">
+                      <p className="text-muted-foreground py-6 px-4 text-center bg-muted/30 rounded-lg">
                         No sections added yet. Go to Manage Content to add sections.
                       </p>
                     )}
