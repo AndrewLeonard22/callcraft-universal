@@ -1085,13 +1085,6 @@ export default function ScriptViewer() {
                       </div>
                     )}
                     
-                    {getDetailValue("financing_options") !== "N/A" && (
-                      <div className="space-y-1">
-                        <div className="text-xs font-medium text-muted-foreground uppercase tracking-wide">Financing</div>
-                        <div className="text-sm text-foreground">{getDetailValue("financing_options")}</div>
-                      </div>
-                    )}
-                    
                     {getDetailValue("other_key_info") !== "N/A" && (
                       <div className="space-y-1">
                         <div className="text-xs font-medium text-muted-foreground uppercase tracking-wide">Additional Info</div>
