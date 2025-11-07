@@ -456,6 +456,45 @@ export type Database = {
           },
         ]
       }
+      service_detail_fields: {
+        Row: {
+          created_at: string
+          display_order: number
+          field_label: string
+          field_name: string
+          field_type: string
+          id: string
+          is_required: boolean
+          organization_id: string
+          placeholder: string | null
+          service_type_id: string
+        }
+        Insert: {
+          created_at?: string
+          display_order?: number
+          field_label: string
+          field_name: string
+          field_type?: string
+          id?: string
+          is_required?: boolean
+          organization_id: string
+          placeholder?: string | null
+          service_type_id: string
+        }
+        Update: {
+          created_at?: string
+          display_order?: number
+          field_label?: string
+          field_name?: string
+          field_type?: string
+          id?: string
+          is_required?: boolean
+          organization_id?: string
+          placeholder?: string | null
+          service_type_id?: string
+        }
+        Relationships: []
+      }
       service_types: {
         Row: {
           created_at: string

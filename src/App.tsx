@@ -23,6 +23,7 @@ const TeamManagement = lazy(() => import("./pages/TeamManagement"));
 const ImageGenerator = lazy(() => import("./pages/ImageGenerator"));
 const Training = lazy(() => import("./pages/Training"));
 const TrainingManagement = lazy(() => import("./pages/TrainingManagement"));
+const ServiceDetailFields = lazy(() => import("./pages/ServiceDetailFields"));
 const NotFound = lazy(() => import("./pages/NotFound"));
 
 // Optimized QueryClient configuration with caching
@@ -63,6 +64,7 @@ const App = () => (
             <Route path="/script/:scriptId" element={<ProtectedRoute><ScriptViewer /></ProtectedRoute>} />
             <Route path="/templates" element={<ProtectedRoute><Templates /></ProtectedRoute>} />
             <Route path="/service-types" element={<ProtectedRoute><ServiceTypes /></ProtectedRoute>} />
+            <Route path="/service-detail-fields" element={<ProtectedRoute><ServiceDetailFields /></ProtectedRoute>} />
             <Route path="/team" element={<ProtectedRoute><TeamManagement /></ProtectedRoute>} />
             <Route path="/image-generator" element={<ProtectedRoute><ImageGenerator /></ProtectedRoute>} />
             <Route path="/training" element={<ProtectedRoute><Training /></ProtectedRoute>} />

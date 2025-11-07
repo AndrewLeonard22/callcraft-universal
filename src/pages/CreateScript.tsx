@@ -32,6 +32,16 @@ interface ServiceType {
   icon_url?: string;
 }
 
+interface ServiceDetailField {
+  id: string;
+  field_name: string;
+  field_label: string;
+  field_type: string;
+  is_required: boolean;
+  placeholder?: string;
+  display_order: number;
+}
+
 export default function CreateScript() {
   const navigate = useNavigate();
   const { clientId } = useParams();
@@ -41,19 +51,8 @@ export default function CreateScript() {
   const [selectedTemplateId, setSelectedTemplateId] = useState<string>("");
   const [selectedServiceTypeId, setSelectedServiceTypeId] = useState<string>("");
   const [loading, setLoading] = useState(false);
-  
-  // Service-specific fields
-  const [projectMinPrice, setProjectMinPrice] = useState("");
-  const [projectMinSize, setProjectMinSize] = useState("");
-  const [pricePerSqFt, setPricePerSqFt] = useState("");
-  const [pricePerSqFtAluminum, setPricePerSqFtAluminum] = useState("");
-  const [pricePerSqFtWood, setPricePerSqFtWood] = useState("");
-  const [warranties, setWarranties] = useState("");
-  const [financingOptions, setFinancingOptions] = useState("");
-  const [videoOfService, setVideoOfService] = useState("");
-  const [avgInstallTime, setAvgInstallTime] = useState("");
-  const [appointmentCalendar, setAppointmentCalendar] = useState("");
-  const [rescheduleCalendar, setRescheduleCalendar] = useState("");
+  const [serviceDetailFields, setServiceDetailFields] = useState<ServiceDetailField[]>([]);
+  const [fieldValues, setFieldValues] = useState<Record<string, string>>({});
 
   useEffect(() => {
     loadClient();
@@ -82,6 +81,12 @@ export default function CreateScript() {
       supabase.removeChannel(templatesSubscription);
     };
   }, [clientId]);
+
+  useEffect(() => {
+    if (selectedServiceTypeId) {
+      loadServiceDetailFields();
+    }
+  }, [selectedServiceTypeId]);
 
   const loadClient = async () => {
     try {
@@ -140,6 +145,40 @@ export default function CreateScript() {
     } catch (error) {
       console.error("Error loading service types:", error);
       toast.error("Failed to load service types");
+    }
+  };
+
+  const loadServiceDetailFields = async () => {
+    try {
+      const { data: { user } } = await supabase.auth.getUser();
+      if (!user) return;
+
+      const { data: orgMember } = await supabase
+        .from('organization_members')
+        .select('organization_id')
+        .eq('user_id', user.id)
+        .maybeSingle();
+
+      if (!orgMember?.organization_id) return;
+
+      const { data, error } = await supabase
+        .from("service_detail_fields")
+        .select("*")
+        .eq("service_type_id", selectedServiceTypeId)
+        .eq("organization_id", orgMember.organization_id)
+        .order("display_order");
+
+      if (error) throw error;
+      setServiceDetailFields(data || []);
+      
+      // Initialize field values
+      const initialValues: Record<string, string> = {};
+      (data || []).forEach(field => {
+        initialValues[field.field_name] = "";
+      });
+      setFieldValues(initialValues);
+    } catch (error) {
+      console.error("Error loading service detail fields:", error);
     }
   };
 
@@ -214,20 +253,8 @@ export default function CreateScript() {
           use_template: true,
           template_script: freshTemplate.script_content,
           service_type_icon_url: selectedServiceType.icon_url,
-          template_id: freshTemplate.id, // Send template ID for validation
-          service_details: {
-            project_min_price: projectMinPrice,
-            project_min_size: projectMinSize,
-            price_per_sq_ft: pricePerSqFt,
-            price_per_sq_ft_aluminum: pricePerSqFtAluminum,
-            price_per_sq_ft_wood: pricePerSqFtWood,
-            warranties,
-            financing_options: financingOptions,
-            video_of_service: videoOfService,
-            avg_install_time: avgInstallTime,
-            appointment_calendar: appointmentCalendar,
-            reschedule_calendar: rescheduleCalendar,
-          }
+          template_id: freshTemplate.id,
+          service_details: fieldValues
         },
       });
 
@@ -247,24 +274,12 @@ export default function CreateScript() {
 
       if (newScriptId) {
         const prefix = `script_${newScriptId}_`;
-        const detailsArray = [
-          { name: `${prefix}project_min_price`, value: projectMinPrice },
-          { name: `${prefix}project_min_size`, value: projectMinSize },
-          { name: `${prefix}price_per_sq_ft`, value: pricePerSqFt },
-          { name: `${prefix}price_per_sq_ft_aluminum`, value: pricePerSqFtAluminum },
-          { name: `${prefix}price_per_sq_ft_wood`, value: pricePerSqFtWood },
-          { name: `${prefix}warranties`, value: warranties },
-          { name: `${prefix}financing_options`, value: financingOptions },
-          { name: `${prefix}video_of_service`, value: videoOfService },
-          { name: `${prefix}avg_install_time`, value: avgInstallTime },
-          { name: `${prefix}appointment_calendar`, value: appointmentCalendar },
-          { name: `${prefix}reschedule_calendar`, value: rescheduleCalendar },
-        ]
-          .filter(d => d.value.trim())
-          .map(d => ({
+        const detailsArray = Object.entries(fieldValues)
+          .filter(([_, value]) => value.trim())
+          .map(([key, value]) => ({
             client_id: clientId as string,
-            field_name: d.name,
-            field_value: d.value,
+            field_name: `${prefix}${key}`,
+            field_value: value,
           }));
 
         if (detailsArray.length > 0) {
@@ -417,121 +432,76 @@ export default function CreateScript() {
 
           <Card>
             <CardHeader>
-              <CardTitle>Service Details</CardTitle>
-              <CardDescription>
-                Provide specific information about this service
-              </CardDescription>
+              <div className="flex items-center justify-between">
+                <div>
+                  <CardTitle>Service Details</CardTitle>
+                  <CardDescription>
+                    Provide specific information about this service
+                  </CardDescription>
+                </div>
+                {selectedServiceTypeId && (
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    onClick={() => navigate("/service-detail-fields")}
+                  >
+                    Configure Fields
+                  </Button>
+                )}
+              </div>
             </CardHeader>
             <CardContent className="space-y-4">
-              <div>
-                <Label htmlFor="min-price">Project Minimum Price</Label>
-                <Input
-                  id="min-price"
-                  placeholder="e.g., $5,000"
-                  value={projectMinPrice}
-                  onChange={(e) => setProjectMinPrice(e.target.value)}
-                />
-              </div>
-              <div>
-                <Label htmlFor="min-size">Project Minimum Size</Label>
-                <Input
-                  id="min-size"
-                  placeholder="e.g., 500 sq ft"
-                  value={projectMinSize}
-                  onChange={(e) => setProjectMinSize(e.target.value)}
-                />
-              </div>
-              {serviceTypes.find(st => st.id === selectedServiceTypeId)?.name?.toLowerCase().includes('pergola') ? (
-                <>
-                  <div>
-                    <Label htmlFor="price-sqft-aluminum">Price Per Square Foot - Aluminum</Label>
-                    <Input
-                      id="price-sqft-aluminum"
-                      placeholder="e.g., 25"
-                      value={pricePerSqFtAluminum}
-                      onChange={(e) => setPricePerSqFtAluminum(e.target.value)}
-                    />
-                  </div>
-                  <div>
-                    <Label htmlFor="price-sqft-wood">Price Per Square Foot - Wood</Label>
-                    <Input
-                      id="price-sqft-wood"
-                      placeholder="e.g., 30"
-                      value={pricePerSqFtWood}
-                      onChange={(e) => setPricePerSqFtWood(e.target.value)}
-                    />
-                  </div>
-                </>
-              ) : (
-                <div>
-                  <Label htmlFor="price-sqft">Price Per Square Foot</Label>
-                  <Input
-                    id="price-sqft"
-                    placeholder="e.g., $15-25/sq ft"
-                    value={pricePerSqFt}
-                    onChange={(e) => setPricePerSqFt(e.target.value)}
-                  />
+              {!selectedServiceTypeId ? (
+                <p className="text-sm text-muted-foreground">
+                  Please select a service type to see available fields
+                </p>
+              ) : serviceDetailFields.length === 0 ? (
+                <div className="text-center py-8 border-2 border-dashed rounded-lg">
+                  <p className="text-sm text-muted-foreground mb-4">
+                    No fields configured for this service type yet
+                  </p>
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    onClick={() => navigate("/service-detail-fields")}
+                  >
+                    Configure Fields
+                  </Button>
                 </div>
+              ) : (
+                serviceDetailFields.map((field) => (
+                  <div key={field.id}>
+                    <Label htmlFor={field.field_name}>
+                      {field.field_label}
+                      {field.is_required && <span className="text-destructive ml-1">*</span>}
+                    </Label>
+                    {field.field_type === 'textarea' ? (
+                      <Textarea
+                        id={field.field_name}
+                        placeholder={field.placeholder || ''}
+                        value={fieldValues[field.field_name] || ''}
+                        onChange={(e) => setFieldValues(prev => ({
+                          ...prev,
+                          [field.field_name]: e.target.value
+                        }))}
+                        required={field.is_required}
+                      />
+                    ) : (
+                      <Input
+                        id={field.field_name}
+                        type={field.field_type}
+                        placeholder={field.placeholder || ''}
+                        value={fieldValues[field.field_name] || ''}
+                        onChange={(e) => setFieldValues(prev => ({
+                          ...prev,
+                          [field.field_name]: e.target.value
+                        }))}
+                        required={field.is_required}
+                      />
+                    )}
+                  </div>
+                ))
               )}
-              <div>
-                <Label htmlFor="warranties">Warranties/Guarantees</Label>
-                <Textarea
-                  id="warranties"
-                  placeholder="Describe warranties and guarantees..."
-                  value={warranties}
-                  onChange={(e) => setWarranties(e.target.value)}
-                  className="min-h-[80px]"
-                />
-              </div>
-              <div>
-                <Label htmlFor="financing">Financing Options</Label>
-                <Textarea
-                  id="financing"
-                  placeholder="Describe available financing options..."
-                  value={financingOptions}
-                  onChange={(e) => setFinancingOptions(e.target.value)}
-                  className="min-h-[80px]"
-                />
-              </div>
-              <div>
-                <Label htmlFor="video">Video of Service</Label>
-                <Input
-                  id="video"
-                  type="url"
-                  placeholder="https://youtube.com/watch?v=..."
-                  value={videoOfService}
-                  onChange={(e) => setVideoOfService(e.target.value)}
-                />
-              </div>
-              <div>
-                <Label htmlFor="install-time">Average Install Time After Booking</Label>
-                <Input
-                  id="install-time"
-                  placeholder="e.g., 2-3 weeks"
-                  value={avgInstallTime}
-                  onChange={(e) => setAvgInstallTime(e.target.value)}
-                />
-              </div>
-              <div>
-                <Label htmlFor="appointment">Appointment Calendar Link</Label>
-                <Input
-                  id="appointment"
-                  type="url"
-                  placeholder="https://calendly.com/yourlink"
-                  value={appointmentCalendar}
-                  onChange={(e) => setAppointmentCalendar(e.target.value)}
-                />
-              </div>
-              <div>
-                <Label htmlFor="reschedule">Reschedule Calendar Link</Label>
-                <Input
-                  id="reschedule"
-                  type="url"
-                  placeholder="https://calendly.com/reschedule"
-                  value={rescheduleCalendar}
-                  onChange={(e) => setRescheduleCalendar(e.target.value)}
-                />
-              </div>
             </CardContent>
           </Card>
 
