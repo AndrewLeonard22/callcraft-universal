@@ -341,6 +341,7 @@ Return ONLY valid JSON with at least company_name and service_type. No markdown 
       const fieldMap: Record<string, string> = {
         // Basic client info
         "business.name": extractedInfo.company_name || "",
+        "company.name": extractedInfo.company_name || "", // Alias
         "owner.name": extractedInfo.owners_name || "",
         "service.type": extractedInfo.service_type || "",
         "client.city": extractedInfo.city || "",
