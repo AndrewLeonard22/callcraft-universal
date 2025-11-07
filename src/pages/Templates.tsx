@@ -1397,97 +1397,122 @@ export default function Templates() {
                 </CardContent>
               </Card>
             ) : (
-              <DndContext sensors={sensors} collisionDetection={closestCenter} onDragEnd={handleDragEndFaqs}>
-                <SortableContext items={faqs.map(f => f.id)} strategy={verticalListSortingStrategy}>
-                  <div className="space-y-4">
-                    {faqs.map((faq) => {
-                      const serviceType = faq.service_type_id ? serviceTypes.find(st => st.id === faq.service_type_id) : null;
-                      return (
-                        <SortableItem key={faq.id} id={faq.id}>
-                          <Card className="hover:shadow-md transition-shadow">
-                            <CardHeader className="pb-4">
-                              <div className="flex items-start justify-between gap-4">
-                                <div className="flex items-start gap-4 flex-1 min-w-0">
-                                  <div className="h-10 w-10 rounded-lg bg-primary/10 flex-shrink-0 flex items-center justify-center">
-                                    <HelpCircle className="h-5 w-5 text-primary" />
-                                  </div>
-                                  <div className="flex-1 min-w-0 space-y-3">
-                                    <div>
-                                      {serviceType && (
-                                        <div className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-primary/10 text-primary mb-2">
-                                          {serviceType.name}
+              <div className="space-y-8">
+                {/* Group FAQs by service type */}
+                {(() => {
+                  // Group FAQs by service type
+                  const faqsByService = faqs.reduce((acc, faq) => {
+                    const serviceTypeId = faq.service_type_id || 'uncategorized';
+                    if (!acc[serviceTypeId]) {
+                      acc[serviceTypeId] = [];
+                    }
+                    acc[serviceTypeId].push(faq);
+                    return acc;
+                  }, {} as Record<string, typeof faqs>);
+
+                  return Object.entries(faqsByService).map(([serviceTypeId, serviceFaqs]) => {
+                    const serviceType = serviceTypeId !== 'uncategorized' 
+                      ? serviceTypes.find(st => st.id === serviceTypeId)
+                      : null;
+                    
+                    return (
+                      <div key={serviceTypeId} className="space-y-3">
+                        {/* Service Type Header */}
+                        <div className="flex items-center gap-3 pb-2 border-b">
+                          <h3 className="text-lg font-semibold">
+                            {serviceType ? serviceType.name : 'General'}
+                          </h3>
+                          <span className="text-xs text-muted-foreground">
+                            {serviceFaqs.length} {serviceFaqs.length === 1 ? 'FAQ' : 'FAQs'}
+                          </span>
+                        </div>
+
+                        {/* FAQs for this service */}
+                        <DndContext sensors={sensors} collisionDetection={closestCenter} onDragEnd={handleDragEndFaqs}>
+                          <SortableContext items={serviceFaqs.map(f => f.id)} strategy={verticalListSortingStrategy}>
+                            <div className="space-y-2">
+                              {serviceFaqs.map((faq) => (
+                                <SortableItem key={faq.id} id={faq.id}>
+                                  <Card className="hover:shadow-sm transition-shadow">
+                                    <CardHeader className="p-4">
+                                      <div className="flex items-start justify-between gap-3">
+                                        <div className="flex items-start gap-3 flex-1 min-w-0">
+                                          <div className="h-8 w-8 rounded-lg bg-primary/10 flex-shrink-0 flex items-center justify-center">
+                                            <HelpCircle className="h-4 w-4 text-primary" />
+                                          </div>
+                                          <div className="flex-1 min-w-0 space-y-1.5">
+                                            <CardTitle className="text-sm font-semibold leading-tight">
+                                              {faq.question}
+                                            </CardTitle>
+                                            <div className="text-xs text-muted-foreground line-clamp-1 leading-relaxed">
+                                              <span
+                                                dangerouslySetInnerHTML={{
+                                                  __html: faq.answer
+                                                    .substring(0, 100)
+                                                    .replace(/\*\*([^*]+)\*\*/g, '<strong>$1</strong>')
+                                                    .replace(/\[([^\]]+)\]/g, '<mark class="bg-yellow-200 px-1">$1</mark>')
+                                                    .replace(/\{red:([^}]+)\}/g, '<span style="color: rgb(220, 38, 38)">$1</span>')
+                                                    .replace(/\{blue:([^}]+)\}/g, '<span style="color: rgb(37, 99, 235)">$1</span>')
+                                                    .replace(/\{green:([^}]+)\}/g, '<span style="color: rgb(22, 163, 74)">$1</span>')
+                                                    .replace(/\{yellow:([^}]+)\}/g, '<span style="color: rgb(202, 138, 4)">$1</span>')
+                                                    .replace(/\{purple:([^}]+)\}/g, '<span style="color: rgb(168, 85, 247)">$1</span>')
+                                                    .replace(/\{orange:([^}]+)\}/g, '<span style="color: rgb(249, 115, 22)">$1</span>')
+                                                    .replace(/\{small:([^}]+)\}/g, '<span style="font-size: 0.875rem">$1</span>')
+                                                    .replace(/\{large:([^}]+)\}/g, '<span style="font-size: 1.25rem">$1</span>')
+                                                    + '...'
+                                                }}
+                                              />
+                                            </div>
+                                          </div>
                                         </div>
-                                      )}
-                                      <CardTitle className="text-base font-semibold leading-tight">
-                                        {faq.question}
-                                      </CardTitle>
-                                    </div>
-                                    <div className="text-sm text-muted-foreground line-clamp-2 leading-relaxed">
-                                      <span
-                                        dangerouslySetInnerHTML={{
-                                          __html: faq.answer
-                                            .substring(0, 150)
-                                            .replace(/\*\*([^*]+)\*\*/g, '<strong>$1</strong>')
-                                            .replace(/\[([^\]]+)\]/g, '<mark class="bg-yellow-200 px-1">$1</mark>')
-                                            .replace(/\{red:([^}]+)\}/g, '<span style="color: rgb(220, 38, 38)">$1</span>')
-                                            .replace(/\{blue:([^}]+)\}/g, '<span style="color: rgb(37, 99, 235)">$1</span>')
-                                            .replace(/\{green:([^}]+)\}/g, '<span style="color: rgb(22, 163, 74)">$1</span>')
-                                            .replace(/\{yellow:([^}]+)\}/g, '<span style="color: rgb(202, 138, 4)">$1</span>')
-                                            .replace(/\{purple:([^}]+)\}/g, '<span style="color: rgb(168, 85, 247)">$1</span>')
-                                            .replace(/\{orange:([^}]+)\}/g, '<span style="color: rgb(249, 115, 22)">$1</span>')
-                                            .replace(/\{small:([^}]+)\}/g, '<span style="font-size: 0.875rem">$1</span>')
-                                            .replace(/\{large:([^}]+)\}/g, '<span style="font-size: 1.25rem">$1</span>')
-                                            + '...'
-                                        }}
-                                      />
-                                    </div>
-                                  </div>
-                                </div>
-                                <div className="flex gap-1 flex-shrink-0">
-                                  <Button
-                                    variant="ghost"
-                                    size="sm"
-                                    onClick={() => handleEditFaq(faq)}
-                                    className="h-8 px-2"
-                                  >
-                                    <Edit2 className="h-3.5 w-3.5 mr-1.5" />
-                                    <span className="text-xs">Edit</span>
-                                  </Button>
-                                  <AlertDialog>
-                                    <AlertDialogTrigger asChild>
-                                      <Button variant="ghost" size="sm" className="h-8 px-2 text-destructive hover:text-destructive hover:bg-destructive/10">
-                                        <Trash2 className="h-3.5 w-3.5" />
-                                      </Button>
-                                    </AlertDialogTrigger>
-                                    <AlertDialogContent>
-                                      <AlertDialogHeader>
-                                        <AlertDialogTitle>Delete FAQ?</AlertDialogTitle>
-                                        <AlertDialogDescription>
-                                          This will permanently delete this FAQ.
-                                          This action cannot be undone.
-                                        </AlertDialogDescription>
-                                      </AlertDialogHeader>
-                                      <AlertDialogFooter>
-                                        <AlertDialogCancel>Cancel</AlertDialogCancel>
-                                        <AlertDialogAction
-                                          onClick={() => handleDeleteFaq(faq.id)}
-                                          className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
-                                        >
-                                          Delete
-                                        </AlertDialogAction>
-                                      </AlertDialogFooter>
-                                    </AlertDialogContent>
-                                  </AlertDialog>
-                                </div>
-                              </div>
-                            </CardHeader>
-                          </Card>
-                        </SortableItem>
-                      );
-                    })}
-                  </div>
-                </SortableContext>
-              </DndContext>
+                                        <div className="flex gap-1 flex-shrink-0">
+                                          <Button
+                                            variant="ghost"
+                                            size="sm"
+                                            onClick={() => handleEditFaq(faq)}
+                                            className="h-7 px-2"
+                                          >
+                                            <Edit2 className="h-3 w-3" />
+                                          </Button>
+                                          <AlertDialog>
+                                            <AlertDialogTrigger asChild>
+                                              <Button variant="ghost" size="sm" className="h-7 px-2 text-destructive hover:text-destructive hover:bg-destructive/10">
+                                                <Trash2 className="h-3 w-3" />
+                                              </Button>
+                                            </AlertDialogTrigger>
+                                            <AlertDialogContent>
+                                              <AlertDialogHeader>
+                                                <AlertDialogTitle>Delete FAQ?</AlertDialogTitle>
+                                                <AlertDialogDescription>
+                                                  This will permanently delete this FAQ.
+                                                  This action cannot be undone.
+                                                </AlertDialogDescription>
+                                              </AlertDialogHeader>
+                                              <AlertDialogFooter>
+                                                <AlertDialogCancel>Cancel</AlertDialogCancel>
+                                                <AlertDialogAction
+                                                  onClick={() => handleDeleteFaq(faq.id)}
+                                                  className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
+                                                >
+                                                  Delete
+                                                </AlertDialogAction>
+                                              </AlertDialogFooter>
+                                            </AlertDialogContent>
+                                          </AlertDialog>
+                                        </div>
+                                      </div>
+                                    </CardHeader>
+                                  </Card>
+                                </SortableItem>
+                              ))}
+                            </div>
+                          </SortableContext>
+                        </DndContext>
+                      </div>
+                    );
+                  });
+                })()}
+              </div>
             )}
           </TabsContent>
 
