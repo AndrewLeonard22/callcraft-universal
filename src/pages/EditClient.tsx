@@ -29,6 +29,7 @@ export default function EditClient() {
   const [salesRepName, setSalesRepName] = useState("");
   const [salesRepPhone, setSalesRepPhone] = useState("");
   const [address, setAddress] = useState("");
+  const [servicesOffered, setServicesOffered] = useState("");
   const [otherKeyInfo, setOtherKeyInfo] = useState("");
   const [serviceRadiusMiles, setServiceRadiusMiles] = useState("");
   
@@ -98,6 +99,7 @@ export default function EditClient() {
         setSalesRepName(detailsMap.get("sales_rep_name") || "");
         setSalesRepPhone(detailsMap.get("sales_rep_phone") || "");
         setAddress(detailsMap.get("address") || "");
+        setServicesOffered(detailsMap.get("services_offered") || "");
         setOtherKeyInfo(detailsMap.get("other_key_info") || "");
         setWebsite(detailsMap.get("website") || "");
         setFacebookPage(detailsMap.get("facebook_page") || "");
@@ -196,6 +198,7 @@ export default function EditClient() {
         "sales_rep_name",
         "sales_rep_phone",
         "address",
+        "services_offered",
         "other_key_info",
         "website",
         "facebook_page",
@@ -220,6 +223,7 @@ export default function EditClient() {
         { name: "sales_rep_name", value: salesRepName },
         { name: "sales_rep_phone", value: salesRepPhone },
         { name: "address", value: address },
+        { name: "services_offered", value: servicesOffered },
         { name: "other_key_info", value: otherKeyInfo },
       ];
 
@@ -471,6 +475,16 @@ export default function EditClient() {
                         placeholder="123 Main St, City, State ZIP"
                         value={address}
                         onChange={(e) => setAddress(e.target.value)}
+                      />
+                    </div>
+                    <div>
+                      <Label htmlFor="services-offered">Services Offered</Label>
+                      <Textarea
+                        id="services-offered"
+                        placeholder="e.g., Pergolas, Turf, Pavers, Full Outdoor Remodels"
+                        value={servicesOffered}
+                        onChange={(e) => setServicesOffered(e.target.value)}
+                        className="min-h-[100px] resize-none"
                       />
                     </div>
                   </div>

@@ -21,6 +21,7 @@ export default function CreateClient() {
   const [salesRepPhone, setSalesRepPhone] = useState("");
   const [address, setAddress] = useState("");
   const [serviceArea, setServiceArea] = useState("");
+  const [servicesOffered, setServicesOffered] = useState("");
   const [otherKeyInfo, setOtherKeyInfo] = useState("");
   const [serviceRadiusMiles, setServiceRadiusMiles] = useState<string>("");
   const [logoFile, setLogoFile] = useState<File | null>(null);
@@ -97,6 +98,7 @@ export default function CreateClient() {
             sales_rep_phone: salesRepPhone,
             address,
             service_area: serviceArea,
+            services_offered: servicesOffered,
             other_key_info: otherKeyInfo,
           },
           links: {
@@ -339,6 +341,19 @@ export default function CreateClient() {
                         className="h-11 bg-background shadow-sm border-border/50 focus:border-primary/50 transition-colors"
                       />
                     </div>
+                  </div>
+
+                  <div className="space-y-2">
+                    <Label htmlFor="services-offered" className="text-sm font-medium">
+                      Services Offered
+                    </Label>
+                    <Textarea
+                      id="services-offered"
+                      placeholder="e.g., Pergolas, Turf, Pavers, Full Outdoor Remodels"
+                      value={servicesOffered}
+                      onChange={(e) => setServicesOffered(e.target.value)}
+                      className="min-h-[100px] bg-background shadow-sm border-border/50 focus:border-primary/50 transition-colors resize-none"
+                    />
                   </div>
 
                   <div className="space-y-2">

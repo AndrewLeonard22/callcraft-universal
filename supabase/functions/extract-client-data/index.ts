@@ -345,6 +345,8 @@ Return ONLY valid JSON with at least company_name and service_type. No markdown 
         "owner.name": extractedInfo.owners_name || "",
         "service.type": extractedInfo.service_type || "",
         "client.city": extractedInfo.city || "",
+        "services": extractedInfo.services_offered || "",
+        "services.offered": extractedInfo.services_offered || "",
         "client.address": extractedInfo.address || "",
       };
       
