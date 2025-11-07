@@ -1047,10 +1047,21 @@ export default function ScriptViewer() {
                     )}
 
                     {(() => {
-                      const valCandidates = ["services_offered", "services", "services.offered"] as const;
-                      const firstVal = valCandidates
+                      const valCandidates = [
+                        "services_offered",
+                        "services",
+                        "services.offered",
+                        "services offered",
+                        "Services Offered",
+                      ] as const;
+                      let firstVal = valCandidates
                         .map((k) => getDetailValue(k))
                         .find((v) => v !== "N/A");
+                      if (!firstVal) {
+                        const normalized = (s: string) => s.replace(/[_.-]+/g, " ").trim().toLowerCase();
+                        const match = details.find((d) => normalized(d.field_name) === "services offered");
+                        if (match?.field_value) firstVal = match.field_value;
+                      }
                       return firstVal ? (
                         <div className="space-y-1">
                           <div className="text-xs font-medium text-muted-foreground uppercase tracking-wide">Services Offered</div>
