@@ -1050,7 +1050,7 @@ export default function Templates() {
             </CardContent>
           </Card>
         ) : (
-          <div className="space-y-6">
+          <div className="space-y-8">
             {/* Group templates by service type */}
             {(() => {
               const grouped = templates.reduce((acc, template) => {
@@ -1067,88 +1067,88 @@ export default function Templates() {
                 const serviceName = serviceType?.name || 'Uncategorized';
 
                 return (
-                  <div key={serviceTypeId} className="space-y-3">
-                    <div className="flex items-center gap-2 px-1 mb-2">
+                  <div key={serviceTypeId} className="space-y-4">
+                    <div className="flex items-center gap-3 pb-3 border-b">
                       {serviceType?.icon_url && (
-                        <img src={serviceType.icon_url} alt="" className="h-4 w-4 object-contain opacity-60" />
+                        <img src={serviceType.icon_url} alt="" className="h-5 w-5 object-contain" />
                       )}
-                      <h3 className="text-xs font-medium text-muted-foreground/60 uppercase tracking-wider">
+                      <h3 className="text-lg font-semibold">
                         {serviceName}
                       </h3>
-                      <div className="flex-1 h-px bg-border/50" />
+                      <span className="text-xs text-muted-foreground">
+                        {serviceTemplates.length} {serviceTemplates.length === 1 ? 'template' : 'templates'}
+                      </span>
                     </div>
                     <DndContext sensors={sensors} collisionDetection={closestCenter} onDragEnd={handleDragEndTemplates}>
                       <SortableContext items={serviceTemplates.map(t => t.id)} strategy={verticalListSortingStrategy}>
-                        <div className="space-y-3">
+                        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
                           {serviceTemplates.map((template) => (
                             <SortableItem key={template.id} id={template.id}>
-                              <Card>
-                                <CardHeader className="p-4">
-                                  <div className="flex items-start gap-3 justify-between">
-                                    <div className="flex items-start gap-3 flex-1 min-w-0">
-                                      <div className="h-10 w-10 rounded-lg bg-muted border border-border overflow-hidden flex-shrink-0 flex items-center justify-center">
-                                        {template.image_url ? (
-                                          <img src={template.image_url} alt="Template preview" className="h-full w-full object-cover" onError={(e) => { (e.currentTarget as HTMLImageElement).src = '/placeholder.svg'; }} />
-                                        ) : (
-                                          <FileText className="h-4 w-4 text-muted-foreground" />
-                                        )}
-                                      </div>
-                                      <div className="flex-1 min-w-0">
-                                        <CardTitle className="text-base">{template.service_name}</CardTitle>
-                                      </div>
+                              <Card className="h-full flex flex-col">
+                                <CardHeader className="pb-3">
+                                  <div className="flex items-start gap-3 mb-3">
+                                    <div className="h-12 w-12 rounded-lg bg-muted border overflow-hidden flex-shrink-0 flex items-center justify-center">
+                                      {template.image_url ? (
+                                        <img src={template.image_url} alt="Template preview" className="h-full w-full object-cover" onError={(e) => { (e.currentTarget as HTMLImageElement).src = '/placeholder.svg'; }} />
+                                      ) : (
+                                        <FileText className="h-5 w-5 text-muted-foreground" />
+                                      )}
                                     </div>
-                                    <div className="flex gap-1 flex-shrink-0">
-                                      <Button
-                                        variant="ghost"
-                                        size="icon"
-                                        className="h-8 w-8"
-                                        onClick={() => handleDuplicate(template)}
-                                        title="Duplicate template"
-                                      >
-                                        <Copy className="h-3.5 w-3.5" />
-                                      </Button>
-                                      <Button
-                                        variant="ghost"
-                                        size="icon"
-                                        className="h-8 w-8"
-                                        onClick={() => handleEdit(template)}
-                                        title="Edit template"
-                                      >
-                                        <Edit2 className="h-3.5 w-3.5" />
-                                      </Button>
-                                      <AlertDialog>
-                                        <AlertDialogTrigger asChild>
-                                          <Button 
-                                            variant="ghost" 
-                                            size="icon" 
-                                            className="h-8 w-8 text-destructive"
-                                            title="Delete template"
-                                          >
-                                            <Trash2 className="h-3.5 w-3.5" />
-                                          </Button>
-                                        </AlertDialogTrigger>
-                                        <AlertDialogContent>
-                                          <AlertDialogHeader>
-                                            <AlertDialogTitle>Delete Template?</AlertDialogTitle>
-                                            <AlertDialogDescription>
-                                              This will permanently delete the "{template.service_name}" template.
-                                              This action cannot be undone.
-                                            </AlertDialogDescription>
-                                          </AlertDialogHeader>
-                                          <AlertDialogFooter>
-                                            <AlertDialogCancel>Cancel</AlertDialogCancel>
-                                            <AlertDialogAction
-                                              onClick={() => handleDelete(template.id)}
-                                              className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
-                                            >
-                                              Delete
-                                            </AlertDialogAction>
-                                          </AlertDialogFooter>
-                                        </AlertDialogContent>
-                                      </AlertDialog>
+                                    <div className="flex-1 min-w-0">
+                                      <CardTitle className="text-base leading-tight">{template.service_name}</CardTitle>
                                     </div>
-                                  </div>
-                                </CardHeader>
+                                   </div>
+                                   <div className="flex gap-1 justify-end pt-2 border-t">
+                                     <Button
+                                       variant="ghost"
+                                       size="icon"
+                                       className="h-8 w-8"
+                                       onClick={() => handleDuplicate(template)}
+                                       title="Duplicate template"
+                                     >
+                                       <Copy className="h-3.5 w-3.5" />
+                                     </Button>
+                                     <Button
+                                       variant="ghost"
+                                       size="icon"
+                                       className="h-8 w-8"
+                                       onClick={() => handleEdit(template)}
+                                       title="Edit template"
+                                     >
+                                       <Edit2 className="h-3.5 w-3.5" />
+                                     </Button>
+                                     <AlertDialog>
+                                       <AlertDialogTrigger asChild>
+                                         <Button 
+                                           variant="ghost" 
+                                           size="icon" 
+                                           className="h-8 w-8 text-destructive"
+                                           title="Delete template"
+                                         >
+                                           <Trash2 className="h-3.5 w-3.5" />
+                                         </Button>
+                                       </AlertDialogTrigger>
+                                       <AlertDialogContent>
+                                         <AlertDialogHeader>
+                                           <AlertDialogTitle>Delete Template?</AlertDialogTitle>
+                                           <AlertDialogDescription>
+                                             This will permanently delete the "{template.service_name}" template.
+                                             This action cannot be undone.
+                                           </AlertDialogDescription>
+                                         </AlertDialogHeader>
+                                         <AlertDialogFooter>
+                                           <AlertDialogCancel>Cancel</AlertDialogCancel>
+                                           <AlertDialogAction
+                                             onClick={() => handleDelete(template.id)}
+                                             className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
+                                           >
+                                             Delete
+                                           </AlertDialogAction>
+                                         </AlertDialogFooter>
+                                       </AlertDialogContent>
+                                     </AlertDialog>
+                                   </div>
+                                 </CardHeader>
                               </Card>
                             </SortableItem>
                           ))}
