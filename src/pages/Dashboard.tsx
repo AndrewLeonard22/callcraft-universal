@@ -1,6 +1,6 @@
 import { useEffect, useState, useMemo, useCallback } from "react";
 import { Link, useNavigate } from "react-router-dom";
-import { Plus, FileText, Calendar, Search, Settings, Trash2, LogOut, User as UserIcon, Users, Wand2, Archive, ArchiveRestore, GraduationCap } from "lucide-react";
+import { Plus, FileText, Calendar, Search, Settings, Trash2, LogOut, User as UserIcon, Users, Wand2, Archive, ArchiveRestore, GraduationCap, Building2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
@@ -35,6 +35,7 @@ import logoHvac from "@/assets/logo-hvac.png";
 import logoSolar from "@/assets/logo-solar.png";
 import logoLandscaping from "@/assets/logo-landscaping.png";
 import socialWorksLogo from "@/assets/social-works-logo.png";
+import { CompanyLogoSettings } from "@/components/CompanyLogoSettings";
 
 interface ServiceType {
   id: string;
@@ -97,8 +98,9 @@ export default function Dashboard() {
   const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
   const [clientToDelete, setClientToDelete] = useState<{ id: string; name: string } | null>(null);
   const [user, setUser] = useState<User | null>(null);
-  const [profile, setProfile] = useState<{ display_name?: string; avatar_url?: string } | null>(null);
+  const [profile, setProfile] = useState<{ display_name?: string; avatar_url?: string; company_logo_url?: string } | null>(null);
   const [viewMode, setViewMode] = useState<'live' | 'archived'>('live');
+  const [logoSettingsOpen, setLogoSettingsOpen] = useState(false);
   const { toast } = useToast();
 
   // Optimized: Use useCallback to prevent re-creating function on every render
@@ -109,7 +111,7 @@ export default function Dashboard() {
       
       const { data: profileData } = await supabase
         .from("profiles")
-        .select("display_name, avatar_url")
+        .select("display_name, avatar_url, company_logo_url")
         .eq("id", user.id)
         .single();
       
@@ -405,8 +407,8 @@ export default function Dashboard() {
           <div className="flex items-center justify-between gap-2">
             <div className="flex items-center gap-2 sm:gap-4 min-w-0">
               <img 
-                src={socialWorksLogo} 
-                alt="Social Works" 
+                src={profile?.company_logo_url || socialWorksLogo} 
+                alt="Company Logo" 
                 className="h-8 sm:h-10 w-auto flex-shrink-0"
               />
               <div className="h-6 sm:h-8 w-px bg-border/50 hidden sm:block" />
@@ -523,6 +525,10 @@ export default function Dashboard() {
                     </div>
                   </DropdownMenuLabel>
                   <DropdownMenuSeparator />
+                  <DropdownMenuItem onClick={() => setLogoSettingsOpen(true)}>
+                    <Building2 className="mr-2 h-4 w-4" />
+                    <span>Company Logo</span>
+                  </DropdownMenuItem>
                   <DropdownMenuItem onClick={() => navigate("/team")}>
                     <Users className="mr-2 h-4 w-4" />
                     <span>Team Management</span>
@@ -809,6 +815,14 @@ export default function Dashboard() {
           </AlertDialogFooter>
         </AlertDialogContent>
       </AlertDialog>
+
+      {/* Company Logo Settings Dialog */}
+      <CompanyLogoSettings
+        open={logoSettingsOpen}
+        onOpenChange={setLogoSettingsOpen}
+        currentLogoUrl={profile?.company_logo_url}
+        onLogoUpdated={loadUser}
+      />
     </div>
   );
 }
