@@ -652,7 +652,7 @@ export default function Templates() {
 
   const handleEditFaq = (faq: FAQ) => {
     setEditingFaq(faq);
-    setFaqServiceTypeId(faq.service_type_id || "");
+    setFaqServiceTypeId(faq.service_type_id || "universal");
     setFaqQuestion(faq.question);
     setFaqAnswer(faq.answer);
     setShowFaqForm(true);
@@ -666,11 +666,13 @@ export default function Templates() {
 
     setSaving(true);
     try {
+      const serviceTypeValue = faqServiceTypeId === "universal" ? null : faqServiceTypeId;
+      
       if (editingFaq) {
         const { error } = await supabase
           .from("faqs")
           .update({
-            service_type_id: faqServiceTypeId,
+            service_type_id: serviceTypeValue,
             question: faqQuestion,
             answer: faqAnswer,
           })
@@ -682,7 +684,7 @@ export default function Templates() {
         const { error } = await supabase
           .from("faqs")
           .insert({
-            service_type_id: faqServiceTypeId,
+            service_type_id: serviceTypeValue,
             question: faqQuestion,
             answer: faqAnswer,
             organization_id: userOrganizationId,
@@ -1329,6 +1331,7 @@ export default function Templates() {
                         <SelectValue placeholder="Select service type" />
                       </SelectTrigger>
                       <SelectContent>
+                        <SelectItem value="universal">Universal (All Services)</SelectItem>
                         {serviceTypes.map((type) => (
                           <SelectItem key={type.id} value={type.id}>
                             {type.name}
@@ -1402,7 +1405,7 @@ export default function Templates() {
                 {(() => {
                   // Group FAQs by service type
                   const faqsByService = faqs.reduce((acc, faq) => {
-                    const serviceTypeId = faq.service_type_id || 'uncategorized';
+                    const serviceTypeId = faq.service_type_id || 'universal';
                     if (!acc[serviceTypeId]) {
                       acc[serviceTypeId] = [];
                     }
@@ -1410,8 +1413,15 @@ export default function Templates() {
                     return acc;
                   }, {} as Record<string, typeof faqs>);
 
-                  return Object.entries(faqsByService).map(([serviceTypeId, serviceFaqs]) => {
-                    const serviceType = serviceTypeId !== 'uncategorized' 
+                  // Sort entries to show universal first
+                  const sortedEntries = Object.entries(faqsByService).sort(([a], [b]) => {
+                    if (a === 'universal') return -1;
+                    if (b === 'universal') return 1;
+                    return 0;
+                  });
+
+                  return sortedEntries.map(([serviceTypeId, serviceFaqs]) => {
+                    const serviceType = serviceTypeId !== 'universal' 
                       ? serviceTypes.find(st => st.id === serviceTypeId)
                       : null;
                     
@@ -1420,7 +1430,7 @@ export default function Templates() {
                         {/* Service Type Header */}
                         <div className="flex items-center gap-3 pb-2 border-b">
                           <h3 className="text-lg font-semibold">
-                            {serviceType ? serviceType.name : 'General'}
+                            {serviceType ? serviceType.name : 'Universal (All Services)'}
                           </h3>
                           <span className="text-xs text-muted-foreground">
                             {serviceFaqs.length} {serviceFaqs.length === 1 ? 'FAQ' : 'FAQs'}
