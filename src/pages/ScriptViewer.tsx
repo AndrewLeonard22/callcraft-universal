@@ -10,6 +10,7 @@ import { Checkbox } from "@/components/ui/checkbox";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
 import ServiceAreaMap from "@/components/ServiceAreaMap";
+import OutdoorLivingCalculator from "@/components/OutdoorLivingCalculator";
 import logoDefault from "@/assets/logo-default.png";
 import logoPergola from "@/assets/logo-pergola.png";
 import logoHvac from "@/assets/logo-hvac.png";
@@ -1402,6 +1403,9 @@ export default function ScriptViewer() {
                   </CardContent>
                 </Card>
               )}
+
+              {/* Outdoor Living Calculator */}
+              <OutdoorLivingCalculator />
             </div>
           </div>
 
