@@ -752,7 +752,13 @@ export default function ScriptViewer() {
     if (hasAllowedHtml) {
       // If there are no block paragraphs or <br>, convert newlines to <br> to ensure spacing
       const needsBr = !content.includes('<p') && !content.includes('<br');
-      const prepared = needsBr ? content.replace(/\n/g, '<br />') : content;
+      let prepared = needsBr ? content.replace(/\n/g, '<br />') : content;
+      
+      // Fix empty paragraphs to ensure they render with proper spacing
+      // Replace empty <p></p> with <p>&nbsp;</p> to force rendering
+      prepared = prepared.replace(/<p><\/p>/g, '<p>&nbsp;</p>');
+      prepared = prepared.replace(/<p>\s*<\/p>/g, '<p>&nbsp;</p>');
+      
       // Escape any unknown/accidental tags like <10-min> to prevent the browser from dropping content
       const safeHtml = prepared.replace(/<(?!\/?(p|br|hr|strong|em|b|i|u|span|mark|ul|ol|li|h[1-6]|div|section|article|header|footer|blockquote)(\s|>|\/))/gi, '&lt;');
       return (

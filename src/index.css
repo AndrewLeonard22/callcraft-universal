@@ -181,6 +181,13 @@ All colors MUST be HSL.
   
   .html-content p:empty {
     min-height: 1.2em;
+    display: block;
+  }
+  
+  /* Ensure paragraphs with only whitespace are visible */
+  .html-content p:empty::before {
+    content: '\00a0';
+    visibility: hidden;
   }
   
   .html-content p:first-child {
@@ -208,7 +215,12 @@ All colors MUST be HSL.
   .html-content br {
     display: block;
     content: "";
-    margin: 1rem 0;
+    margin: 0.5rem 0;
+  }
+  
+  /* Consecutive br tags should have proper spacing */
+  .html-content br + br {
+    margin-top: 1rem;
   }
   
   .html-content hr {
