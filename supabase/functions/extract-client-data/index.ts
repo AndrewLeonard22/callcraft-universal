@@ -327,6 +327,17 @@ Return ONLY valid JSON with at least company_name and service_type. No markdown 
       console.log("Template length:", template_script.length);
       console.log("Using CURRENT template content - no caching");
       
+      // CRITICAL: Clean up any auto-generated hyperlinks around placeholders
+      // This fixes the issue where {{company.name}} became <a href="...">{{company.name}}</a>
+      let cleanedTemplate = template_script;
+      
+      // Remove <a> tags that wrap {{...}} placeholders
+      // Pattern: <a [attributes]>{{field.name}}</a> or {{<a [attributes]>field.name</a>}}
+      cleanedTemplate = cleanedTemplate.replace(/<a\s+[^>]*>(\{\{[^}]+\}\})<\/a>/gi, '$1');
+      cleanedTemplate = cleanedTemplate.replace(/\{\{<a\s+[^>]*>([^}]+)<\/a>\}\}/gi, '{{$1}}');
+      
+      console.log("Cleaned hyperlinks from template");
+      
       // Fetch ALL client details from database for field replacement
       const { data: clientDetails, error: detailsError } = await supabase
         .from("client_details")
@@ -376,8 +387,9 @@ Return ONLY valid JSON with at least company_name and service_type. No markdown 
       
       console.log("Available fields for replacement:", Object.keys(fieldMap).length);
       
-      // Replace all {{field.name}} placeholders with actual values
-      scriptContent = template_script.replace(/\{\{([^}]+)\}\}/g, (match: string, fieldPath: string) => {
+      // CRITICAL: Simple string replacement - preserves ALL spacing, formatting, HTML exactly
+      // Only replaces the placeholder text, nothing else
+      scriptContent = cleanedTemplate.replace(/\{\{([^}]+)\}\}/g, (match: string, fieldPath: string) => {
         const cleanPath = fieldPath.trim();
         const value = fieldMap[cleanPath];
         
