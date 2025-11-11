@@ -1263,18 +1263,13 @@ export default function Templates() {
                     {objectionTemplates.map((template) => (
                       <SortableItem key={template.id} id={template.id}>
                         <Card>
-                          <CardHeader>
-                            <div className="flex items-start gap-4 justify-between">
-                              <div className="flex items-start gap-3 flex-1">
-                                <div className="h-12 w-12 rounded-lg bg-muted border border-border flex-shrink-0 flex items-center justify-center">
-                                  <MessageSquare className="h-5 w-5 text-muted-foreground" />
+                          <CardHeader className="p-4">
+                            <div className="flex items-center gap-3 justify-between">
+                              <div className="flex items-center gap-3 flex-1 min-w-0">
+                                <div className="h-10 w-10 rounded-lg bg-muted border border-border flex-shrink-0 flex items-center justify-center">
+                                  <MessageSquare className="h-4 w-4 text-muted-foreground" />
                                 </div>
-                                <div className="flex-1 min-w-0">
-                                  <CardTitle className="text-base">{template.service_name}</CardTitle>
-                                  <div className="text-xs text-muted-foreground mt-1 line-clamp-3">
-                                    <FormattedContent content={template.content} />
-                                  </div>
-                                </div>
+                                <CardTitle className="text-base truncate">{template.service_name}</CardTitle>
                               </div>
                               <div className="flex gap-2 flex-shrink-0">
                                 <Button
