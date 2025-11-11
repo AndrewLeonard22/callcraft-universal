@@ -1270,8 +1270,8 @@ export default function Templates() {
                                   <MessageSquare className="h-5 w-5 text-muted-foreground" />
                                 </div>
                                 <div className="flex-1 min-w-0">
-                                  <CardTitle className="text-lg">{template.service_name}</CardTitle>
-                                  <div className="text-sm text-muted-foreground mt-1 line-clamp-3">
+                                  <CardTitle className="text-base">{template.service_name}</CardTitle>
+                                  <div className="text-xs text-muted-foreground mt-1 line-clamp-3">
                                     <FormattedContent content={template.content} />
                                   </div>
                                 </div>
