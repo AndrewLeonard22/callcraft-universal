@@ -153,6 +153,16 @@ export function RichTextEditor({
         class: 'max-w-none focus:outline-none px-4 py-3',
         style: `min-height: ${minHeight}`,
       },
+      handleKeyDown: (view, event) => {
+        // Handle Tab key for indentation
+        if (event.key === 'Tab') {
+          event.preventDefault();
+          // Insert two spaces for indentation
+          view.dispatch(view.state.tr.insertText('  '));
+          return true;
+        }
+        return false;
+      },
     },
   });
 

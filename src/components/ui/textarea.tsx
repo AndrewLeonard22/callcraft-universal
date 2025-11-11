@@ -5,6 +5,29 @@ import { cn } from "@/lib/utils";
 export interface TextareaProps extends React.TextareaHTMLAttributes<HTMLTextAreaElement> {}
 
 const Textarea = React.forwardRef<HTMLTextAreaElement, TextareaProps>(({ className, ...props }, ref) => {
+  const handleKeyDown = (e: React.KeyboardEvent<HTMLTextAreaElement>) => {
+    if (e.key === 'Tab') {
+      e.preventDefault();
+      const target = e.currentTarget;
+      const start = target.selectionStart;
+      const end = target.selectionEnd;
+      const value = target.value;
+      
+      // Insert tab character at cursor position
+      target.value = value.substring(0, start) + '\t' + value.substring(end);
+      
+      // Move cursor after the inserted tab
+      target.selectionStart = target.selectionEnd = start + 1;
+      
+      // Trigger onChange event
+      const event = new Event('input', { bubbles: true });
+      target.dispatchEvent(event);
+    }
+    
+    // Call the original onKeyDown if it exists
+    props.onKeyDown?.(e);
+  };
+
   return (
     <textarea
       className={cn(
@@ -13,6 +36,7 @@ const Textarea = React.forwardRef<HTMLTextAreaElement, TextareaProps>(({ classNa
       )}
       ref={ref}
       {...props}
+      onKeyDown={handleKeyDown}
     />
   );
 });
