@@ -961,9 +961,9 @@ export default function Templates() {
             </div>
 
         {showCreateForm && (
-          <Card className="mb-6">
-            <CardHeader>
-              <CardTitle>{editingTemplate ? "Edit Template" : "Create New Template"}</CardTitle>
+          <Card className="mb-6 border-primary/20 shadow-sm">
+            <CardHeader className="border-b border-border/60 bg-gradient-to-r from-primary/5 to-transparent">
+              <CardTitle className="text-lg">{editingTemplate ? "Edit Template" : "Create New Template"}</CardTitle>
               <CardDescription>
                 {editingTemplate 
                   ? "Update this template to change all scripts that use it"
@@ -1052,14 +1052,16 @@ export default function Templates() {
             ))}
           </div>
         ) : templates.length === 0 ? (
-          <Card>
-            <CardContent className="flex flex-col items-center justify-center py-12">
-              <FileText className="h-12 w-12 text-muted-foreground/50 mb-3" />
-              <h3 className="text-lg font-semibold mb-1">No templates yet</h3>
-              <p className="text-sm text-muted-foreground mb-4 text-center max-w-sm">
+          <Card className="border-dashed">
+            <CardContent className="flex flex-col items-center justify-center py-16">
+              <div className="h-16 w-16 rounded-full bg-primary/10 flex items-center justify-center mb-4">
+                <FileText className="h-8 w-8 text-primary" />
+              </div>
+              <h3 className="text-xl font-semibold mb-2">No templates yet</h3>
+              <p className="text-sm text-muted-foreground mb-6 text-center max-w-sm">
                 Create your first template to reuse scripts across clients
               </p>
-              <Button onClick={() => setShowCreateForm(true)}>
+              <Button onClick={() => setShowCreateForm(true)} size="lg">
                 <Plus className="mr-2 h-4 w-4" />
                 Create Template
               </Button>
@@ -1084,41 +1086,45 @@ export default function Templates() {
 
                 return (
                   <div key={serviceTypeId} className="space-y-4">
-                    <div className="flex items-center gap-3 pb-3 border-b">
+                    <div className="flex items-center gap-3 pb-3 border-b border-border/60">
                       {serviceType?.icon_url && (
-                        <img src={serviceType.icon_url} alt="" className="h-5 w-5 object-contain" />
+                        <div className="h-6 w-6 rounded-md bg-primary/10 flex items-center justify-center flex-shrink-0">
+                          <img src={serviceType.icon_url} alt="" className="h-4 w-4 object-contain" />
+                        </div>
                       )}
-                      <h3 className="text-lg font-semibold">
-                        {serviceName}
-                      </h3>
-                      <span className="text-xs text-muted-foreground">
-                        {serviceTemplates.length} {serviceTemplates.length === 1 ? 'template' : 'templates'}
-                      </span>
+                      <div className="flex items-baseline gap-2">
+                        <h3 className="text-lg font-semibold text-foreground">
+                          {serviceName}
+                        </h3>
+                        <span className="text-xs text-muted-foreground font-medium">
+                          {serviceTemplates.length} {serviceTemplates.length === 1 ? 'template' : 'templates'}
+                        </span>
+                      </div>
                     </div>
                     <DndContext sensors={sensors} collisionDetection={closestCenter} onDragEnd={handleDragEndTemplates}>
                       <SortableContext items={serviceTemplates.map(t => t.id)} strategy={verticalListSortingStrategy}>
                         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
                           {serviceTemplates.map((template) => (
                             <SortableItem key={template.id} id={template.id}>
-                              <Card className="h-full flex flex-col">
+                              <Card className="group h-full flex flex-col transition-all duration-200 hover:shadow-md hover:border-primary/30 hover:-translate-y-0.5">
                                 <CardHeader className="pb-3">
                                   <div className="flex items-start gap-3 mb-3">
-                                    <div className="h-12 w-12 rounded-lg bg-muted border overflow-hidden flex-shrink-0 flex items-center justify-center">
+                                    <div className="h-12 w-12 rounded-lg bg-gradient-to-br from-primary/10 to-primary/5 border border-border/60 overflow-hidden flex-shrink-0 flex items-center justify-center transition-transform duration-200 group-hover:scale-105">
                                       {template.image_url ? (
                                         <img src={template.image_url} alt="Template preview" className="h-full w-full object-cover" onError={(e) => { (e.currentTarget as HTMLImageElement).src = '/placeholder.svg'; }} />
                                       ) : (
-                                        <FileText className="h-5 w-5 text-muted-foreground" />
+                                        <FileText className="h-5 w-5 text-primary/70" />
                                       )}
                                     </div>
                                     <div className="flex-1 min-w-0">
-                                      <CardTitle className="text-base leading-tight">{template.service_name}</CardTitle>
+                                      <CardTitle className="text-base leading-tight line-clamp-2">{template.service_name}</CardTitle>
                                     </div>
                                    </div>
-                                   <div className="flex gap-1 justify-end pt-2 border-t">
+                                   <div className="flex gap-1 justify-end pt-2 border-t border-border/60">
                                      <Button
                                        variant="ghost"
                                        size="icon"
-                                       className="h-8 w-8"
+                                       className="h-8 w-8 hover:bg-primary/10 hover:text-primary transition-colors"
                                        onClick={() => handleDuplicate(template)}
                                        title="Duplicate template"
                                      >
@@ -1127,7 +1133,7 @@ export default function Templates() {
                                      <Button
                                        variant="ghost"
                                        size="icon"
-                                       className="h-8 w-8"
+                                       className="h-8 w-8 hover:bg-primary/10 hover:text-primary transition-colors"
                                        onClick={() => handleEdit(template)}
                                        title="Edit template"
                                      >
