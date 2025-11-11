@@ -133,6 +133,8 @@ export function RichTextEditor({
             class: '',
           },
         },
+        // Disable automatic link detection
+        link: false,
       }),
       TextStyle,
       FontSize,
