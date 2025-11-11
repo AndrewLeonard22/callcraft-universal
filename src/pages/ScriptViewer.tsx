@@ -1,6 +1,6 @@
 import { useEffect, useState, useRef } from "react";
 import { useParams, useNavigate } from "react-router-dom";
-import { ArrowLeft, Edit2, Download, Copy, MessageSquare, X, ClipboardCheck, Sparkles } from "lucide-react";
+import { ArrowLeft, Edit2, Download, Copy, MessageSquare, X, ClipboardCheck, Sparkles, Save, XCircle } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
@@ -11,6 +11,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
 import ServiceAreaMap from "@/components/ServiceAreaMap";
 import OutdoorLivingCalculator from "@/components/OutdoorLivingCalculator";
+import { RichTextEditor } from "@/components/RichTextEditor";
 import logoDefault from "@/assets/logo-default.png";
 import logoPergola from "@/assets/logo-pergola.png";
 import logoHvac from "@/assets/logo-hvac.png";
@@ -114,6 +115,9 @@ export default function ScriptViewer() {
   const [serviceTypeId, setServiceTypeId] = useState<string | null>(null);
   const [organizationId, setOrganizationId] = useState<string | null>(null);
   const [serviceDetailFields, setServiceDetailFields] = useState<ServiceDetailField[]>([]);
+  const [isEditing, setIsEditing] = useState(false);
+  const [editedContent, setEditedContent] = useState("");
+  const [saving, setSaving] = useState(false);
   const responseTimeouts = useRef<Record<string, number>>({});
   const responsesRef = useRef<Record<string, QualificationResponse>>({});
   useEffect(() => {
@@ -496,6 +500,45 @@ export default function ScriptViewer() {
         console.error("Error updating qualification response:", error);
       }
     }, 500);
+  };
+
+  const handleEditClick = () => {
+    if (script) {
+      setEditedContent(script.script_content);
+      setIsEditing(true);
+    }
+  };
+
+  const handleCancelEdit = () => {
+    setIsEditing(false);
+    setEditedContent("");
+  };
+
+  const handleSaveEdit = async () => {
+    if (!scriptId || !editedContent.trim()) {
+      toast.error("Script content cannot be empty");
+      return;
+    }
+
+    setSaving(true);
+    try {
+      const { error } = await supabase
+        .from("scripts")
+        .update({ script_content: editedContent })
+        .eq("id", scriptId);
+
+      if (error) throw error;
+
+      // Update local state
+      setScript(prev => prev ? { ...prev, script_content: editedContent } : null);
+      setIsEditing(false);
+      toast.success("Script updated successfully!");
+    } catch (error) {
+      console.error("Error saving script:", error);
+      toast.error("Failed to save script");
+    } finally {
+      setSaving(false);
+    }
   };
 
   const handleGenerateSummary = async () => {
@@ -985,18 +1028,33 @@ export default function ScriptViewer() {
               </div>
             </div>
             <div className="flex gap-3">
-              <Button variant="outline" onClick={() => navigate(`/edit-script/${scriptId}`)} className="h-9">
-                <Edit2 className="mr-2 h-4 w-4" />
-                Edit
-              </Button>
-              <Button variant="outline" onClick={handleCopy} className="h-9">
-                <Copy className="mr-2 h-4 w-4" />
-                Copy
-              </Button>
-              <Button variant="outline" onClick={handleDownload} className="h-9">
-                <Download className="mr-2 h-4 w-4" />
-                Download
-              </Button>
+              {isEditing ? (
+                <>
+                  <Button onClick={handleSaveEdit} disabled={saving} className="h-9">
+                    <Save className="mr-2 h-4 w-4" />
+                    {saving ? "Saving..." : "Save"}
+                  </Button>
+                  <Button variant="outline" onClick={handleCancelEdit} disabled={saving} className="h-9">
+                    <XCircle className="mr-2 h-4 w-4" />
+                    Cancel
+                  </Button>
+                </>
+              ) : (
+                <>
+                  <Button variant="outline" onClick={handleEditClick} className="h-9">
+                    <Edit2 className="mr-2 h-4 w-4" />
+                    Edit Script
+                  </Button>
+                  <Button variant="outline" onClick={handleCopy} className="h-9">
+                    <Copy className="mr-2 h-4 w-4" />
+                    Copy
+                  </Button>
+                  <Button variant="outline" onClick={handleDownload} className="h-9">
+                    <Download className="mr-2 h-4 w-4" />
+                    Download
+                  </Button>
+                </>
+              )}
             </div>
           </div>
         </div>
@@ -1414,7 +1472,21 @@ export default function ScriptViewer() {
             <Card className="border border-border shadow-sm">
               <CardContent className="p-8">
                 <div className="max-w-none">
-                  <FormattedScript content={script.script_content} />
+                  {isEditing ? (
+                    <div className="space-y-4">
+                      <p className="text-sm text-muted-foreground">
+                        Edit your script content directly. You can use the rich text editor to format the text.
+                      </p>
+                      <RichTextEditor
+                        value={editedContent}
+                        onChange={setEditedContent}
+                        placeholder="Enter your script content..."
+                        minHeight="500px"
+                      />
+                    </div>
+                  ) : (
+                    <FormattedScript content={script.script_content} />
+                  )}
                 </div>
               </CardContent>
             </Card>
