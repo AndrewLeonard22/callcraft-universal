@@ -1446,8 +1446,10 @@ export default function ScriptViewer() {
                 </Card>
               )}
 
-              {/* Outdoor Living Calculator */}
-              <OutdoorLivingCalculator />
+              {/* Outdoor Living Calculator - Only for Backyard Remodel */}
+              {client?.service_type.toLowerCase().includes("backyard") && (
+                <OutdoorLivingCalculator />
+              )}
             </div>
           </div>
 
