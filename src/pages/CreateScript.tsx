@@ -9,6 +9,7 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/com
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
+import { logger } from "@/utils/logger";
 
 
 interface Client {
@@ -71,7 +72,7 @@ export default function CreateScript() {
           filter: 'is_template=eq.true'
         },
         () => {
-          console.log('Templates changed, reloading...');
+          logger.log('Templates changed, reloading...');
           loadTemplates();
         }
       )
@@ -236,7 +237,7 @@ export default function CreateScript() {
         return;
       }
 
-      console.log("✓ Using LATEST template (no cache):", {
+      logger.log("✓ Using LATEST template (no cache):", {
         id: freshTemplate.id,
         name: freshTemplate.service_name,
         contentLength: freshTemplate.script_content.length,

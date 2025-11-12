@@ -6,6 +6,7 @@ import { Input } from '@/components/ui/input';
 import { Button } from '@/components/ui/button';
 import { Search } from 'lucide-react';
 import { toast } from 'sonner';
+import { logger } from '@/utils/logger';
 
 interface ServiceAreaMapProps {
   city?: string;
@@ -149,23 +150,23 @@ export default function ServiceAreaMap({ city, serviceArea, address, radiusMiles
           attributionControl: false,
         });
 
-        console.log('Map instance created, waiting for load event...');
+        logger.log('Map instance created, waiting for load event...');
 
         // Ensure map is visible and properly sized
         map.current.on('load', () => {
-          console.log('Map loaded successfully');
+          logger.log('Map loaded successfully');
           handleResize();
           setMapError(null);
         });
 
         map.current.on('error', (e) => {
-          console.error('Mapbox error:', e);
+          logger.error('Mapbox error:', e);
           setMapError(`Map error: ${e.error?.message || 'Failed to load map tiles'}`);
           toast.error('Map failed to load. Please refresh the page.');
         });
 
         map.current.on('styledata', () => {
-          console.log('Map style loaded');
+          logger.log('Map style loaded');
         });
 
         map.current.addControl(new mapboxgl.NavigationControl(), 'top-right');

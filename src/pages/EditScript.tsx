@@ -9,6 +9,7 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/com
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
+import { logger } from "@/utils/logger";
 
 interface Client {
   id: string;
@@ -269,7 +270,7 @@ export default function EditScript() {
       // If template is selected, regenerate script with new details
       if (selectedTemplateId) {
         // Fetch the LATEST template data directly from database to ensure freshness
-        console.log("Fetching fresh template data for ID:", selectedTemplateId);
+        logger.log("Fetching fresh template data for ID:", selectedTemplateId);
         const { data: freshTemplate, error: templateError } = await supabase
           .from("scripts")
           .select("id, service_name, script_content, image_url")
@@ -279,12 +280,12 @@ export default function EditScript() {
 
         if (templateError || !freshTemplate) {
           toast.error("Failed to load template. Please try again.");
-          console.error("Template fetch error:", templateError);
+          logger.error("Template fetch error:", templateError);
           setSaving(false);
           return;
         }
 
-        console.log("Using fresh template:", {
+        logger.log("Using fresh template:", {
           id: freshTemplate.id,
           service_name: freshTemplate.service_name,
           script_length: freshTemplate.script_content?.length || 0
