@@ -27,6 +27,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
 import { CompanyLogoSettings } from "@/components/CompanyLogoSettings";
+import HtmlPreviewFrame from "@/components/HtmlPreviewFrame";
 
 const FormattedContent = ({ content }: { content: string }) => {
   // If content contains HTML tags, render it as HTML
