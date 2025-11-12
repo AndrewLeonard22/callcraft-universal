@@ -33,7 +33,7 @@ const FormattedContent = ({ content }: { content: string }) => {
   if (content.includes('<p>') || content.includes('<span') || content.includes('<strong>') || content.includes('<mark>')) {
     return (
       <div 
-        className="html-content whitespace-pre-wrap text-sm text-foreground/80"
+        className="html-content text-sm text-foreground/80"
         dangerouslySetInnerHTML={{ __html: content }}
       />
     );

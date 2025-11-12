@@ -171,11 +171,12 @@ All colors MUST be HSL.
   /* HTML Content Styles for Script Viewer */
   .html-content {
     line-height: 1.6;
-    white-space: pre-wrap;
+    white-space: normal;
+    overflow: visible;
   }
   
   .html-content p {
-    margin: 1rem 0;
+    margin: 0.5rem 0;
     min-height: 1.2em;
   }
   
@@ -212,16 +213,6 @@ All colors MUST be HSL.
     margin: 0.25rem 0;
   }
   
-  .html-content br {
-    display: block;
-    content: "";
-    margin: 0.5rem 0;
-  }
-  
-  /* Consecutive br tags should have proper spacing */
-  .html-content br + br {
-    margin-top: 1rem;
-  }
   
   .html-content hr {
     border: none;
