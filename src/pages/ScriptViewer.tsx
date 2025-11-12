@@ -735,7 +735,7 @@ export default function ScriptViewer() {
     if (looksLikeHtml) {
       return (
         <div 
-          className="html-content text-sm text-foreground/80"
+          className="html-content"
           dangerouslySetInnerHTML={{ __html: content }}
         />
       );
@@ -971,7 +971,7 @@ export default function ScriptViewer() {
     }
     
     return (
-      <div className="html-content text-sm text-foreground/80">
+      <div className="html-content">
         {elements}
       </div>
     );

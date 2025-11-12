@@ -203,11 +203,13 @@ All colors MUST be HSL.
   }
 
   .html-content ul, .html-content ol {
-    margin: 1rem 0 1rem 1.25rem;
+    margin: revert;
+    padding-left: revert;
+    list-style-position: outside;
   }
 
   .html-content li {
-    margin: 0.25rem 0;
+    margin: revert;
   }
   
   
