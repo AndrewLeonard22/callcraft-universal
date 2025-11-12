@@ -730,24 +730,13 @@ export default function ScriptViewer() {
   const autoCalcPrice = calculatedPricePerSqFt();
 
   const FormattedScript = ({ content }: { content: string }) => {
-    // If content contains HTML tags, render it as HTML preserving exact spacing
-    const hasAllowedHtml = /<\s*(p|br|hr|strong|em|b|i|u|span|mark|ul|ol|li|h[1-6]|div|section|article|header|footer|blockquote)\b/i.test(content);
-    if (hasAllowedHtml) {
-      // If there are no block paragraphs or <br>, convert newlines to <br> to ensure spacing
-      const needsBr = !content.includes('<p') && !content.includes('<br');
-      let prepared = needsBr ? content.replace(/\n/g, '<br />') : content;
-      
-      // Fix empty paragraphs to ensure they render with proper spacing
-      // Replace empty <p></p> with <p>&nbsp;</p> to force rendering
-      prepared = prepared.replace(/<p><\/p>/g, '<p>&nbsp;</p>');
-      prepared = prepared.replace(/<p>\s*<\/p>/g, '<p>&nbsp;</p>');
-      
-      // Escape any unknown/accidental tags like <10-min> to prevent the browser from dropping content
-      const safeHtml = prepared.replace(/<(?!\/?(p|br|hr|strong|em|b|i|u|span|mark|ul|ol|li|h[1-6]|div|section|article|header|footer|blockquote)(\s|>|\/))/gi, '&lt;');
+    // If content looks like HTML, render it EXACTLY as-is (no transforms)
+    const looksLikeHtml = /<[^>]+>/.test(content);
+    if (looksLikeHtml) {
       return (
         <div 
-          className="html-content whitespace-pre-wrap text-sm text-foreground/80"
-          dangerouslySetInnerHTML={{ __html: safeHtml }}
+          className="html-content text-sm text-foreground/80"
+          dangerouslySetInnerHTML={{ __html: content }}
         />
       );
     }
