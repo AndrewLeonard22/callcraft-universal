@@ -650,8 +650,8 @@ export default function ScriptViewer() {
   
   // Calculator logic
   const calculatedPricePerSqFt = () => {
-    const minPrice = getDetailValue("starting_price");
-    const minSize = getDetailValue("minimum_size");
+    const minPrice = getDetailValue("starting_price") !== "N/A" ? getDetailValue("starting_price") : getDetailValue("project_min_price");
+    const minSize = getDetailValue("minimum_size") !== "N/A" ? getDetailValue("minimum_size") : getDetailValue("project_min_size");
     
     if (minPrice === "N/A" || minSize === "N/A") return null;
     
@@ -1326,7 +1326,7 @@ export default function ScriptViewer() {
               )}
 
               {/* Estimate Calculator */}
-              {(getDetailValue("starting_price") !== "N/A" || getDetailValue("price_per_sq_ft") !== "N/A" || getDetailValue("price_per_sq_ft_aluminum") !== "N/A" || getDetailValue("price_per_sq_ft_wood") !== "N/A") && (
+              {(getDetailValue("starting_price") !== "N/A" || getDetailValue("project_min_price") !== "N/A" || getDetailValue("price_per_sq_ft") !== "N/A" || getDetailValue("price_per_sq_ft_aluminum") !== "N/A" || getDetailValue("price_per_sq_ft_wood") !== "N/A") && (
                 <Card className="border border-border shadow-sm">
                   <CardContent className="p-6">
                     <h2 className="text-base font-semibold mb-4 text-foreground">Estimate Calculator</h2>
