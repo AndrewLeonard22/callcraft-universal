@@ -176,8 +176,7 @@ All colors MUST be HSL.
   }
   
   .html-content p {
-    margin: 0.5rem 0;
-    min-height: 1.2em;
+    margin: revert;
   }
   
   .html-content p:empty {
@@ -199,10 +198,8 @@ All colors MUST be HSL.
     margin-bottom: 0;
   }
   
-  /* Also support scripts that use <div> or plain newlines instead of <p> */
   .html-content div {
-    margin: 1rem 0;
-    min-height: 1.2em;
+    margin: revert;
   }
 
   .html-content ul, .html-content ol {
@@ -231,9 +228,13 @@ All colors MUST be HSL.
   .html-content mark {
     background-color: hsl(48 96% 89%);
     color: hsl(48 96% 20%);
-    padding: 0.25rem 0.5rem;
+    padding: 0.125rem 0.375rem;
     border-radius: 0.25rem;
     font-weight: 500;
+    -webkit-box-decoration-break: clone;
+    box-decoration-break: clone;
+    line-height: inherit;
+    vertical-align: baseline;
   }
   
   .dark .html-content mark {
