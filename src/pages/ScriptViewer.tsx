@@ -287,7 +287,7 @@ export default function ScriptViewer() {
       setOrganizationId(scriptResult.data.organization_id);
       // Load FAQs if service_type_id exists
       if (scriptResult.data.service_type_id) {
-        const [faqResult, qualQuestionsResult, qualResponsesResult, summaryCheck] = await Promise.all([
+        const [faqResult, qualQuestionsResult, qualResponsesResult] = await Promise.all([
           supabase
             .from("faqs")
             .select("*")
@@ -302,12 +302,7 @@ export default function ScriptViewer() {
           supabase
             .from("qualification_responses")
             .select("*")
-            .eq('script_id', scriptId),
-          supabase
-            .from("scripts")
-            .select("qualification_summary")
-            .eq("id", scriptId)
-            .single()
+            .eq('script_id', scriptId)
         ]);
 
         if (faqResult.error) {
@@ -330,10 +325,6 @@ export default function ScriptViewer() {
             responsesMap[response.question_id] = response;
           });
           setQualificationResponses(responsesMap);
-        }
-
-        if (summaryCheck.data?.qualification_summary) {
-          setQualificationSummary(summaryCheck.data.qualification_summary);
         }
       }
 
@@ -599,14 +590,6 @@ export default function ScriptViewer() {
 
       const summary = data.summary;
       setQualificationSummary(summary);
-
-      // Save summary to database
-      const { error: updateError } = await supabase
-        .from("scripts")
-        .update({ qualification_summary: summary })
-        .eq("id", scriptId);
-
-      if (updateError) throw updateError;
 
       toast.success("Summary generated successfully!");
     } catch (error) {
