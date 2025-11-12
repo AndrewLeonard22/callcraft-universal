@@ -44,7 +44,7 @@ export default function HtmlPreviewFrame({ html, className }: HtmlPreviewFramePr
       ref={iframeRef}
       className={className}
       style={{ width: '100%', border: 'none', height: height > 0 ? height : 600, minHeight: 600 }}
-      sandbox="allow-same-origin"
+      sandbox="allow-same-origin allow-scripts"
       title="html-preview"
     />
   );
