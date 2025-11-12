@@ -19,7 +19,7 @@ export default function HtmlPreviewFrame({ html, className }: HtmlPreviewFramePr
 
     // Write a minimal HTML document; do NOT inject app styles
     doc.open();
-    doc.write(`<!doctype html><html><head><meta charset="utf-8"/><meta name="viewport" content="width=device-width, initial-scale=1"/></head><body style="margin:0;">
+    doc.write(`<!doctype html><html><head><meta charset="utf-8"/><meta name="viewport" content="width=device-width, initial-scale=1"/><style>ol,ul{list-style:none;margin:0;padding:0;}</style></head><body style="margin:0;">
       <div id="content">${html}</div>
       <script>window.addEventListener('load', function(){
         const resize=()=>{const el=document.getElementById('content'); if(el){ const h = el.scrollHeight; parent.postMessage({ type:'HTML_FRAME_RESIZE', h }, '*'); }};
