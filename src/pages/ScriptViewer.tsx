@@ -12,6 +12,7 @@ import { toast } from "sonner";
 import ServiceAreaMap from "@/components/ServiceAreaMap";
 import OutdoorLivingCalculator from "@/components/OutdoorLivingCalculator";
 import { RichTextEditor } from "@/components/RichTextEditor";
+import HtmlPreviewFrame from "@/components/HtmlPreviewFrame";
 import logoDefault from "@/assets/logo-default.png";
 import logoPergola from "@/assets/logo-pergola.png";
 import logoHvac from "@/assets/logo-hvac.png";
@@ -285,7 +286,7 @@ export default function ScriptViewer() {
       setScript(scriptResult.data);
       setServiceTypeId(scriptResult.data.service_type_id);
       setOrganizationId(scriptResult.data.organization_id);
-      // Load FAQs if service_type_id exists
+      console.info('[ScriptViewer] Loaded script', { htmlLength: (scriptResult.data.script_content || '').length });
       if (scriptResult.data.service_type_id) {
         const [faqResult, qualQuestionsResult, qualResponsesResult] = await Promise.all([
           supabase
@@ -733,11 +734,16 @@ export default function ScriptViewer() {
     // If content looks like HTML, render it EXACTLY as-is (no transforms)
     const looksLikeHtml = /<[^>]+>/.test(content);
     if (looksLikeHtml) {
+      console.info('[ScriptViewer] Rendering HTML content');
+      console.info('[ScriptViewer] tag counts', {
+        blockquote: (content.match(/<blockquote/gi) || []).length,
+        ul: (content.match(/<ul/gi) || []).length,
+        ol: (content.match(/<ol/gi) || []).length,
+        li: (content.match(/<li/gi) || []).length,
+        mark: (content.match(/<mark/gi) || []).length,
+      });
       return (
-        <div 
-          className="html-content"
-          dangerouslySetInnerHTML={{ __html: content }}
-        />
+        <HtmlPreviewFrame html={content} />
       );
     }
     

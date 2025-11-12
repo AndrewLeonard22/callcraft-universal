@@ -32,10 +32,7 @@ const FormattedContent = ({ content }: { content: string }) => {
   // If content contains HTML tags, render it as HTML
   if (content.includes('<p>') || content.includes('<span') || content.includes('<strong>') || content.includes('<mark>')) {
     return (
-      <div 
-        className="html-content"
-        dangerouslySetInnerHTML={{ __html: content }}
-      />
+      <HtmlPreviewFrame html={content} />
     );
   }
   

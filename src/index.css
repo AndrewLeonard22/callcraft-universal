@@ -170,7 +170,7 @@ All colors MUST be HSL.
   
   /* HTML Content Styles for Script Viewer */
   .html-content {
-    line-height: 1.6;
+    line-height: normal; /* inherit browser default */
     white-space: normal;
     overflow: visible;
   }
@@ -179,16 +179,6 @@ All colors MUST be HSL.
     margin: revert;
   }
   
-  .html-content p:empty {
-    min-height: 1.2em;
-    display: block;
-  }
-  
-  /* Ensure paragraphs with only whitespace are visible */
-  .html-content p:empty::before {
-    content: '\00a0';
-    visibility: hidden;
-  }
   
   .html-content p:first-child {
     margin-top: 0;
