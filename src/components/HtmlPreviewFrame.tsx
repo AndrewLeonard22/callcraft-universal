@@ -9,10 +9,16 @@ interface HtmlPreviewFrameProps {
 export default function HtmlPreviewFrame({ html, className }: HtmlPreviewFrameProps) {
   const iframeRef = useRef<HTMLIFrameElement | null>(null);
   const [height, setHeight] = useState<number>(0);
+  const previousHtmlRef = useRef<string>("");
+  const resizeTimeoutRef = useRef<number | null>(null);
 
   useEffect(() => {
     const iframe = iframeRef.current;
     if (!iframe) return;
+
+    // Only update iframe if HTML actually changed
+    if (previousHtmlRef.current === html) return;
+    previousHtmlRef.current = html;
 
     const doc = iframe.contentDocument || iframe.contentWindow?.document;
     if (!doc) return;
@@ -22,8 +28,19 @@ export default function HtmlPreviewFrame({ html, className }: HtmlPreviewFramePr
     doc.write(`<!doctype html><html><head><meta charset="utf-8"/><meta name="viewport" content="width=device-width, initial-scale=1"/><style>ol,ul{list-style:none;margin:0;padding:0;}</style></head><body style="margin:0;">
       <div id="content">${html}</div>
       <script>window.addEventListener('load', function(){
-        const resize=()=>{const el=document.getElementById('content'); if(el){ const h = el.scrollHeight; parent.postMessage({ type:'HTML_FRAME_RESIZE', h }, '*'); }};
-        resize(); new ResizeObserver(resize).observe(document.body);
+        let resizeTimer;
+        const resize=()=>{
+          clearTimeout(resizeTimer);
+          resizeTimer = setTimeout(() => {
+            const el=document.getElementById('content'); 
+            if(el){ 
+              const h = el.scrollHeight; 
+              parent.postMessage({ type:'HTML_FRAME_RESIZE', h }, '*'); 
+            }
+          }, 100);
+        };
+        resize(); 
+        new ResizeObserver(resize).observe(document.body);
       });<\/script>
     </body></html>`);
     doc.close();
@@ -32,11 +49,22 @@ export default function HtmlPreviewFrame({ html, className }: HtmlPreviewFramePr
   useEffect(() => {
     const onMessage = (e: MessageEvent) => {
       if (e.data && e.data.type === 'HTML_FRAME_RESIZE' && typeof e.data.h === 'number') {
-        setHeight(e.data.h);
+        // Debounce height updates to prevent excessive re-renders during scroll
+        if (resizeTimeoutRef.current) {
+          clearTimeout(resizeTimeoutRef.current);
+        }
+        resizeTimeoutRef.current = window.setTimeout(() => {
+          setHeight(e.data.h);
+        }, 50);
       }
     };
     window.addEventListener('message', onMessage);
-    return () => window.removeEventListener('message', onMessage);
+    return () => {
+      window.removeEventListener('message', onMessage);
+      if (resizeTimeoutRef.current) {
+        clearTimeout(resizeTimeoutRef.current);
+      }
+    };
   }, []);
 
   return (
