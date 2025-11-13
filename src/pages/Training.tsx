@@ -967,43 +967,6 @@ export default function Training() {
                     )}
                   </CardContent>
                 </Card>
-
-                {/* Question Management */}
-                <Card className="max-w-4xl mx-auto">
-                  <CardHeader>
-                    <CardTitle className="text-sm">Manage Questions</CardTitle>
-                  </CardHeader>
-                  <CardContent className="max-h-[300px] overflow-y-auto space-y-2">
-                    {questions.map((q, index) => (
-                      <div key={q.id} className="flex items-start justify-between p-3 border rounded-lg hover:bg-muted/50 transition-colors">
-                        <div className="flex-1 min-w-0">
-                          <p className="text-sm font-medium truncate">{q.question}</p>
-                          <p className="text-xs text-muted-foreground truncate mt-1">{q.answer}</p>
-                        </div>
-                        <div className="flex items-center gap-1 ml-2">
-                          <Button
-                            variant="ghost"
-                            size="sm"
-                            onClick={() => {
-                              setEditingQuestion(q);
-                              setQuestionForm({ question: q.question, answer: q.answer });
-                              setQuestionDialogOpen(true);
-                            }}
-                          >
-                            <Edit className="h-3 w-3" />
-                          </Button>
-                          <Button
-                            variant="ghost"
-                            size="sm"
-                            onClick={() => handleDeleteQuestion(q.id)}
-                          >
-                            <Trash2 className="h-3 w-3" />
-                          </Button>
-                        </div>
-                      </div>
-                    ))}
-                  </CardContent>
-                </Card>
               </div>
             )}
           </TabsContent>
