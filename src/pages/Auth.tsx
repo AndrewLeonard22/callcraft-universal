@@ -9,7 +9,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
 import { Loader2 } from "lucide-react";
 import { z } from "zod";
-import logo from "@/assets/social-works-logo.png";
+import logo from "@/assets/agent-iq-logo.png";
 
 const loginSchema = z.object({
   email: z.string().trim().email({ message: "Invalid email address" }),
