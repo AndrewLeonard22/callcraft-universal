@@ -557,7 +557,7 @@ export default function Templates() {
       // Find all non-template scripts with matching service type
       const { data: scriptsToUpdate, error: scriptsError } = await supabase
         .from("scripts")
-        .select("id, client_id, service_name")
+        .select("id, client_id, service_name, service_type_id")
         .eq("service_type_id", template.service_type_id)
         .eq("is_template", false);
 
@@ -597,12 +597,15 @@ export default function Templates() {
           });
 
           // Call extract-client-data to regenerate script with updated template
+          // CRITICAL: Pass service_name and service_type_id to preserve original script info
           const { data: result, error: extractError } = await supabase.functions.invoke(
             "extract-client-data",
             {
               body: {
                 client_id: script.client_id,
                 script_id: script.id,
+                service_name: script.service_name, // Preserve original service name
+                service_type_id: script.service_type_id, // Preserve original service type
                 use_template: true,
                 template_script: template.script_content,
                 service_details: serviceDetails,
