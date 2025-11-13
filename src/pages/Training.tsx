@@ -10,6 +10,7 @@ import { Textarea } from "@/components/ui/textarea";
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from "@/components/ui/alert-dialog";
 import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
 import socialWorksLogo from "@/assets/social-works-logo.png";
@@ -94,8 +95,9 @@ export default function Training() {
   const [scoreboard, setScoreboard] = useState<any[]>([]);
   const [callAgents, setCallAgents] = useState<CallAgent[]>([]);
   const [selectedAgentId, setSelectedAgentId] = useState<string>("");
+  const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
+  const [scoreToDelete, setScoreToDelete] = useState<string | null>(null);
   const { toast } = useToast();
-
   useEffect(() => {
     loadOrganization();
   }, []);
@@ -352,8 +354,6 @@ export default function Training() {
   };
 
   const handleDeleteScore = async (scoreId: string) => {
-    if (!confirm("Delete this score from the leaderboard?")) return;
-    
     try {
       const { error } = await (supabase as any)
         .from("quiz_scores")
@@ -371,6 +371,18 @@ export default function Training() {
         variant: "destructive",
       });
     }
+  };
+
+  const openDeleteDialog = (id: string) => {
+    setScoreToDelete(id);
+    setDeleteDialogOpen(true);
+  };
+
+  const confirmDeleteScore = async () => {
+    if (!scoreToDelete) return;
+    await handleDeleteScore(scoreToDelete);
+    setDeleteDialogOpen(false);
+    setScoreToDelete(null);
   };
 
   const handleSaveQuestion = async () => {
@@ -986,7 +998,7 @@ export default function Training() {
                                 </div>
                               </div>
                               <button
-                                onClick={() => handleDeleteScore(score.id)}
+                                onClick={() => openDeleteDialog(score.id)}
                                 className="opacity-0 group-hover:opacity-100 transition-all duration-200 p-1.5 rounded-md hover:bg-destructive/10"
                                 title="Delete score"
                               >
@@ -1006,6 +1018,23 @@ export default function Training() {
               </div>
             )}
           </TabsContent>
+
+          <AlertDialog open={deleteDialogOpen} onOpenChange={setDeleteDialogOpen}>
+            <AlertDialogContent>
+              <AlertDialogHeader>
+                <AlertDialogTitle>Delete score?</AlertDialogTitle>
+                <AlertDialogDescription>
+                  This will remove the score from the leaderboard. This action cannot be undone.
+                </AlertDialogDescription>
+              </AlertDialogHeader>
+              <AlertDialogFooter>
+                <AlertDialogCancel>Cancel</AlertDialogCancel>
+                <AlertDialogAction onClick={confirmDeleteScore} className="bg-destructive text-destructive-foreground hover:bg-destructive/90">
+                  Delete
+                </AlertDialogAction>
+              </AlertDialogFooter>
+            </AlertDialogContent>
+          </AlertDialog>
 
           {/* Question Dialog */}
           <Dialog open={questionDialogOpen} onOpenChange={setQuestionDialogOpen}>
