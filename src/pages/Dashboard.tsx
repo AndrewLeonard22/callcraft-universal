@@ -903,12 +903,31 @@ export default function Dashboard() {
                               <Badge 
                                 key={script.id} 
                                 variant="outline"
-                                className="cursor-pointer hover:bg-accent whitespace-nowrap"
+                                className="cursor-pointer hover:bg-accent whitespace-nowrap flex items-center gap-1.5 px-2 py-1"
                                 onClick={(e) => {
                                   e.stopPropagation();
                                   navigate(`/script/${script.id}`);
                                 }}
                               >
+                                {script.service_type?.icon_url ? (
+                                  <div className="h-4 w-4 rounded overflow-hidden flex-shrink-0">
+                                    <img 
+                                      src={script.service_type.icon_url} 
+                                      alt=""
+                                      className="h-full w-full object-contain"
+                                    />
+                                  </div>
+                                ) : script.image_url ? (
+                                  <div className="h-4 w-4 rounded overflow-hidden flex-shrink-0">
+                                    <img 
+                                      src={script.image_url} 
+                                      alt=""
+                                      className="h-full w-full object-cover"
+                                    />
+                                  </div>
+                                ) : (
+                                  <FileText className="h-3.5 w-3.5 flex-shrink-0" />
+                                )}
                                 {script.service_name}
                               </Badge>
                             ))}
