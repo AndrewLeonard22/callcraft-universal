@@ -1,6 +1,6 @@
 import { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
-import { Plus, Trash2, FileText, Edit2, MessageSquare, HelpCircle, ClipboardCheck, GripVertical, Copy, Building2 } from "lucide-react";
+import { Plus, Trash2, FileText, Edit2, MessageSquare, HelpCircle, ClipboardCheck, GripVertical, Copy } from "lucide-react";
 import { DndContext, closestCenter, KeyboardSensor, PointerSensor, useSensor, useSensors, DragEndEvent } from '@dnd-kit/core';
 import { arrayMove, SortableContext, sortableKeyboardCoordinates, verticalListSortingStrategy } from '@dnd-kit/sortable';
 import { CSS } from '@dnd-kit/utilities';
@@ -26,7 +26,6 @@ import {
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
-import { CompanyLogoSettings } from "@/components/CompanyLogoSettings";
 import HtmlPreviewFrame from "@/components/HtmlPreviewFrame";
 
 const FormattedContent = ({ content }: { content: string }) => {
@@ -266,8 +265,6 @@ export default function Templates() {
   const [templateImageFile, setTemplateImageFile] = useState<File | null>(null);
   const [userOrganizationId, setUserOrganizationId] = useState<string | null>(null);
   const [selectedTemplateServiceTypeId, setSelectedTemplateServiceTypeId] = useState<string>("");
-  const [profile, setProfile] = useState<{ display_name?: string; avatar_url?: string; company_logo_url?: string } | null>(null);
-  const [logoSettingsOpen, setLogoSettingsOpen] = useState(false);
 
   useEffect(() => {
     loadUserOrganization();
@@ -905,22 +902,11 @@ export default function Templates() {
             </p>
           </div>
           <div className="flex gap-2">
-            <Button variant="outline" onClick={() => setLogoSettingsOpen(true)}>
-              <Building2 className="mr-2 h-4 w-4" />
-              Company Logo
-            </Button>
             <Button variant="outline" onClick={() => navigate("/")}>
               Back to Dashboard
             </Button>
           </div>
         </div>
-
-        <CompanyLogoSettings
-          open={logoSettingsOpen}
-          onOpenChange={setLogoSettingsOpen}
-          currentLogoUrl={profile?.company_logo_url}
-          onLogoUpdated={() => {}}
-        />
 
         <Tabs defaultValue="scripts" className="w-full">
           <TabsList className="grid w-full max-w-2xl grid-cols-4 mb-6">
