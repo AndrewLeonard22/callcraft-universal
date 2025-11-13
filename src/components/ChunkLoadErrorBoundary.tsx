@@ -1,4 +1,5 @@
 import { Component, ErrorInfo, ReactNode } from "react";
+import { logger } from "@/utils/logger";
 
 interface Props {
   children: ReactNode;
@@ -27,11 +28,11 @@ export class ChunkLoadErrorBoundary extends Component<Props, State> {
       error.message.includes("ChunkLoadError");
 
     if (isChunkLoadError) {
-      console.log("Chunk load error detected, reloading page...");
+      logger.log("Chunk load error detected, reloading page...");
       // Reload the page to get fresh chunks
       window.location.reload();
     } else {
-      console.error("Error boundary caught error:", error, errorInfo);
+      logger.error("Error boundary caught error:", error, errorInfo);
     }
   }
 
