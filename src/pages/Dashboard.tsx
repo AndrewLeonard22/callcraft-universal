@@ -1,6 +1,6 @@
 import { useEffect, useState, useMemo, useCallback } from "react";
 import { Link, useNavigate } from "react-router-dom";
-import { Plus, FileText, Calendar, Search, Settings, Trash2, LogOut, User as UserIcon, Users, Wand2, Archive, ArchiveRestore, GraduationCap, Building2, List, Grid3x3, ArrowUpDown, Phone } from "lucide-react";
+import { Plus, FileText, Calendar, Search, Settings, Trash2, LogOut, User as UserIcon, Users, Wand2, Archive, ArchiveRestore, GraduationCap, Building2, List, Grid3x3, ArrowUpDown, Phone, ChevronDown } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
@@ -473,44 +473,58 @@ export default function Dashboard() {
             </div>
             
             <div className="flex items-center gap-1 sm:gap-2 flex-shrink-0">
-              {/* Desktop Navigation */}
+              {/* Desktop Navigation - Grouped */}
               <div className="hidden lg:flex items-center gap-2">
                 <Link to="/training">
-                  <Button variant="outline" size="default" className="gap-2 shadow-sm hover:shadow transition-shadow">
+                  <Button variant="ghost" size="sm" className="gap-2">
                     <GraduationCap className="h-4 w-4" />
                     Training
                   </Button>
                 </Link>
                 <Link to="/image-generator">
-                  <Button variant="outline" size="default" className="gap-2 shadow-sm hover:shadow transition-shadow">
+                  <Button variant="ghost" size="sm" className="gap-2">
                     <Wand2 className="h-4 w-4" />
-                    Image Generator
+                    Generator
                   </Button>
                 </Link>
-                <Link to="/team">
-                  <Button variant="outline" size="default" className="gap-2 shadow-sm hover:shadow transition-shadow">
-                    <Users className="h-4 w-4" />
-                    Team
-                  </Button>
-                </Link>
-                <Link to="/call-agents">
-                  <Button variant="outline" size="default" className="gap-2 shadow-sm hover:shadow transition-shadow">
-                    <Phone className="h-4 w-4" />
-                    Call Agents
-                  </Button>
-                </Link>
-                <Link to="/service-types">
-                  <Button variant="outline" size="default" className="gap-2 shadow-sm hover:shadow transition-shadow">
-                    <Settings className="h-4 w-4" />
-                    Services
-                  </Button>
-                </Link>
-                <Link to="/templates">
-                  <Button variant="outline" size="default" className="gap-2 shadow-sm hover:shadow transition-shadow">
-                    <FileText className="h-4 w-4" />
-                    Templates
-                  </Button>
-                </Link>
+                
+                {/* Management Dropdown */}
+                <DropdownMenu>
+                  <DropdownMenuTrigger asChild>
+                    <Button variant="ghost" size="sm" className="gap-2">
+                      <Settings className="h-4 w-4" />
+                      Manage
+                      <ChevronDown className="h-3 w-3 opacity-50" />
+                    </Button>
+                  </DropdownMenuTrigger>
+                  <DropdownMenuContent align="end" className="w-48">
+                    <DropdownMenuItem asChild>
+                      <Link to="/call-agents" className="flex items-center cursor-pointer">
+                        <Phone className="mr-2 h-4 w-4" />
+                        <span>Call Agents</span>
+                      </Link>
+                    </DropdownMenuItem>
+                    <DropdownMenuItem asChild>
+                      <Link to="/team" className="flex items-center cursor-pointer">
+                        <Users className="mr-2 h-4 w-4" />
+                        <span>Team</span>
+                      </Link>
+                    </DropdownMenuItem>
+                    <DropdownMenuSeparator />
+                    <DropdownMenuItem asChild>
+                      <Link to="/service-types" className="flex items-center cursor-pointer">
+                        <Settings className="mr-2 h-4 w-4" />
+                        <span>Services</span>
+                      </Link>
+                    </DropdownMenuItem>
+                    <DropdownMenuItem asChild>
+                      <Link to="/templates" className="flex items-center cursor-pointer">
+                        <FileText className="mr-2 h-4 w-4" />
+                        <span>Templates</span>
+                      </Link>
+                    </DropdownMenuItem>
+                  </DropdownMenuContent>
+                </DropdownMenu>
               </div>
               
               {/* Mobile Menu */}
