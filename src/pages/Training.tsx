@@ -1,5 +1,5 @@
 import { useEffect, useState } from "react";
-import { GraduationCap, DollarSign, Phone, BookOpen, Lightbulb, Package, Shield, TrendingUp, Award, CheckCircle2, XCircle, AlertCircle, Video, ExternalLink, Brain, ArrowRight, RotateCcw, Check, X } from "lucide-react";
+import { GraduationCap, DollarSign, Phone, BookOpen, Lightbulb, Package, Shield, TrendingUp, Award, CheckCircle2, XCircle, AlertCircle, Video, ExternalLink, Brain, ArrowRight, RotateCcw, Check, X, Plus, Trash2, Edit } from "lucide-react";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from "@/components/ui/accordion";
 import { Badge } from "@/components/ui/badge";
@@ -7,6 +7,8 @@ import { Link } from "react-router-dom";
 import { Button } from "@/components/ui/button";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Textarea } from "@/components/ui/textarea";
+import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from "@/components/ui/dialog";
+import { Label } from "@/components/ui/label";
 import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
 import socialWorksLogo from "@/assets/social-works-logo.png";
@@ -75,6 +77,9 @@ export default function Training() {
   const [currentQuestionIndex, setCurrentQuestionIndex] = useState(0);
   const [isFlipped, setIsFlipped] = useState(false);
   const [activeTab, setActiveTab] = useState("modules");
+  const [questionDialogOpen, setQuestionDialogOpen] = useState(false);
+  const [editingQuestion, setEditingQuestion] = useState<TrainingQuestion | null>(null);
+  const [questionForm, setQuestionForm] = useState({ question: "", answer: "" });
   const { toast } = useToast();
 
   useEffect(() => {
@@ -175,8 +180,13 @@ export default function Training() {
 
   const loadQuestions = async () => {
     try {
-      // @ts-expect-error - training_questions table types will be auto-generated
-      const { data, error } = await supabase.from("training_questions").select("*").eq("organization_id", organizationId).order("display_order");
+      const { data, error } = await (supabase as any)
+        .from("training_questions")
+        .select("*")
+        .eq("organization_id", organizationId)
+        .is("section_id", null)
+        .is("module_id", null)
+        .order("display_order");
 
       if (error) throw error;
 
@@ -208,6 +218,64 @@ export default function Training() {
     setQuestions(shuffled);
     setCurrentQuestionIndex(0);
     setIsFlipped(false);
+  };
+
+  const handleSaveQuestion = async () => {
+    if (!organizationId) return;
+
+    try {
+      if (editingQuestion) {
+        const { error } = await (supabase as any)
+          .from("training_questions")
+          .update(questionForm)
+          .eq("id", editingQuestion.id);
+
+        if (error) throw error;
+        toast({ title: "Question updated successfully" });
+      } else {
+        const { error } = await (supabase as any)
+          .from("training_questions")
+          .insert([{ ...questionForm, organization_id: organizationId }]);
+
+        if (error) throw error;
+        toast({ title: "Question added successfully" });
+      }
+      
+      setQuestionDialogOpen(false);
+      setEditingQuestion(null);
+      setQuestionForm({ question: "", answer: "" });
+      loadQuestions();
+    } catch (error) {
+      console.error("Error saving question:", error);
+      toast({
+        title: "Error",
+        description: "Failed to save question",
+        variant: "destructive",
+      });
+    }
+  };
+
+  const handleDeleteQuestion = async (questionId: string) => {
+    try {
+      const { error } = await (supabase as any)
+        .from("training_questions")
+        .delete()
+        .eq("id", questionId);
+
+      if (error) throw error;
+      toast({ title: "Question deleted successfully" });
+      loadQuestions();
+      if (currentQuestionIndex >= questions.length - 1) {
+        setCurrentQuestionIndex(0);
+      }
+    } catch (error) {
+      console.error("Error deleting question:", error);
+      toast({
+        title: "Error",
+        description: "Failed to delete question",
+        variant: "destructive",
+      });
+    }
   };
 
   const getIconComponent = (iconName: string) => {
@@ -471,6 +539,25 @@ export default function Training() {
           </TabsContent>
 
           <TabsContent value="flashcards" className="mt-0">
+            <div className="flex justify-between items-center mb-6">
+              <div>
+                <h3 className="text-2xl font-bold mb-1">Quiz Mode</h3>
+                <p className="text-sm text-muted-foreground">
+                  Practice with flashcards to master your knowledge
+                </p>
+              </div>
+              <Button
+                onClick={() => {
+                  setEditingQuestion(null);
+                  setQuestionForm({ question: "", answer: "" });
+                  setQuestionDialogOpen(true);
+                }}
+              >
+                <Plus className="mr-2 h-4 w-4" />
+                Add Question
+              </Button>
+            </div>
+
             {questions.length === 0 ? (
               <Card className="border-dashed">
                 <CardContent className="py-16 text-center">
@@ -479,11 +566,18 @@ export default function Training() {
                   </div>
                   <h3 className="text-xl font-bold mb-2">No Quiz Questions Yet</h3>
                   <p className="text-muted-foreground mb-6 max-w-md mx-auto text-sm">
-                    Add training questions in Manage Content to start practicing
+                    Get started by creating your first quiz question
                   </p>
-                  <Link to="/training-management">
-                    <Button>Add Questions</Button>
-                  </Link>
+                  <Button
+                    onClick={() => {
+                      setEditingQuestion(null);
+                      setQuestionForm({ question: "", answer: "" });
+                      setQuestionDialogOpen(true);
+                    }}
+                  >
+                    <Plus className="mr-2 h-4 w-4" />
+                    Create First Question
+                  </Button>
                 </CardContent>
               </Card>
             ) : currentQuestion ? (
@@ -606,7 +700,7 @@ export default function Training() {
                   </Button>
                 </div>
 
-                {/* Stats */}
+                {/* Stats & Management */}
                 <div className="grid grid-cols-3 gap-3">
                   <Card className="border">
                     <CardContent className="pt-4 pb-4 text-center">
@@ -633,9 +727,86 @@ export default function Training() {
                     </CardContent>
                   </Card>
                 </div>
+
+                {/* Question Management */}
+                <Card>
+                  <CardHeader>
+                    <CardTitle className="text-sm">Manage Questions</CardTitle>
+                  </CardHeader>
+                  <CardContent className="max-h-[300px] overflow-y-auto space-y-2">
+                    {questions.map((q, index) => (
+                      <div key={q.id} className="flex items-start justify-between p-3 border rounded-lg hover:bg-muted/50 transition-colors">
+                        <div className="flex-1 min-w-0">
+                          <p className="text-sm font-medium truncate">{q.question}</p>
+                          <p className="text-xs text-muted-foreground truncate mt-1">{q.answer}</p>
+                        </div>
+                        <div className="flex items-center gap-1 ml-2">
+                          <Button
+                            variant="ghost"
+                            size="sm"
+                            onClick={() => {
+                              setEditingQuestion(q);
+                              setQuestionForm({ question: q.question, answer: q.answer });
+                              setQuestionDialogOpen(true);
+                            }}
+                          >
+                            <Edit className="h-3 w-3" />
+                          </Button>
+                          <Button
+                            variant="ghost"
+                            size="sm"
+                            onClick={() => handleDeleteQuestion(q.id)}
+                          >
+                            <Trash2 className="h-3 w-3" />
+                          </Button>
+                        </div>
+                      </div>
+                    ))}
+                  </CardContent>
+                </Card>
               </div>
             ) : null}
           </TabsContent>
+
+          {/* Question Dialog */}
+          <Dialog open={questionDialogOpen} onOpenChange={setQuestionDialogOpen}>
+            <DialogContent>
+              <DialogHeader>
+                <DialogTitle>{editingQuestion ? "Edit" : "Add"} Quiz Question</DialogTitle>
+                <DialogDescription>
+                  {editingQuestion ? "Update" : "Create"} a question for the flashcard quiz
+                </DialogDescription>
+              </DialogHeader>
+              <div className="space-y-4 py-4">
+                <div>
+                  <Label>Question</Label>
+                  <Textarea
+                    value={questionForm.question}
+                    onChange={(e) => setQuestionForm({ ...questionForm, question: e.target.value })}
+                    placeholder="e.g., What are the key benefits of aluminum pergolas?"
+                    rows={3}
+                  />
+                </div>
+                <div>
+                  <Label>Answer</Label>
+                  <Textarea
+                    value={questionForm.answer}
+                    onChange={(e) => setQuestionForm({ ...questionForm, answer: e.target.value })}
+                    placeholder="The correct answer to the question..."
+                    rows={4}
+                  />
+                </div>
+              </div>
+              <DialogFooter>
+                <Button variant="outline" onClick={() => setQuestionDialogOpen(false)}>
+                  Cancel
+                </Button>
+                <Button onClick={handleSaveQuestion}>
+                  {editingQuestion ? "Update" : "Add"} Question
+                </Button>
+              </DialogFooter>
+            </DialogContent>
+          </Dialog>
         </Tabs>
       </div>
     </div>
