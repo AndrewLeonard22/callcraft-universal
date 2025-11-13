@@ -196,7 +196,7 @@ export default function Dashboard() {
           .select("client_id, field_name, field_value")
           .in("field_name", ["business_name", "owners_name"]),
         supabase
-          .from("call_agents")
+          .from("call_agents" as any)
           .select("id, name")
           .eq("organization_id", userOrganizationId),
       ]);
@@ -216,11 +216,11 @@ export default function Dashboard() {
       );
 
       const callAgentsMap = new Map(
-        (callAgentsData || []).map(a => [a.id, a.name])
+        ((callAgentsData as any) || []).map((a: any) => [a.id, a.name])
       );
 
       // Set call agents for filtering
-      setCallAgents(callAgentsData || []);
+      setCallAgents((callAgentsData as any) || []);
 
       const businessNamesMap = new Map<string, string>();
       const ownersNamesMap = new Map<string, string>();
@@ -264,7 +264,7 @@ export default function Dashboard() {
       });
 
       const clientsWithScripts: ClientWithScripts[] = (clientsData || [])
-        .map((client) => ({
+        .map((client: any) => ({
           id: client.id,
           name: client.name,
           service_type: client.service_type,
