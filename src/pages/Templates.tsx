@@ -1,6 +1,6 @@
 import { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
-import { Plus, Trash2, FileText, Edit2, MessageSquare, HelpCircle, ClipboardCheck, GripVertical, Copy } from "lucide-react";
+import { Plus, Trash2, FileText, Edit2, MessageSquare, HelpCircle, ClipboardCheck, GripVertical, Copy, RefreshCw } from "lucide-react";
 import { DndContext, closestCenter, KeyboardSensor, PointerSensor, useSensor, useSensors, DragEndEvent } from '@dnd-kit/core';
 import { arrayMove, SortableContext, sortableKeyboardCoordinates, verticalListSortingStrategy } from '@dnd-kit/sortable';
 import { CSS } from '@dnd-kit/utilities';
@@ -265,6 +265,7 @@ export default function Templates() {
   const [templateImageFile, setTemplateImageFile] = useState<File | null>(null);
   const [userOrganizationId, setUserOrganizationId] = useState<string | null>(null);
   const [selectedTemplateServiceTypeId, setSelectedTemplateServiceTypeId] = useState<string>("");
+  const [updatingScripts, setUpdatingScripts] = useState<string | null>(null);
 
   useEffect(() => {
     loadUserOrganization();
@@ -541,6 +542,95 @@ export default function Templates() {
     } catch (error: any) {
       console.error("Error deleting template:", error);
       toast.error(error.message || "Failed to delete template");
+    }
+  };
+
+  const handleUpdateAllScripts = async (template: Template) => {
+    if (!template.service_type_id) {
+      toast.error("This template doesn't have a service type assigned");
+      return;
+    }
+
+    setUpdatingScripts(template.id);
+    
+    try {
+      // Find all non-template scripts with matching service type
+      const { data: scriptsToUpdate, error: scriptsError } = await supabase
+        .from("scripts")
+        .select("id, client_id, service_name")
+        .eq("service_type_id", template.service_type_id)
+        .eq("is_template", false);
+
+      if (scriptsError) throw scriptsError;
+
+      if (!scriptsToUpdate || scriptsToUpdate.length === 0) {
+        toast.info("No scripts found using this template");
+        return;
+      }
+
+      toast.info(`Updating ${scriptsToUpdate.length} script(s)...`);
+
+      let successCount = 0;
+      let failCount = 0;
+
+      // Update each script
+      for (const script of scriptsToUpdate) {
+        try {
+          // Get client details for this script
+          const { data: clientDetails, error: detailsError } = await supabase
+            .from("client_details")
+            .select("*")
+            .eq("client_id", script.client_id);
+
+          if (detailsError) throw detailsError;
+
+          // Build service details object from client_details
+          const serviceDetails: Record<string, any> = {};
+          clientDetails?.forEach((detail) => {
+            // Prioritize script-specific fields
+            if (detail.field_name.startsWith(`script_${script.id}_`)) {
+              const cleanFieldName = detail.field_name.replace(`script_${script.id}_`, '');
+              serviceDetails[cleanFieldName] = detail.field_value;
+            } else if (!serviceDetails[detail.field_name]) {
+              serviceDetails[detail.field_name] = detail.field_value;
+            }
+          });
+
+          // Call extract-client-data to regenerate script with updated template
+          const { data: result, error: extractError } = await supabase.functions.invoke(
+            "extract-client-data",
+            {
+              body: {
+                client_id: script.client_id,
+                script_id: script.id,
+                use_template: true,
+                template_script: template.script_content,
+                service_details: serviceDetails,
+              },
+            }
+          );
+
+          if (extractError) throw extractError;
+
+          successCount++;
+        } catch (error: any) {
+          console.error(`Error updating script ${script.id}:`, error);
+          failCount++;
+        }
+      }
+
+      if (successCount > 0) {
+        toast.success(`Successfully updated ${successCount} script(s)!`);
+      }
+      if (failCount > 0) {
+        toast.error(`Failed to update ${failCount} script(s)`);
+      }
+
+    } catch (error: any) {
+      console.error("Error updating scripts:", error);
+      toast.error(error.message || "Failed to update scripts");
+    } finally {
+      setUpdatingScripts(null);
     }
   };
 
@@ -1107,6 +1197,16 @@ export default function Templates() {
                                       </CardTitle>
                                     </div>
                                     <div className="flex gap-1 flex-shrink-0">
+                                      <Button
+                                        variant="ghost"
+                                        size="sm"
+                                        onClick={() => handleUpdateAllScripts(template)}
+                                        disabled={updatingScripts === template.id || !template.service_type_id}
+                                        className="h-7 px-2 hover:bg-primary/10 hover:text-primary"
+                                        title="Update all scripts using this template"
+                                      >
+                                        <RefreshCw className={`h-3 w-3 ${updatingScripts === template.id ? 'animate-spin' : ''}`} />
+                                      </Button>
                                       <Button
                                         variant="ghost"
                                         size="sm"
