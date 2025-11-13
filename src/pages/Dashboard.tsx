@@ -1,6 +1,6 @@
 import { useEffect, useState, useMemo, useCallback } from "react";
 import { Link, useNavigate } from "react-router-dom";
-import { Plus, FileText, Calendar, Search, Settings, Trash2, LogOut, User as UserIcon, Users, Wand2, Archive, ArchiveRestore, GraduationCap, Building2, List, Grid3x3, ArrowUpDown } from "lucide-react";
+import { Plus, FileText, Calendar, Search, Settings, Trash2, LogOut, User as UserIcon, Users, Wand2, Archive, ArchiveRestore, GraduationCap, Building2, List, Grid3x3, ArrowUpDown, Phone } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
@@ -74,8 +74,15 @@ interface ClientWithScripts {
   organization_id?: string;
   archived?: boolean;
   last_accessed_at?: string;
+  call_agent_id?: string;
+  call_agent_name?: string;
   scripts: ScriptWithType[];
   generated_images: GeneratedImage[];
+}
+
+interface CallAgent {
+  id: string;
+  name: string;
 }
 
 const getClientLogo = (serviceType: string, customLogoUrl?: string): string => {
@@ -104,6 +111,8 @@ export default function Dashboard() {
   const [viewMode, setViewMode] = useState<'live' | 'archived'>('live');
   const [displayMode, setDisplayMode] = useState<'grid' | 'list'>('list');
   const [sortBy, setSortBy] = useState<'name' | 'date' | 'service'>('name');
+  const [selectedAgent, setSelectedAgent] = useState<string>('all');
+  const [callAgents, setCallAgents] = useState<CallAgent[]>([]);
   const [logoSettingsOpen, setLogoSettingsOpen] = useState(false);
   const { toast } = useToast();
 
@@ -160,6 +169,7 @@ export default function Dashboard() {
         { data: generatedImagesData, error: generatedImagesError },
         { data: logosData },
         { data: businessNamesData },
+        { data: callAgentsData },
       ] = await Promise.all([
         supabase
           .from("clients")
@@ -185,6 +195,10 @@ export default function Dashboard() {
           .from("client_details")
           .select("client_id, field_name, field_value")
           .in("field_name", ["business_name", "owners_name"]),
+        supabase
+          .from("call_agents")
+          .select("id, name")
+          .eq("organization_id", userOrganizationId),
       ]);
 
       if (clientsError) throw clientsError;
@@ -200,6 +214,13 @@ export default function Dashboard() {
       const logosMap = new Map(
         (logosData || []).map(l => [l.client_id, l.field_value])
       );
+
+      const callAgentsMap = new Map(
+        (callAgentsData || []).map(a => [a.id, a.name])
+      );
+
+      // Set call agents for filtering
+      setCallAgents(callAgentsData || []);
 
       const businessNamesMap = new Map<string, string>();
       const ownersNamesMap = new Map<string, string>();
@@ -255,6 +276,8 @@ export default function Dashboard() {
           organization_id: client.organization_id,
           archived: client.archived || false,
           last_accessed_at: client.last_accessed_at,
+          call_agent_id: client.call_agent_id,
+          call_agent_name: client.call_agent_id ? callAgentsMap.get(client.call_agent_id) as string | undefined : undefined,
           scripts: scriptsByClient.get(client.id) || [],
           generated_images: imagesByClient.get(client.id) || [],
         }));
@@ -360,6 +383,15 @@ export default function Dashboard() {
       });
     }
 
+    // Filter by call agent if one is selected
+    if (selectedAgent !== 'all') {
+      if (selectedAgent === 'unassigned') {
+        filtered = filtered.filter(client => !client.call_agent_id);
+      } else {
+        filtered = filtered.filter(client => client.call_agent_id === selectedAgent);
+      }
+    }
+
     // Sort the filtered clients
     return filtered.sort((a, b) => {
       switch (sortBy) {
@@ -373,7 +405,7 @@ export default function Dashboard() {
           return 0;
       }
     });
-  }, [clients, debouncedSearch, viewMode, sortBy]);
+  }, [clients, debouncedSearch, viewMode, sortBy, selectedAgent]);
 
   const handleArchiveToggle = useCallback(async (clientId: string, currentlyArchived: boolean) => {
     try {
@@ -461,6 +493,12 @@ export default function Dashboard() {
                     Team
                   </Button>
                 </Link>
+                <Link to="/call-agents">
+                  <Button variant="outline" size="default" className="gap-2 shadow-sm hover:shadow transition-shadow">
+                    <Phone className="h-4 w-4" />
+                    Call Agents
+                  </Button>
+                </Link>
                 <Link to="/service-types">
                   <Button variant="outline" size="default" className="gap-2 shadow-sm hover:shadow transition-shadow">
                     <Settings className="h-4 w-4" />
@@ -499,6 +537,12 @@ export default function Dashboard() {
                     <Link to="/team" className="flex items-center cursor-pointer">
                       <Users className="mr-2 h-4 w-4" />
                       <span>Team</span>
+                    </Link>
+                  </DropdownMenuItem>
+                  <DropdownMenuItem asChild>
+                    <Link to="/call-agents" className="flex items-center cursor-pointer">
+                      <Phone className="mr-2 h-4 w-4" />
+                      <span>Call Agents</span>
                     </Link>
                   </DropdownMenuItem>
                   <DropdownMenuItem asChild>
@@ -612,6 +656,29 @@ export default function Dashboard() {
               </div>
               
               <div className="flex items-center gap-2">
+                <DropdownMenu>
+                  <DropdownMenuTrigger asChild>
+                    <Button variant="outline" size="sm" className="h-10 sm:h-12 shadow-sm">
+                      <Phone className="h-4 w-4 mr-2" />
+                      {selectedAgent === 'all' ? 'All Agents' : selectedAgent === 'unassigned' ? 'Unassigned' : callAgents.find(a => a.id === selectedAgent)?.name || 'Agent'}
+                    </Button>
+                  </DropdownMenuTrigger>
+                  <DropdownMenuContent align="end">
+                    <DropdownMenuItem onClick={() => setSelectedAgent('all')}>
+                      All Agents {selectedAgent === 'all' && '✓'}
+                    </DropdownMenuItem>
+                    <DropdownMenuItem onClick={() => setSelectedAgent('unassigned')}>
+                      Unassigned {selectedAgent === 'unassigned' && '✓'}
+                    </DropdownMenuItem>
+                    {callAgents.length > 0 && <DropdownMenuSeparator />}
+                    {callAgents.map((agent) => (
+                      <DropdownMenuItem key={agent.id} onClick={() => setSelectedAgent(agent.id)}>
+                        {agent.name} {selectedAgent === agent.id && '✓'}
+                      </DropdownMenuItem>
+                    ))}
+                  </DropdownMenuContent>
+                </DropdownMenu>
+                
                 <DropdownMenu>
                   <DropdownMenuTrigger asChild>
                     <Button variant="outline" size="sm" className="h-10 sm:h-12 shadow-sm">
@@ -862,8 +929,9 @@ export default function Dashboard() {
                 <TableRow>
                   <TableHead className="w-[300px]">Company</TableHead>
                   <TableHead>Service Type</TableHead>
+                  <TableHead>Call Agent</TableHead>
                   <TableHead>Location</TableHead>
-                  <TableHead className="w-[400px]">Scripts</TableHead>
+                  <TableHead className="w-[350px]">Scripts</TableHead>
                   <TableHead className="w-[120px] text-right">Actions</TableHead>
                 </TableRow>
               </TableHeader>
@@ -893,6 +961,16 @@ export default function Dashboard() {
                     </TableCell>
                     <TableCell>
                       <Badge variant="secondary" className="whitespace-nowrap">{client.service_type}</Badge>
+                    </TableCell>
+                    <TableCell>
+                      {client.call_agent_name ? (
+                        <div className="flex items-center gap-2 text-sm">
+                          <Phone className="h-3.5 w-3.5 text-muted-foreground" />
+                          {client.call_agent_name}
+                        </div>
+                      ) : (
+                        <span className="text-muted-foreground text-sm">Unassigned</span>
+                      )}
                     </TableCell>
                     <TableCell className="text-muted-foreground">{client.city || '—'}</TableCell>
                     <TableCell>

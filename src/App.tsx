@@ -23,6 +23,7 @@ const TeamManagement = lazy(() => import("./pages/TeamManagement"));
 const ImageGenerator = lazy(() => import("./pages/ImageGenerator"));
 const Training = lazy(() => import("./pages/Training"));
 const TrainingManagement = lazy(() => import("./pages/TrainingManagement"));
+const CallAgents = lazy(() => import("./pages/CallAgents"));
 const NotFound = lazy(() => import("./pages/NotFound"));
 
 // Optimized QueryClient configuration with caching
@@ -67,6 +68,7 @@ const App = () => (
             <Route path="/image-generator" element={<ProtectedRoute><ImageGenerator /></ProtectedRoute>} />
             <Route path="/training" element={<ProtectedRoute><Training /></ProtectedRoute>} />
             <Route path="/training-management" element={<ProtectedRoute><TrainingManagement /></ProtectedRoute>} />
+            <Route path="/call-agents" element={<ProtectedRoute><CallAgents /></ProtectedRoute>} />
             {/* ADD ALL CUSTOM ROUTES ABOVE THE CATCH-ALL "*" ROUTE */}
             <Route path="*" element={<NotFound />} />
             </Routes>
