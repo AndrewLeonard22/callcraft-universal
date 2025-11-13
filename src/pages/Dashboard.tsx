@@ -472,32 +472,33 @@ export default function Dashboard() {
               </div>
             </div>
             
-            <div className="flex items-center gap-1 sm:gap-2 flex-shrink-0">
-              {/* Desktop Navigation - Grouped */}
-              <div className="hidden lg:flex items-center gap-2">
+            <div className="flex items-center gap-2 flex-shrink-0">
+              {/* Desktop Navigation */}
+              <div className="hidden lg:flex items-center gap-1.5 bg-muted/30 rounded-lg p-1">
                 <Link to="/training">
-                  <Button variant="ghost" size="sm" className="gap-2">
-                    <GraduationCap className="h-4 w-4" />
+                  <Button variant="ghost" size="sm" className="gap-2 h-8 px-3 text-xs font-medium hover:bg-background hover:shadow-sm transition-all">
+                    <GraduationCap className="h-3.5 w-3.5" />
                     Training
                   </Button>
                 </Link>
                 <Link to="/image-generator">
-                  <Button variant="ghost" size="sm" className="gap-2">
-                    <Wand2 className="h-4 w-4" />
+                  <Button variant="ghost" size="sm" className="gap-2 h-8 px-3 text-xs font-medium hover:bg-background hover:shadow-sm transition-all">
+                    <Wand2 className="h-3.5 w-3.5" />
                     Generator
                   </Button>
                 </Link>
                 
-                {/* Management Dropdown */}
                 <DropdownMenu>
                   <DropdownMenuTrigger asChild>
-                    <Button variant="ghost" size="sm" className="gap-2">
-                      <Settings className="h-4 w-4" />
+                    <Button variant="ghost" size="sm" className="gap-1.5 h-8 px-3 text-xs font-medium hover:bg-background hover:shadow-sm transition-all">
+                      <Settings className="h-3.5 w-3.5" />
                       Manage
-                      <ChevronDown className="h-3 w-3 opacity-50" />
+                      <ChevronDown className="h-3 w-3 opacity-60" />
                     </Button>
                   </DropdownMenuTrigger>
-                  <DropdownMenuContent align="end" className="w-48">
+                  <DropdownMenuContent align="end" className="w-48 shadow-lg">
+                    <DropdownMenuLabel className="text-xs font-semibold text-muted-foreground">Management</DropdownMenuLabel>
+                    <DropdownMenuSeparator />
                     <DropdownMenuItem asChild>
                       <Link to="/call-agents" className="flex items-center cursor-pointer">
                         <Phone className="mr-2 h-4 w-4" />
@@ -513,7 +514,7 @@ export default function Dashboard() {
                     <DropdownMenuSeparator />
                     <DropdownMenuItem asChild>
                       <Link to="/service-types" className="flex items-center cursor-pointer">
-                        <Settings className="mr-2 h-4 w-4" />
+                        <Building2 className="mr-2 h-4 w-4" />
                         <span>Services</span>
                       </Link>
                     </DropdownMenuItem>
@@ -527,14 +528,18 @@ export default function Dashboard() {
                 </DropdownMenu>
               </div>
               
+              <div className="h-6 w-px bg-border/50 hidden lg:block" />
+              
               {/* Mobile Menu */}
               <DropdownMenu>
                 <DropdownMenuTrigger asChild className="lg:hidden">
-                  <Button variant="outline" size="icon" className="shadow-sm">
+                  <Button variant="outline" size="icon" className="h-9 w-9 shadow-sm border-border/60 hover:bg-muted/50">
                     <Settings className="h-4 w-4" />
                   </Button>
                 </DropdownMenuTrigger>
-                <DropdownMenuContent align="end" className="w-48 bg-background">
+                <DropdownMenuContent align="end" className="w-52 shadow-lg">
+                  <DropdownMenuLabel className="text-xs font-semibold text-muted-foreground">Navigation</DropdownMenuLabel>
+                  <DropdownMenuSeparator />
                   <DropdownMenuItem asChild>
                     <Link to="/training" className="flex items-center cursor-pointer">
                       <GraduationCap className="mr-2 h-4 w-4" />
@@ -547,6 +552,7 @@ export default function Dashboard() {
                       <span>Image Generator</span>
                     </Link>
                   </DropdownMenuItem>
+                  <DropdownMenuSeparator />
                   <DropdownMenuItem asChild>
                     <Link to="/team" className="flex items-center cursor-pointer">
                       <Users className="mr-2 h-4 w-4" />
@@ -561,7 +567,7 @@ export default function Dashboard() {
                   </DropdownMenuItem>
                   <DropdownMenuItem asChild>
                     <Link to="/service-types" className="flex items-center cursor-pointer">
-                      <Settings className="mr-2 h-4 w-4" />
+                      <Building2 className="mr-2 h-4 w-4" />
                       <span>Services</span>
                     </Link>
                   </DropdownMenuItem>
@@ -575,7 +581,7 @@ export default function Dashboard() {
               </DropdownMenu>
               
               <Link to="/create">
-                <Button size="default" className="gap-2 shadow-md hover:shadow-lg transition-all bg-gradient-to-r from-primary to-primary/90">
+                <Button size="sm" className="gap-2 h-9 px-4 shadow-sm hover:shadow-md transition-all font-medium">
                   <Plus className="h-4 w-4" />
                   <span className="hidden sm:inline">New Company</span>
                 </Button>
@@ -584,19 +590,19 @@ export default function Dashboard() {
               {/* User Menu */}
               <DropdownMenu>
                 <DropdownMenuTrigger asChild>
-                  <Button variant="ghost" className="relative h-9 w-9 sm:h-10 sm:w-10 rounded-full">
-                    <Avatar className="h-9 w-9 sm:h-10 sm:w-10">
+                  <Button variant="ghost" size="icon" className="relative h-9 w-9 rounded-full hover:bg-muted/50 transition-colors">
+                    <Avatar className="h-9 w-9 ring-2 ring-border/50 ring-offset-1 ring-offset-background transition-all hover:ring-primary/30">
                       <AvatarImage src={profile?.avatar_url} alt={profile?.display_name || "User"} />
-                      <AvatarFallback className="bg-primary text-primary-foreground text-xs sm:text-sm">
+                      <AvatarFallback className="bg-primary/10 text-primary text-xs font-semibold">
                         {getUserInitials()}
                       </AvatarFallback>
                     </Avatar>
                   </Button>
                 </DropdownMenuTrigger>
-                <DropdownMenuContent className="w-56 bg-background" align="end" forceMount>
+                <DropdownMenuContent className="w-56 shadow-lg" align="end" forceMount>
                   <DropdownMenuLabel className="font-normal">
                     <div className="flex flex-col space-y-1">
-                      <p className="text-sm font-medium leading-none truncate">{profile?.display_name || "User"}</p>
+                      <p className="text-sm font-semibold leading-none truncate">{profile?.display_name || "User"}</p>
                       <p className="text-xs leading-none text-muted-foreground truncate">
                         {user?.email}
                       </p>
@@ -611,9 +617,10 @@ export default function Dashboard() {
                     <Users className="mr-2 h-4 w-4" />
                     <span>Team Management</span>
                   </DropdownMenuItem>
-                  <DropdownMenuItem onClick={handleLogout}>
+                  <DropdownMenuSeparator />
+                  <DropdownMenuItem onClick={handleLogout} className="text-destructive focus:text-destructive">
                     <LogOut className="mr-2 h-4 w-4" />
-                    <span>Log out</span>
+                    <span>Sign Out</span>
                   </DropdownMenuItem>
                 </DropdownMenuContent>
               </DropdownMenu>
