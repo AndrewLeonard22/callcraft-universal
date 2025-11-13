@@ -25,6 +25,7 @@ import {
 import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
 import socialWorksLogo from "@/assets/social-works-logo.png";
+import QuizQuestionsAdmin from "@/components/QuizQuestionsAdmin";
 
 interface TrainingModule {
   id: string;
@@ -493,7 +494,7 @@ export default function TrainingManagement() {
           <div>
             <h2 className="text-3xl font-bold mb-2">Manage Training Content</h2>
             <p className="text-muted-foreground">
-              Add and edit training modules, sections, benefits, features, and videos
+              Add and edit training modules, sections, benefits, features, videos, and quiz questions
             </p>
           </div>
           <Dialog open={moduleDialogOpen} onOpenChange={setModuleDialogOpen}>
@@ -568,19 +569,23 @@ export default function TrainingManagement() {
 
         {loading ? (
           <div className="text-center py-12">Loading...</div>
-        ) : modules.length === 0 ? (
-          <Card>
-            <CardContent className="py-12 text-center">
-              <p className="text-muted-foreground mb-4">No training modules yet</p>
-              <Button onClick={() => setModuleDialogOpen(true)}>
-                <Plus className="mr-2 h-4 w-4" />
-                Create Your First Module
-              </Button>
-            </CardContent>
-          </Card>
         ) : (
           <div className="space-y-6">
-            {modules.map((module) => (
+            {/* Quiz Questions Admin */}
+            <QuizQuestionsAdmin organizationId={organizationId} />
+
+            {modules.length === 0 ? (
+              <Card>
+                <CardContent className="py-12 text-center">
+                  <p className="text-muted-foreground mb-4">No training modules yet</p>
+                  <Button onClick={() => setModuleDialogOpen(true)}>
+                    <Plus className="mr-2 h-4 w-4" />
+                    Create Your First Module
+                  </Button>
+                </CardContent>
+              </Card>
+            ) : (
+              <>
               <Card key={module.id} className="border-2">
                 <CardHeader>
                   <div className="flex items-start justify-between">
