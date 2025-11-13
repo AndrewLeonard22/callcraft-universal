@@ -586,7 +586,8 @@ export default function TrainingManagement() {
               </Card>
             ) : (
               <>
-              <Card key={module.id} className="border-2">
+                {modules.map((module) => (
+                  <Card key={module.id} className="border-2">
                 <CardHeader>
                   <div className="flex items-start justify-between">
                     <div>
@@ -809,6 +810,8 @@ export default function TrainingManagement() {
                 </CardContent>
               </Card>
             ))}
+              </>
+            )}
           </div>
         )}
 
