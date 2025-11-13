@@ -1,6 +1,6 @@
 import { useState, useEffect } from "react";
 import { Link } from "react-router-dom";
-import { Plus, Edit, Trash2, ArrowLeft, Video, Package, CheckCircle2, DollarSign, Brain } from "lucide-react";
+import { Plus, Edit, Trash2, ArrowLeft, Video, Package, CheckCircle2, DollarSign } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
@@ -45,7 +45,6 @@ interface TrainingSection {
   benefits?: TrainingBenefit[];
   features?: TrainingFeature[];
   videos?: TrainingVideo[];
-  questions?: TrainingQuestion[];
 }
 
 interface TrainingBenefit {
@@ -71,15 +70,6 @@ interface TrainingVideo {
   title: string;
   video_url: string;
   description: string;
-  display_order: number;
-}
-
-interface TrainingQuestion {
-  id: string;
-  module_id?: string;
-  section_id?: string;
-  question: string;
-  answer: string;
   display_order: number;
 }
 
@@ -131,13 +121,6 @@ export default function TrainingManagement() {
     description: "",
   });
 
-  // Question dialog state
-  const [questionDialogOpen, setQuestionDialogOpen] = useState(false);
-  const [questionForm, setQuestionForm] = useState({
-    question: "",
-    answer: "",
-  });
-
   useEffect(() => {
     loadOrganization();
   }, []);
@@ -182,10 +165,10 @@ export default function TrainingManagement() {
             .eq("module_id", module.id)
             .order("display_order");
 
-          // Load benefits, features, videos, and questions for each section
+          // Load benefits, features, and videos for each section
           const sectionsWithDetails = await Promise.all(
             (sectionsData || []).map(async (section) => {
-              const [benefitsRes, featuresRes, videosRes, questionsRes] = await Promise.all([
+              const [benefitsRes, featuresRes, videosRes] = await Promise.all([
                 supabase
                   .from("training_benefits")
                   .select("*")
@@ -201,8 +184,6 @@ export default function TrainingManagement() {
                   .select("*")
                   .eq("section_id", section.id)
                   .order("display_order"),
-                // @ts-expect-error - training_questions table types will be auto-generated
-                supabase.from("training_questions").select("*").eq("section_id", section.id).order("display_order"),
               ]);
 
               return {
@@ -210,7 +191,6 @@ export default function TrainingManagement() {
                 benefits: benefitsRes.data || [],
                 features: featuresRes.data || [],
                 videos: videosRes.data || [],
-                questions: (questionsRes.data || []) as TrainingQuestion[],
               };
             })
           );
@@ -478,46 +458,6 @@ export default function TrainingManagement() {
     }
   };
 
-  const handleSaveQuestion = async () => {
-    if (!selectedSectionId || !organizationId) return;
-
-    try {
-      // @ts-expect-error - training_questions table types will be auto-generated
-      const { error } = await supabase.from("training_questions").insert([{ ...questionForm, section_id: selectedSectionId, organization_id: organizationId }]);
-
-      if (error) throw error;
-      toast({ title: "Question added successfully" });
-      setQuestionDialogOpen(false);
-      setQuestionForm({ question: "", answer: "" });
-      loadModules();
-    } catch (error) {
-      console.error("Error saving question:", error);
-      toast({
-        title: "Error",
-        description: "Failed to save question",
-        variant: "destructive",
-      });
-    }
-  };
-
-  const handleDeleteQuestion = async (questionId: string) => {
-    try {
-      // @ts-expect-error - training_questions table types will be auto-generated
-      const { error } = await supabase.from("training_questions").delete().eq("id", questionId);
-
-      if (error) throw error;
-      toast({ title: "Question deleted successfully" });
-      loadModules();
-    } catch (error) {
-      console.error("Error deleting question:", error);
-      toast({
-        title: "Error",
-        description: "Failed to delete question",
-        variant: "destructive",
-      });
-    }
-  };
-
   return (
     <div className="min-h-screen bg-background">
       {/* Header */}
@@ -738,18 +678,6 @@ export default function TrainingManagement() {
                                   size="sm"
                                   onClick={(e) => {
                                     e.stopPropagation();
-                                    setSelectedSectionId(section.id);
-                                    setQuestionDialogOpen(true);
-                                  }}
-                                >
-                                  <Brain className="h-3 w-3 mr-1" />
-                                  Question
-                                </Button>
-                                <Button
-                                  variant="ghost"
-                                  size="sm"
-                                  onClick={(e) => {
-                                    e.stopPropagation();
                                     setSelectedModuleId(module.id);
                                     setEditingSection(section);
                                     setSectionForm({
@@ -857,32 +785,6 @@ export default function TrainingManagement() {
                                           variant="ghost"
                                           size="sm"
                                           onClick={() => handleDeleteVideo(video.id)}
-                                        >
-                                          <Trash2 className="h-3 w-3" />
-                                        </Button>
-                                      </div>
-                                    ))}
-                                  </div>
-                                </div>
-                              )}
-
-                              {section.questions && section.questions.length > 0 && (
-                                <div>
-                                  <h5 className="font-semibold mb-2">Quiz Questions:</h5>
-                                  <div className="space-y-2">
-                                    {section.questions.map((question) => (
-                                      <div key={question.id} className="flex items-start justify-between bg-muted/50 p-3 rounded">
-                                        <div className="flex-1">
-                                          <div className="flex items-center gap-2 mb-2">
-                                            <Brain className="h-4 w-4 text-primary" />
-                                            <span className="text-sm font-medium">{question.question}</span>
-                                          </div>
-                                          <p className="text-xs text-muted-foreground pl-6">{question.answer}</p>
-                                        </div>
-                                        <Button
-                                          variant="ghost"
-                                          size="sm"
-                                          onClick={() => handleDeleteQuestion(question.id)}
                                         >
                                           <Trash2 className="h-3 w-3" />
                                         </Button>
@@ -1055,42 +957,6 @@ export default function TrainingManagement() {
                 Cancel
               </Button>
               <Button onClick={handleSaveVideo}>Add Video</Button>
-            </DialogFooter>
-          </DialogContent>
-        </Dialog>
-
-        {/* Question Dialog */}
-        <Dialog open={questionDialogOpen} onOpenChange={setQuestionDialogOpen}>
-          <DialogContent>
-            <DialogHeader>
-              <DialogTitle>Add Quiz Question</DialogTitle>
-              <DialogDescription>Add a question for the flashcard quiz</DialogDescription>
-            </DialogHeader>
-            <div className="space-y-4 py-4">
-              <div>
-                <Label>Question</Label>
-                <Textarea
-                  value={questionForm.question}
-                  onChange={(e) => setQuestionForm({ ...questionForm, question: e.target.value })}
-                  placeholder="e.g., What are the key benefits of aluminum pergolas?"
-                  rows={3}
-                />
-              </div>
-              <div>
-                <Label>Answer</Label>
-                <Textarea
-                  value={questionForm.answer}
-                  onChange={(e) => setQuestionForm({ ...questionForm, answer: e.target.value })}
-                  placeholder="The correct answer to the question..."
-                  rows={4}
-                />
-              </div>
-            </div>
-            <DialogFooter>
-              <Button variant="outline" onClick={() => setQuestionDialogOpen(false)}>
-                Cancel
-              </Button>
-              <Button onClick={handleSaveQuestion}>Add Question</Button>
             </DialogFooter>
           </DialogContent>
         </Dialog>
