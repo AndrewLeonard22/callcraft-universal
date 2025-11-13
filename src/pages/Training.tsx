@@ -73,8 +73,7 @@ export default function Training() {
   const [organizationId, setOrganizationId] = useState<string | null>(null);
   const [questions, setQuestions] = useState<TrainingQuestion[]>([]);
   const [currentQuestionIndex, setCurrentQuestionIndex] = useState(0);
-  const [userAnswer, setUserAnswer] = useState("");
-  const [showAnswer, setShowAnswer] = useState(false);
+  const [isFlipped, setIsFlipped] = useState(false);
   const [activeTab, setActiveTab] = useState("modules");
   const { toast } = useToast();
 
@@ -176,16 +175,13 @@ export default function Training() {
 
   const loadQuestions = async () => {
     try {
-      const { data, error } = await supabase
-        .from("training_questions")
-        .select("*")
-        .eq("organization_id", organizationId)
-        .order("display_order");
+      // @ts-expect-error - training_questions table types will be auto-generated
+      const { data, error } = await supabase.from("training_questions").select("*").eq("organization_id", organizationId).order("display_order");
 
       if (error) throw error;
 
       // Shuffle questions for random order
-      const shuffled = (data || []).sort(() => Math.random() - 0.5);
+      const shuffled = ((data || []) as TrainingQuestion[]).sort(() => Math.random() - 0.5);
       setQuestions(shuffled);
     } catch (error) {
       console.error("Error loading questions:", error);
@@ -198,17 +194,20 @@ export default function Training() {
   };
 
   const handleNextQuestion = () => {
-    setShowAnswer(false);
-    setUserAnswer("");
+    setIsFlipped(false);
     setCurrentQuestionIndex((prev) => (prev + 1) % questions.length);
+  };
+
+  const handlePreviousQuestion = () => {
+    setIsFlipped(false);
+    setCurrentQuestionIndex((prev) => (prev - 1 + questions.length) % questions.length);
   };
 
   const handleRestart = () => {
     const shuffled = [...questions].sort(() => Math.random() - 0.5);
     setQuestions(shuffled);
     setCurrentQuestionIndex(0);
-    setUserAnswer("");
-    setShowAnswer(false);
+    setIsFlipped(false);
   };
 
   const getIconComponent = (iconName: string) => {
@@ -488,81 +487,146 @@ export default function Training() {
                 </CardContent>
               </Card>
             ) : currentQuestion ? (
-              <div className="max-w-3xl mx-auto space-y-4">
-                <Card className="border-2">
-                  <CardHeader className="bg-gradient-to-br from-primary/10 to-primary/5">
-                    <div className="flex items-center justify-between mb-2">
-                      <Badge variant="secondary" className="text-xs">
-                        Question {currentQuestionIndex + 1} of {questions.length}
-                      </Badge>
-                      <Button
-                        variant="ghost"
-                        size="sm"
-                        onClick={handleRestart}
-                        className="h-7 gap-1"
-                      >
-                        <RotateCcw className="h-3 w-3" />
-                        Restart
-                      </Button>
+              <div className="max-w-4xl mx-auto space-y-6">
+                {/* Progress Bar */}
+                <div className="space-y-2">
+                  <div className="flex items-center justify-between text-sm">
+                    <span className="text-muted-foreground">
+                      Question {currentQuestionIndex + 1} of {questions.length}
+                    </span>
+                    <Button
+                      variant="ghost"
+                      size="sm"
+                      onClick={handleRestart}
+                      className="h-8 gap-2"
+                    >
+                      <RotateCcw className="h-3 w-3" />
+                      Shuffle
+                    </Button>
+                  </div>
+                  <div className="h-2 bg-muted rounded-full overflow-hidden">
+                    <div
+                      className="h-full bg-primary transition-all duration-300"
+                      style={{ width: `${((currentQuestionIndex + 1) / questions.length) * 100}%` }}
+                    />
+                  </div>
+                </div>
+
+                {/* Flashcard */}
+                <div className="perspective-1000">
+                  <div
+                    className={`relative w-full h-[400px] cursor-pointer transition-transform duration-500 transform-style-3d ${
+                      isFlipped ? "[transform:rotateY(180deg)]" : ""
+                    }`}
+                    onClick={() => setIsFlipped(!isFlipped)}
+                  >
+                    {/* Front of card */}
+                    <div className="absolute inset-0 backface-hidden">
+                      <Card className="h-full border-2 shadow-xl hover:shadow-2xl transition-shadow">
+                        <CardContent className="h-full flex flex-col items-center justify-center p-8 bg-gradient-to-br from-background to-muted/20">
+                          <div className="space-y-6 text-center w-full">
+                            <Badge variant="secondary" className="text-xs">
+                              Question
+                            </Badge>
+                            <p className="text-2xl font-semibold leading-relaxed px-4">
+                              {currentQuestion.question}
+                            </p>
+                            <div className="pt-8">
+                              <p className="text-sm text-muted-foreground flex items-center justify-center gap-2">
+                                <RotateCcw className="h-4 w-4" />
+                                Click to reveal answer
+                              </p>
+                            </div>
+                          </div>
+                        </CardContent>
+                      </Card>
                     </div>
-                    <CardTitle className="text-xl">{currentQuestion.question}</CardTitle>
-                  </CardHeader>
-                  <CardContent className="pt-6 space-y-4">
-                    <div>
-                      <label className="text-sm font-medium mb-2 block">Your Answer:</label>
-                      <Textarea
-                        value={userAnswer}
-                        onChange={(e) => setUserAnswer(e.target.value)}
-                        placeholder="Type your answer here..."
-                        className="min-h-[120px] resize-none"
+
+                    {/* Back of card */}
+                    <div className="absolute inset-0 backface-hidden [transform:rotateY(180deg)]">
+                      <Card className="h-full border-2 border-green-500/50 shadow-xl hover:shadow-2xl transition-shadow">
+                        <CardContent className="h-full flex flex-col items-center justify-center p-8 bg-gradient-to-br from-green-500/10 via-background to-green-500/5">
+                          <div className="space-y-6 text-center w-full">
+                            <Badge className="bg-green-500/20 text-green-700 dark:text-green-400 border-green-500/30">
+                              Answer
+                            </Badge>
+                            <p className="text-xl leading-relaxed px-4 whitespace-pre-wrap">
+                              {currentQuestion.answer}
+                            </p>
+                            <div className="pt-8">
+                              <p className="text-sm text-muted-foreground flex items-center justify-center gap-2">
+                                <RotateCcw className="h-4 w-4" />
+                                Click to see question
+                              </p>
+                            </div>
+                          </div>
+                        </CardContent>
+                      </Card>
+                    </div>
+                  </div>
+                </div>
+
+                {/* Navigation */}
+                <div className="flex items-center justify-between gap-4">
+                  <Button
+                    variant="outline"
+                    onClick={handlePreviousQuestion}
+                    disabled={currentQuestionIndex === 0}
+                    className="flex-1 max-w-[200px]"
+                  >
+                    <ArrowRight className="h-4 w-4 rotate-180 mr-2" />
+                    Previous
+                  </Button>
+                  
+                  <div className="flex items-center gap-2">
+                    {questions.map((_, index) => (
+                      <button
+                        key={index}
+                        onClick={() => {
+                          setCurrentQuestionIndex(index);
+                          setIsFlipped(false);
+                        }}
+                        className={`h-2 rounded-full transition-all ${
+                          index === currentQuestionIndex
+                            ? "w-8 bg-primary"
+                            : "w-2 bg-muted-foreground/30 hover:bg-muted-foreground/50"
+                        }`}
                       />
-                    </div>
+                    ))}
+                  </div>
 
-                    {showAnswer && (
-                      <div className="border-2 border-green-500/30 rounded-lg p-4 bg-gradient-to-br from-green-500/10 to-green-500/5">
-                        <div className="flex items-center gap-2 mb-2">
-                          <CheckCircle2 className="h-5 w-5 text-green-600 dark:text-green-500" />
-                          <h4 className="font-bold text-sm">Correct Answer:</h4>
-                        </div>
-                        <p className="text-sm leading-relaxed whitespace-pre-wrap">{currentQuestion.answer}</p>
-                      </div>
-                    )}
+                  <Button
+                    variant="outline"
+                    onClick={handleNextQuestion}
+                    disabled={currentQuestionIndex === questions.length - 1}
+                    className="flex-1 max-w-[200px]"
+                  >
+                    Next
+                    <ArrowRight className="h-4 w-4 ml-2" />
+                  </Button>
+                </div>
 
-                    <div className="flex gap-2 pt-2">
-                      {!showAnswer ? (
-                        <Button
-                          onClick={() => setShowAnswer(true)}
-                          className="flex-1 gap-2"
-                          disabled={!userAnswer.trim()}
-                        >
-                          <Check className="h-4 w-4" />
-                          Show Answer
-                        </Button>
-                      ) : (
-                        <Button
-                          onClick={handleNextQuestion}
-                          className="flex-1 gap-2"
-                        >
-                          Next Question
-                          <ArrowRight className="h-4 w-4" />
-                        </Button>
-                      )}
-                    </div>
-                  </CardContent>
-                </Card>
-
-                <div className="grid grid-cols-2 gap-3">
+                {/* Stats */}
+                <div className="grid grid-cols-3 gap-3">
                   <Card className="border">
-                    <CardContent className="pt-6 text-center">
-                      <div className="text-2xl font-bold text-primary mb-1">
+                    <CardContent className="pt-4 pb-4 text-center">
+                      <div className="text-3xl font-bold text-primary mb-1">
+                        {questions.length}
+                      </div>
+                      <div className="text-xs text-muted-foreground">Total Cards</div>
+                    </CardContent>
+                  </Card>
+                  <Card className="border">
+                    <CardContent className="pt-4 pb-4 text-center">
+                      <div className="text-3xl font-bold text-primary mb-1">
                         {currentQuestionIndex + 1}
                       </div>
                       <div className="text-xs text-muted-foreground">Current</div>
                     </CardContent>
                   </Card>
                   <Card className="border">
-                    <CardContent className="pt-6 text-center">
-                      <div className="text-2xl font-bold text-primary mb-1">
+                    <CardContent className="pt-4 pb-4 text-center">
+                      <div className="text-3xl font-bold text-primary mb-1">
                         {questions.length - currentQuestionIndex - 1}
                       </div>
                       <div className="text-xs text-muted-foreground">Remaining</div>
