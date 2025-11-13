@@ -985,15 +985,13 @@ export default function Training() {
                                   {Math.round((score.score / score.total_questions) * 100)}%
                                 </div>
                               </div>
-                              <Button
-                                variant="ghost"
-                                size="sm"
+                              <button
                                 onClick={() => handleDeleteScore(score.id)}
-                                className="h-8 w-8 p-0 opacity-0 group-hover:opacity-100 transition-opacity"
+                                className="opacity-0 group-hover:opacity-100 transition-all duration-200 p-1.5 rounded-md hover:bg-destructive/10"
                                 title="Delete score"
                               >
-                                <Trash2 className="h-4 w-4 text-muted-foreground hover:text-destructive" />
-                              </Button>
+                                <Trash2 className="h-3.5 w-3.5 text-muted-foreground hover:text-destructive transition-colors" />
+                              </button>
                             </div>
                           </div>
                         ))}
