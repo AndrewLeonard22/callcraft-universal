@@ -469,7 +469,7 @@ export default function TrainingManagement() {
               <img 
                 src={agentIqLogo} 
                 alt="Agent IQ" 
-                className="h-8 sm:h-10 w-auto"
+                className="h-12 sm:h-14 w-auto"
               />
               <div className="h-6 sm:h-8 w-px bg-border/50" />
               <h1 className="text-2xl font-semibold tracking-tight">Training Management</h1>

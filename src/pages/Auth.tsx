@@ -344,11 +344,11 @@ export default function Auth() {
         <div className="flex flex-col items-center justify-center mb-6 sm:mb-8 space-y-3 sm:space-y-4">
           <img 
             src={logo} 
-            alt="Social Works Logo" 
-            className="h-16 w-16 sm:h-24 sm:w-24 object-contain"
+            alt="Agent IQ" 
+            className="h-20 w-20 sm:h-28 sm:w-28 object-contain"
           />
-          <h1 className="text-3xl sm:text-4xl font-bold text-foreground tracking-tight">SOCIAL WORKS</h1>
-          <p className="text-muted-foreground text-xs sm:text-sm">Data-driven growth platform</p>
+          <h1 className="text-3xl sm:text-4xl font-bold text-foreground tracking-tight">Agent IQ</h1>
+          <p className="text-muted-foreground text-xs sm:text-sm">Intelligent call center management platform</p>
         </div>
 
         <Tabs defaultValue="login" className="w-full">
