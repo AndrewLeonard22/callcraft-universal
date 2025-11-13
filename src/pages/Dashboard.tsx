@@ -139,12 +139,19 @@ export default function Dashboard() {
   }, [loadUser]);
 
   // Optimized: Memoize loadClients to prevent unnecessary recreations
-  const loadClients = useCallback(async () => {
+  const loadClients = useCallback(async (isBackgroundRefresh = false) => {
     try {
+      // Only show full loading state on initial load, not background refreshes
+      if (!isBackgroundRefresh) {
+        setLoading(true);
+      }
+      
       // Get user's organization first
       const { data: { user } } = await supabase.auth.getUser();
       if (!user) {
-        toast({ title: "Error", description: "User not authenticated", variant: "destructive" });
+        if (!isBackgroundRefresh) {
+          toast({ title: "Error", description: "User not authenticated", variant: "destructive" });
+        }
         return;
       }
 
@@ -285,11 +292,18 @@ export default function Dashboard() {
       setClients(clientsWithScripts);
     } catch (error) {
       logger.error("Error loading clients:", error);
-      setClients([]);
+      // Don't clear clients on error - keep showing existing data
+      if (!isBackgroundRefresh) {
+        toast({
+          title: "Error loading data",
+          description: "There was a problem loading companies. Please refresh the page.",
+          variant: "destructive",
+        });
+      }
     } finally {
       setLoading(false);
     }
-  }, []);
+  }, [toast]);
 
   useEffect(() => {
     loadClients();
@@ -298,7 +312,8 @@ export default function Dashboard() {
     let reloadTimeout: NodeJS.Timeout;
     const debouncedReload = () => {
       clearTimeout(reloadTimeout);
-      reloadTimeout = setTimeout(loadClients, 500);
+      // Use background refresh for real-time updates to avoid flickering
+      reloadTimeout = setTimeout(() => loadClients(true), 500);
     };
 
     const clientsChannel = supabase
