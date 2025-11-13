@@ -958,7 +958,7 @@ export default function Training() {
                         {scoreboard.map((score, index) => (
                           <div
                             key={score.id}
-                            className="flex items-center justify-between p-3 rounded-lg border"
+                            className="group flex items-center justify-between p-3 rounded-lg border hover:bg-muted/50 transition-colors"
                           >
                             <div className="flex items-center gap-3">
                               <div className={`w-8 h-8 rounded-full flex items-center justify-center font-bold ${
@@ -989,9 +989,10 @@ export default function Training() {
                                 variant="ghost"
                                 size="sm"
                                 onClick={() => handleDeleteScore(score.id)}
-                                className="h-8 w-8 p-0"
+                                className="h-8 w-8 p-0 opacity-0 group-hover:opacity-100 transition-opacity"
+                                title="Delete score"
                               >
-                                <Trash2 className="h-4 w-4" />
+                                <Trash2 className="h-4 w-4 text-muted-foreground hover:text-destructive" />
                               </Button>
                             </div>
                           </div>
