@@ -13,7 +13,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from "@/components/ui/alert-dialog";
 import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
-import socialWorksLogo from "@/assets/social-works-logo.png";
+import agentIqLogo from "@/assets/agent-iq-logo.png";
 
 interface TrainingModule {
   id: string;
@@ -476,7 +476,7 @@ export default function Training() {
         <div className="container mx-auto px-4 sm:px-6 py-3 max-w-7xl">
           <div className="flex items-center justify-between">
             <div className="flex items-center gap-3">
-              <img src={socialWorksLogo} alt="Social Works" className="h-8 w-auto" />
+              <img src={agentIqLogo} alt="Agent IQ" className="h-8 w-auto" />
               <div className="h-6 w-px bg-border/50" />
               <div className="flex items-center gap-2">
                 <div className="p-1.5 bg-primary/10 rounded-lg">

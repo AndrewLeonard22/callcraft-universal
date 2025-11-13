@@ -24,7 +24,7 @@ import {
 } from "@/components/ui/accordion";
 import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
-import socialWorksLogo from "@/assets/social-works-logo.png";
+import agentIqLogo from "@/assets/agent-iq-logo.png";
 import QuizQuestionsAdmin from "@/components/QuizQuestionsAdmin";
 
 interface TrainingModule {
@@ -467,8 +467,8 @@ export default function TrainingManagement() {
           <div className="flex items-center justify-between">
             <div className="flex items-center gap-4">
               <img 
-                src={socialWorksLogo} 
-                alt="Social Works" 
+                src={agentIqLogo} 
+                alt="Agent IQ" 
                 className="h-8 sm:h-10 w-auto"
               />
               <div className="h-6 sm:h-8 w-px bg-border/50" />

@@ -36,7 +36,7 @@ import logoPergola from "@/assets/logo-pergola.png";
 import logoHvac from "@/assets/logo-hvac.png";
 import logoSolar from "@/assets/logo-solar.png";
 import logoLandscaping from "@/assets/logo-landscaping.png";
-import socialWorksLogo from "@/assets/social-works-logo.png";
+import agentIqLogo from "@/assets/agent-iq-logo.png";
 import { CompanyLogoSettings } from "@/components/CompanyLogoSettings";
 
 interface ServiceType {
@@ -459,7 +459,7 @@ export default function Dashboard() {
           <div className="flex items-center justify-between gap-2">
             <div className="flex items-center gap-2 sm:gap-4 min-w-0">
               <img 
-                src={profile?.company_logo_url || socialWorksLogo} 
+                src={profile?.company_logo_url || agentIqLogo} 
                 alt="Company Logo" 
                 className="h-8 sm:h-10 w-auto flex-shrink-0"
               />
