@@ -102,7 +102,7 @@ export default function Dashboard() {
   const [user, setUser] = useState<User | null>(null);
   const [profile, setProfile] = useState<{ display_name?: string; avatar_url?: string; company_logo_url?: string } | null>(null);
   const [viewMode, setViewMode] = useState<'live' | 'archived'>('live');
-  const [displayMode, setDisplayMode] = useState<'grid' | 'list'>('grid');
+  const [displayMode, setDisplayMode] = useState<'grid' | 'list'>('list');
   const [sortBy, setSortBy] = useState<'name' | 'date' | 'service'>('name');
   const [logoSettingsOpen, setLogoSettingsOpen] = useState(false);
   const { toast } = useToast();
