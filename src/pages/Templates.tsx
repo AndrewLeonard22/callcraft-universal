@@ -1265,30 +1265,38 @@ export default function Templates() {
             ) : (
               <DndContext sensors={sensors} collisionDetection={closestCenter} onDragEnd={handleDragEndObjections}>
                 <SortableContext items={objectionTemplates.map(t => t.id)} strategy={verticalListSortingStrategy}>
-                  <div className="space-y-4">
+                  <div className="space-y-2">
                     {objectionTemplates.map((template) => (
                       <SortableItem key={template.id} id={template.id}>
-                        <Card>
-                          <CardHeader className="p-4">
-                            <div className="flex items-center gap-3 justify-between">
+                        <Card className="group transition-all duration-200 hover:shadow-sm hover:border-primary/20">
+                          <CardHeader className="py-3 px-4">
+                            <div className="flex items-center justify-between gap-4">
                               <div className="flex items-center gap-3 flex-1 min-w-0">
-                                <div className="h-10 w-10 rounded-lg bg-muted border border-border flex-shrink-0 flex items-center justify-center">
-                                  <MessageSquare className="h-4 w-4 text-muted-foreground" />
+                                <GripVertical className="h-4 w-4 text-muted-foreground/50 flex-shrink-0" />
+                                <div className="h-8 w-8 rounded-md bg-gradient-to-br from-primary/10 to-primary/5 flex items-center justify-center flex-shrink-0">
+                                  <MessageSquare className="h-4 w-4 text-primary/70" />
                                 </div>
-                                <CardTitle className="text-base truncate">{template.service_name}</CardTitle>
+                                <CardTitle className="text-sm font-medium leading-tight truncate">{template.service_name}</CardTitle>
                               </div>
-                              <div className="flex gap-2 flex-shrink-0">
+                              <div className="flex gap-1 flex-shrink-0">
                                 <Button
                                   variant="ghost"
-                                  size="icon"
+                                  size="sm"
                                   onClick={() => handleEditObjection(template)}
+                                  className="h-7 px-2 hover:bg-primary/10 hover:text-primary"
+                                  title="Edit"
                                 >
-                                  <Edit2 className="h-4 w-4" />
+                                  <Edit2 className="h-3 w-3" />
                                 </Button>
                                 <AlertDialog>
                                   <AlertDialogTrigger asChild>
-                                    <Button variant="ghost" size="icon" className="text-destructive">
-                                      <Trash2 className="h-4 w-4" />
+                                    <Button 
+                                      variant="ghost" 
+                                      size="sm" 
+                                      className="h-7 px-2 text-destructive hover:text-destructive hover:bg-destructive/10"
+                                      title="Delete"
+                                    >
+                                      <Trash2 className="h-3 w-3" />
                                     </Button>
                                   </AlertDialogTrigger>
                                   <AlertDialogContent>
@@ -1455,55 +1463,41 @@ export default function Templates() {
                         </div>
 
                         {/* FAQs for this service */}
-                        <DndContext sensors={sensors} collisionDetection={closestCenter} onDragEnd={handleDragEndFaqs}>
+                         <DndContext sensors={sensors} collisionDetection={closestCenter} onDragEnd={handleDragEndFaqs}>
                           <SortableContext items={serviceFaqs.map(f => f.id)} strategy={verticalListSortingStrategy}>
                             <div className="space-y-2">
                               {serviceFaqs.map((faq) => (
                                 <SortableItem key={faq.id} id={faq.id}>
-                                  <Card className="hover:shadow-sm transition-shadow">
-                                    <CardHeader className="p-4">
-                                      <div className="flex items-start justify-between gap-3">
-                                        <div className="flex items-start gap-3 flex-1 min-w-0">
-                                          <div className="h-8 w-8 rounded-lg bg-primary/10 flex-shrink-0 flex items-center justify-center">
-                                            <HelpCircle className="h-4 w-4 text-primary" />
+                                  <Card className="group transition-all duration-200 hover:shadow-sm hover:border-primary/20">
+                                    <CardHeader className="py-3 px-4">
+                                       <div className="flex items-center justify-between gap-4">
+                                        <div className="flex items-center gap-3 flex-1 min-w-0">
+                                          <GripVertical className="h-4 w-4 text-muted-foreground/50 flex-shrink-0" />
+                                          <div className="h-8 w-8 rounded-md bg-gradient-to-br from-primary/10 to-primary/5 flex items-center justify-center flex-shrink-0">
+                                            <HelpCircle className="h-4 w-4 text-primary/70" />
                                           </div>
-                                          <div className="flex-1 min-w-0 space-y-1.5">
-                                            <CardTitle className="text-sm font-semibold leading-tight">
-                                              {faq.question}
-                                            </CardTitle>
-                                            <div className="text-xs text-muted-foreground line-clamp-1 leading-relaxed">
-                                              <span
-                                                dangerouslySetInnerHTML={{
-                                                  __html: faq.answer
-                                                    .substring(0, 100)
-                                                    .replace(/\*\*([^*]+)\*\*/g, '<strong>$1</strong>')
-                                                    .replace(/\[([^\]]+)\]/g, '<mark class="bg-yellow-200 px-1">$1</mark>')
-                                                    .replace(/\{red:([^}]+)\}/g, '<span style="color: rgb(220, 38, 38)">$1</span>')
-                                                    .replace(/\{blue:([^}]+)\}/g, '<span style="color: rgb(37, 99, 235)">$1</span>')
-                                                    .replace(/\{green:([^}]+)\}/g, '<span style="color: rgb(22, 163, 74)">$1</span>')
-                                                    .replace(/\{yellow:([^}]+)\}/g, '<span style="color: rgb(202, 138, 4)">$1</span>')
-                                                    .replace(/\{purple:([^}]+)\}/g, '<span style="color: rgb(168, 85, 247)">$1</span>')
-                                                    .replace(/\{orange:([^}]+)\}/g, '<span style="color: rgb(249, 115, 22)">$1</span>')
-                                                    .replace(/\{small:([^}]+)\}/g, '<span style="font-size: 0.875rem">$1</span>')
-                                                    .replace(/\{large:([^}]+)\}/g, '<span style="font-size: 1.25rem">$1</span>')
-                                                    + '...'
-                                                }}
-                                              />
-                                            </div>
-                                          </div>
+                                          <CardTitle className="text-sm font-medium leading-tight truncate">
+                                            {faq.question}
+                                          </CardTitle>
                                         </div>
                                         <div className="flex gap-1 flex-shrink-0">
                                           <Button
                                             variant="ghost"
                                             size="sm"
                                             onClick={() => handleEditFaq(faq)}
-                                            className="h-7 px-2"
+                                            className="h-7 px-2 hover:bg-primary/10 hover:text-primary"
+                                            title="Edit"
                                           >
                                             <Edit2 className="h-3 w-3" />
                                           </Button>
                                           <AlertDialog>
                                             <AlertDialogTrigger asChild>
-                                              <Button variant="ghost" size="sm" className="h-7 px-2 text-destructive hover:text-destructive hover:bg-destructive/10">
+                                              <Button 
+                                                variant="ghost" 
+                                                size="sm" 
+                                                className="h-7 px-2 text-destructive hover:text-destructive hover:bg-destructive/10"
+                                                title="Delete"
+                                              >
                                                 <Trash2 className="h-3 w-3" />
                                               </Button>
                                             </AlertDialogTrigger>
@@ -1638,32 +1632,38 @@ export default function Templates() {
                     <h3 className="text-lg font-semibold mb-3 text-foreground">Universal Questions (All Services)</h3>
                     <DndContext sensors={sensors} collisionDetection={closestCenter} onDragEnd={handleDragEndQualifications}>
                       <SortableContext items={qualificationQuestions.filter(q => !q.service_type_id).map(q => q.id)} strategy={verticalListSortingStrategy}>
-                        <div className="space-y-3">
+                        <div className="space-y-2">
                           {qualificationQuestions.filter(q => !q.service_type_id).map((question) => (
                             <SortableItem key={question.id} id={question.id}>
-                              <Card>
-                                <CardHeader>
-                                  <div className="flex items-start gap-4 justify-between">
-                                    <div className="flex items-start gap-3 flex-1">
-                                      <div className="h-12 w-12 rounded-lg bg-muted border border-border flex-shrink-0 flex items-center justify-center">
-                                        <ClipboardCheck className="h-5 w-5 text-muted-foreground" />
+                              <Card className="group transition-all duration-200 hover:shadow-sm hover:border-primary/20">
+                                <CardHeader className="py-3 px-4">
+                                  <div className="flex items-center justify-between gap-4">
+                                    <div className="flex items-center gap-3 flex-1 min-w-0">
+                                      <GripVertical className="h-4 w-4 text-muted-foreground/50 flex-shrink-0" />
+                                      <div className="h-8 w-8 rounded-md bg-gradient-to-br from-primary/10 to-primary/5 flex items-center justify-center flex-shrink-0">
+                                        <ClipboardCheck className="h-4 w-4 text-primary/70" />
                                       </div>
-                                      <div className="flex-1 min-w-0">
-                                        <CardTitle className="text-lg">{question.question}</CardTitle>
-                                      </div>
+                                      <CardTitle className="text-sm font-medium leading-tight truncate">{question.question}</CardTitle>
                                     </div>
-                                    <div className="flex gap-2 flex-shrink-0">
+                                    <div className="flex gap-1 flex-shrink-0">
                                       <Button
                                         variant="ghost"
-                                        size="icon"
+                                        size="sm"
                                         onClick={() => handleEditQualification(question)}
+                                        className="h-7 px-2 hover:bg-primary/10 hover:text-primary"
+                                        title="Edit"
                                       >
-                                        <Edit2 className="h-4 w-4" />
+                                        <Edit2 className="h-3 w-3" />
                                       </Button>
                                       <AlertDialog>
                                         <AlertDialogTrigger asChild>
-                                          <Button variant="ghost" size="icon" className="text-destructive flex-shrink-0">
-                                            <Trash2 className="h-4 w-4" />
+                                          <Button 
+                                            variant="ghost" 
+                                            size="sm" 
+                                            className="h-7 px-2 text-destructive hover:text-destructive hover:bg-destructive/10"
+                                            title="Delete"
+                                          >
+                                            <Trash2 className="h-3 w-3" />
                                           </Button>
                                         </AlertDialogTrigger>
                                         <AlertDialogContent>
@@ -1707,32 +1707,38 @@ export default function Templates() {
                       <h3 className="text-lg font-semibold mb-3 text-foreground">{serviceType.name} Questions</h3>
                       <DndContext sensors={sensors} collisionDetection={closestCenter} onDragEnd={handleDragEndQualifications}>
                         <SortableContext items={typeQuestions.map(q => q.id)} strategy={verticalListSortingStrategy}>
-                          <div className="space-y-3">
+                          <div className="space-y-2">
                             {typeQuestions.map((question) => (
                               <SortableItem key={question.id} id={question.id}>
-                                <Card>
-                                  <CardHeader>
-                                    <div className="flex items-start gap-4 justify-between">
-                                      <div className="flex items-start gap-3 flex-1">
-                                        <div className="h-12 w-12 rounded-lg bg-muted border border-border flex-shrink-0 flex items-center justify-center">
-                                          <ClipboardCheck className="h-5 w-5 text-muted-foreground" />
+                                <Card className="group transition-all duration-200 hover:shadow-sm hover:border-primary/20">
+                                  <CardHeader className="py-3 px-4">
+                                    <div className="flex items-center justify-between gap-4">
+                                      <div className="flex items-center gap-3 flex-1 min-w-0">
+                                        <GripVertical className="h-4 w-4 text-muted-foreground/50 flex-shrink-0" />
+                                        <div className="h-8 w-8 rounded-md bg-gradient-to-br from-primary/10 to-primary/5 flex items-center justify-center flex-shrink-0">
+                                          <ClipboardCheck className="h-4 w-4 text-primary/70" />
                                         </div>
-                                        <div className="flex-1 min-w-0">
-                                          <CardTitle className="text-lg">{question.question}</CardTitle>
-                                        </div>
+                                        <CardTitle className="text-sm font-medium leading-tight truncate">{question.question}</CardTitle>
                                       </div>
-                                      <div className="flex gap-2 flex-shrink-0">
+                                      <div className="flex gap-1 flex-shrink-0">
                                         <Button
                                           variant="ghost"
-                                          size="icon"
+                                          size="sm"
                                           onClick={() => handleEditQualification(question)}
+                                          className="h-7 px-2 hover:bg-primary/10 hover:text-primary"
+                                          title="Edit"
                                         >
-                                          <Edit2 className="h-4 w-4" />
+                                          <Edit2 className="h-3 w-3" />
                                         </Button>
                                         <AlertDialog>
                                           <AlertDialogTrigger asChild>
-                                            <Button variant="ghost" size="icon" className="text-destructive flex-shrink-0">
-                                              <Trash2 className="h-4 w-4" />
+                                            <Button 
+                                              variant="ghost" 
+                                              size="sm" 
+                                              className="h-7 px-2 text-destructive hover:text-destructive hover:bg-destructive/10"
+                                              title="Delete"
+                                            >
+                                              <Trash2 className="h-3 w-3" />
                                             </Button>
                                           </AlertDialogTrigger>
                                           <AlertDialogContent>
