@@ -1,9 +1,11 @@
 import { useEffect, useState, useMemo, useCallback } from "react";
 import { Link, useNavigate } from "react-router-dom";
-import { Plus, FileText, Calendar, Search, Settings, Trash2, LogOut, User as UserIcon, Users, Wand2, Archive, ArchiveRestore, GraduationCap, Building2 } from "lucide-react";
+import { Plus, FileText, Calendar, Search, Settings, Trash2, LogOut, User as UserIcon, Users, Wand2, Archive, ArchiveRestore, GraduationCap, Building2, List, Grid3x3, ArrowUpDown } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
+import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
+import { Badge } from "@/components/ui/badge";
 import {
   AlertDialog,
   AlertDialogAction,
@@ -100,6 +102,8 @@ export default function Dashboard() {
   const [user, setUser] = useState<User | null>(null);
   const [profile, setProfile] = useState<{ display_name?: string; avatar_url?: string; company_logo_url?: string } | null>(null);
   const [viewMode, setViewMode] = useState<'live' | 'archived'>('live');
+  const [displayMode, setDisplayMode] = useState<'grid' | 'list'>('grid');
+  const [sortBy, setSortBy] = useState<'name' | 'date' | 'service'>('name');
   const [logoSettingsOpen, setLogoSettingsOpen] = useState(false);
   const { toast } = useToast();
 
@@ -333,15 +337,16 @@ export default function Dashboard() {
 
   // Optimized: Memoize filtered clients to prevent re-filtering on every render
   const filteredClients = useMemo(() => {
+    let filtered: ClientWithScripts[];
+    
     if (!debouncedSearch) {
       // Filter by view mode (live vs archived)
-      return clients.filter(client => 
+      filtered = clients.filter(client => 
         viewMode === 'live' ? !client.archived : client.archived
       );
-    }
-    
-    const query = debouncedSearch.toLowerCase();
-    return clients.filter((client) => {
+    } else {
+      const query = debouncedSearch.toLowerCase();
+      filtered = clients.filter((client) => {
       const matchesSearch = 
         client.name.toLowerCase().includes(query) ||
         (client.business_name && client.business_name.toLowerCase().includes(query)) ||
@@ -352,8 +357,23 @@ export default function Dashboard() {
       const matchesViewMode = viewMode === 'live' ? !client.archived : client.archived;
       
       return matchesSearch && matchesViewMode;
+      });
+    }
+
+    // Sort the filtered clients
+    return filtered.sort((a, b) => {
+      switch (sortBy) {
+        case 'name':
+          return a.name.localeCompare(b.name);
+        case 'date':
+          return new Date(b.created_at).getTime() - new Date(a.created_at).getTime();
+        case 'service':
+          return a.service_type.localeCompare(b.service_type);
+        default:
+          return 0;
+      }
     });
-  }, [clients, debouncedSearch, viewMode]);
+  }, [clients, debouncedSearch, viewMode, sortBy]);
 
   const handleArchiveToggle = useCallback(async (clientId: string, currentlyArchived: boolean) => {
     try {
@@ -579,15 +599,58 @@ export default function Dashboard() {
         {/* Search Bar */}
         {!loading && clients.length > 0 && (
           <div className="mb-6 sm:mb-8">
-            <div className="relative max-w-md">
-              <Search className="absolute left-3 sm:left-4 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
-              <Input
-                type="text"
-                placeholder="Search companies..."
-                value={searchQuery}
-                onChange={(e) => setSearchQuery(e.target.value)}
-                className="pl-10 sm:pl-11 h-10 sm:h-12 bg-card shadow-sm border-border/50 focus:border-primary/50 transition-colors text-sm sm:text-base"
-              />
+            <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-3">
+              <div className="relative flex-1 max-w-md">
+                <Search className="absolute left-3 sm:left-4 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+                <Input
+                  type="text"
+                  placeholder="Search companies..."
+                  value={searchQuery}
+                  onChange={(e) => setSearchQuery(e.target.value)}
+                  className="pl-10 sm:pl-11 h-10 sm:h-12 bg-card shadow-sm border-border/50 focus:border-primary/50 transition-colors text-sm sm:text-base"
+                />
+              </div>
+              
+              <div className="flex items-center gap-2">
+                <DropdownMenu>
+                  <DropdownMenuTrigger asChild>
+                    <Button variant="outline" size="sm" className="h-10 sm:h-12 shadow-sm">
+                      <ArrowUpDown className="h-4 w-4 mr-2" />
+                      Sort
+                    </Button>
+                  </DropdownMenuTrigger>
+                  <DropdownMenuContent align="end">
+                    <DropdownMenuItem onClick={() => setSortBy('name')}>
+                      By Name {sortBy === 'name' && '✓'}
+                    </DropdownMenuItem>
+                    <DropdownMenuItem onClick={() => setSortBy('date')}>
+                      By Date {sortBy === 'date' && '✓'}
+                    </DropdownMenuItem>
+                    <DropdownMenuItem onClick={() => setSortBy('service')}>
+                      By Service {sortBy === 'service' && '✓'}
+                    </DropdownMenuItem>
+                  </DropdownMenuContent>
+                </DropdownMenu>
+
+                <div className="flex border rounded-md shadow-sm">
+                  <Button
+                    variant={displayMode === 'grid' ? 'default' : 'ghost'}
+                    size="sm"
+                    onClick={() => setDisplayMode('grid')}
+                    className="rounded-r-none h-10 sm:h-12"
+                  >
+                    <Grid3x3 className="h-4 w-4" />
+                  </Button>
+                  <Button
+                    variant={displayMode === 'list' ? 'default' : 'ghost'}
+                    size="sm"
+                    onClick={() => setDisplayMode('list')}
+                    className="rounded-l-none h-10 sm:h-12"
+                  >
+                    <List className="h-4 w-4" />
+                  </Button>
+                </div>
+              </div>
             </div>
             {searchQuery && (
               <p className="text-xs sm:text-sm text-muted-foreground mt-2 sm:mt-3">
@@ -667,7 +730,7 @@ export default function Dashboard() {
               ) : null}
             </CardContent>
           </Card>
-        ) : (
+        ) : displayMode === 'grid' ? (
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
             {filteredClients.map((client) => (
               <Card 
@@ -791,6 +854,110 @@ export default function Dashboard() {
                 </CardContent>
               </Card>
             ))}
+          </div>
+        ) : (
+          <div className="border rounded-lg shadow-sm overflow-hidden">
+            <Table>
+              <TableHeader>
+                <TableRow>
+                  <TableHead className="w-[300px]">Company</TableHead>
+                  <TableHead>Service Type</TableHead>
+                  <TableHead>Location</TableHead>
+                  <TableHead className="w-[400px]">Scripts</TableHead>
+                  <TableHead className="w-[120px] text-right">Actions</TableHead>
+                </TableRow>
+              </TableHeader>
+              <TableBody>
+                {filteredClients.map((client) => (
+                  <TableRow 
+                    key={client.id} 
+                    className="cursor-pointer hover:bg-muted/50"
+                    onClick={() => navigate(`/client/${client.id}`)}
+                  >
+                    <TableCell>
+                      <div className="flex items-center gap-3">
+                        <div className="h-10 w-10 rounded-lg overflow-hidden bg-muted flex-shrink-0">
+                          <img 
+                            src={getClientLogo(client.service_type, client.logo_url)} 
+                            alt={`${client.name} logo`}
+                            className="h-full w-full object-cover"
+                          />
+                        </div>
+                        <div className="min-w-0">
+                          <div className="font-medium truncate">{client.business_name || client.name}</div>
+                          {client.owners_name && (
+                            <div className="text-sm text-muted-foreground truncate">{client.owners_name}</div>
+                          )}
+                        </div>
+                      </div>
+                    </TableCell>
+                    <TableCell>
+                      <Badge variant="secondary" className="whitespace-nowrap">{client.service_type}</Badge>
+                    </TableCell>
+                    <TableCell className="text-muted-foreground">{client.city || '—'}</TableCell>
+                    <TableCell>
+                      <div className="flex flex-wrap gap-1.5">
+                        {client.scripts.length > 0 ? (
+                          <>
+                            {client.scripts.slice(0, 4).map((script) => (
+                              <Badge 
+                                key={script.id} 
+                                variant="outline"
+                                className="cursor-pointer hover:bg-accent whitespace-nowrap"
+                                onClick={(e) => {
+                                  e.stopPropagation();
+                                  navigate(`/script/${script.id}`);
+                                }}
+                              >
+                                {script.service_name}
+                              </Badge>
+                            ))}
+                            {client.scripts.length > 4 && (
+                              <Badge variant="outline" className="whitespace-nowrap">
+                                +{client.scripts.length - 4} more
+                              </Badge>
+                            )}
+                          </>
+                        ) : (
+                          <span className="text-sm text-muted-foreground">No scripts</span>
+                        )}
+                      </div>
+                    </TableCell>
+                    <TableCell>
+                      <div className="flex items-center justify-end gap-1">
+                        <Button 
+                          variant="ghost" 
+                          size="sm"
+                          className="h-8 w-8 p-0"
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            handleArchiveToggle(client.id, client.archived || false);
+                          }}
+                          title={client.archived ? "Restore company" : "Archive company"}
+                        >
+                          {client.archived ? (
+                            <ArchiveRestore className="h-4 w-4" />
+                          ) : (
+                            <Archive className="h-4 w-4" />
+                          )}
+                        </Button>
+                        <Button
+                          variant="ghost"
+                          size="sm"
+                          className="h-8 w-8 p-0 hover:text-destructive"
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            openDeleteDialog(client.id, client.business_name || client.name);
+                          }}
+                        >
+                          <Trash2 className="h-4 w-4" />
+                        </Button>
+                      </div>
+                    </TableCell>
+                  </TableRow>
+                ))}
+              </TableBody>
+            </Table>
           </div>
         )}
       </div>
