@@ -72,7 +72,7 @@ export default function CallAgents() {
 
       // Get call agents
       const { data: agentsData, error } = await supabase
-        .from('call_agents')
+        .from('call_agents' as any)
         .select('*')
         .eq('organization_id', orgMember.organization_id)
         .order('name');
@@ -81,20 +81,20 @@ export default function CallAgents() {
 
       // Get client count for each agent
       const agentsWithCount = await Promise.all(
-        (agentsData || []).map(async (agent) => {
+        (agentsData || []).map(async (agent: any) => {
           const { count } = await supabase
-            .from('clients')
+            .from('clients' as any)
             .select('*', { count: 'exact', head: true })
             .eq('call_agent_id', agent.id);
 
           return {
             ...agent,
             client_count: count || 0,
-          };
+          } as CallAgent;
         })
       );
 
-      setAgents(agentsWithCount);
+      setAgents(agentsWithCount as CallAgent[]);
     } catch (error) {
       console.error('Error loading call agents:', error);
       toast({
@@ -125,7 +125,7 @@ export default function CallAgents() {
       if (editingAgent) {
         // Update existing agent
         const { error } = await supabase
-          .from('call_agents')
+          .from('call_agents' as any)
           .update({
             name: formData.name,
             email: formData.email || null,
@@ -142,7 +142,7 @@ export default function CallAgents() {
       } else {
         // Create new agent
         const { error } = await supabase
-          .from('call_agents')
+          .from('call_agents' as any)
           .insert({
             name: formData.name,
             email: formData.email || null,
@@ -187,7 +187,7 @@ export default function CallAgents() {
 
     try {
       const { error } = await supabase
-        .from('call_agents')
+        .from('call_agents' as any)
         .delete()
         .eq('id', agentToDelete.id);
 
@@ -237,14 +237,14 @@ export default function CallAgents() {
 
       // Get assigned clients
       const { data: assigned } = await supabase
-        .from('clients')
+        .from('clients' as any)
         .select('id, name, service_type, city')
         .eq('call_agent_id', agentId)
         .eq('archived', false)
         .order('name');
 
       // Get business names for assigned clients
-      const assignedIds = (assigned || []).map(c => c.id);
+      const assignedIds = (assigned || []).map((c: any) => c.id);
       const { data: assignedDetails } = await supabase
         .from('client_details')
         .select('client_id, field_value')
@@ -252,10 +252,10 @@ export default function CallAgents() {
         .in('client_id', assignedIds);
 
       const businessNamesMap = new Map(
-        (assignedDetails || []).map(d => [d.client_id, d.field_value])
+        (assignedDetails || []).map((d: any) => [d.client_id, d.field_value])
       );
 
-      const assignedWithNames = (assigned || []).map(c => ({
+      const assignedWithNames = (assigned || []).map((c: any) => ({
         ...c,
         business_name: businessNamesMap.get(c.id) || null,
       }));
@@ -264,7 +264,7 @@ export default function CallAgents() {
 
       // Get available (unassigned or assigned to other agents) clients
       const { data: available } = await supabase
-        .from('clients')
+        .from('clients' as any)
         .select('id, name, service_type, city')
         .eq('organization_id', orgMember.organization_id)
         .neq('call_agent_id', agentId)
@@ -272,7 +272,7 @@ export default function CallAgents() {
         .order('name');
 
       // Get business names for available clients
-      const availableIds = (available || []).map(c => c.id);
+      const availableIds = (available || []).map((c: any) => c.id);
       const { data: availableDetails } = await supabase
         .from('client_details')
         .select('client_id, field_value')
@@ -280,10 +280,10 @@ export default function CallAgents() {
         .in('client_id', availableIds);
 
       const availableBusinessNamesMap = new Map(
-        (availableDetails || []).map(d => [d.client_id, d.field_value])
+        (availableDetails || []).map((d: any) => [d.client_id, d.field_value])
       );
 
-      const availableWithNames = (available || []).map(c => ({
+      const availableWithNames = (available || []).map((c: any) => ({
         ...c,
         business_name: availableBusinessNamesMap.get(c.id) || null,
       }));
@@ -304,8 +304,8 @@ export default function CallAgents() {
 
     try {
       const { error } = await supabase
-        .from('clients')
-        .update({ call_agent_id: selectedAgentForAssignment.id })
+        .from('clients' as any)
+        .update({ call_agent_id: selectedAgentForAssignment.id } as any)
         .eq('id', selectedClientId);
 
       if (error) throw error;
@@ -333,8 +333,8 @@ export default function CallAgents() {
 
     try {
       const { error } = await supabase
-        .from('clients')
-        .update({ call_agent_id: null })
+        .from('clients' as any)
+        .update({ call_agent_id: null } as any)
         .eq('id', clientId);
 
       if (error) throw error;
