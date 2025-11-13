@@ -5,6 +5,7 @@ import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { supabase } from "@/integrations/supabase/client";
+import { logger } from "@/utils/logger";
 
 interface Client {
   id: string;
@@ -31,7 +32,7 @@ export function ClientSidebar() {
       .order("created_at", { ascending: false });
 
     if (error) {
-      console.error("Error loading clients:", error);
+      logger.error("Error loading clients:", error);
       return;
     }
 

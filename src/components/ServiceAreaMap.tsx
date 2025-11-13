@@ -253,7 +253,7 @@ export default function ServiceAreaMap({ city, serviceArea, address, radiusMiles
         });
       })
       .catch(error => {
-        console.error('Map initialization error:', error);
+        logger.error('Map initialization error:', error);
         setMapError(`Initialization failed: ${error.message}`);
         toast.error('Failed to initialize map. Please refresh the page.');
       });
@@ -348,7 +348,7 @@ export default function ServiceAreaMap({ city, serviceArea, address, radiusMiles
         toast.error('Address not found');
       }
     } catch (error) {
-      console.error('Error searching address:', error);
+      logger.error('Error searching address:', error);
       toast.error('Failed to search address');
     }
   };

@@ -6,6 +6,7 @@ import { Label } from "@/components/ui/label";
 import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
 import { Upload, X } from "lucide-react";
+import { logger } from "@/utils/logger";
 
 interface CompanyLogoSettingsProps {
   open: boolean;
@@ -79,7 +80,7 @@ export function CompanyLogoSettings({ open, onOpenChange, currentLogoUrl, onLogo
       onLogoUpdated();
       onOpenChange(false);
     } catch (error) {
-      console.error('Error updating logo:', error);
+      logger.error('Error updating logo:', error);
       toast({ title: "Error", description: "Failed to update company logo", variant: "destructive" });
     } finally {
       setUploading(false);
