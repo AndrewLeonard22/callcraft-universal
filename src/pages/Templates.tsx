@@ -1101,87 +1101,89 @@ export default function Templates() {
                     </div>
                     <DndContext sensors={sensors} collisionDetection={closestCenter} onDragEnd={handleDragEndTemplates}>
                       <SortableContext items={serviceTemplates.map(t => t.id)} strategy={verticalListSortingStrategy}>
-                        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+                        <div className="space-y-2">
                           {serviceTemplates.map((template) => (
                             <SortableItem key={template.id} id={template.id}>
-                              <Card className="group h-full flex flex-col transition-all duration-200 hover:shadow-md hover:border-primary/30 hover:-translate-y-0.5">
-                                <CardHeader className="pb-3">
-                                  <div className="flex items-start gap-3 mb-3">
-                                    <div className="h-12 w-12 rounded-lg bg-gradient-to-br from-primary/10 to-primary/5 border border-border/60 overflow-hidden flex-shrink-0 flex items-center justify-center transition-transform duration-200 group-hover:scale-105">
-                                      {template.image_url ? (
-                                        <img src={template.image_url} alt="Template preview" className="h-full w-full object-cover" onError={(e) => { (e.currentTarget as HTMLImageElement).src = '/placeholder.svg'; }} />
-                                      ) : (
-                                        <FileText className="h-5 w-5 text-primary/70" />
-                                      )}
+                              <Card className="group transition-all duration-200 hover:shadow-sm hover:border-primary/20">
+                                <CardHeader className="py-3 px-4">
+                                  <div className="flex items-center justify-between gap-4">
+                                    <div className="flex items-center gap-3 flex-1 min-w-0">
+                                      <GripVertical className="h-4 w-4 text-muted-foreground/50 flex-shrink-0" />
+                                      <div className="h-8 w-8 rounded-md bg-gradient-to-br from-primary/10 to-primary/5 flex items-center justify-center flex-shrink-0">
+                                        {template.image_url ? (
+                                          <img src={template.image_url} alt="" className="h-full w-full object-cover rounded-md" onError={(e) => { (e.currentTarget as HTMLImageElement).src = '/placeholder.svg'; }} />
+                                        ) : (
+                                          <FileText className="h-4 w-4 text-primary/70" />
+                                        )}
+                                      </div>
+                                      <CardTitle className="text-sm font-medium leading-tight truncate">
+                                        {template.service_name}
+                                      </CardTitle>
                                     </div>
-                                    <div className="flex-1 min-w-0">
-                                      <CardTitle className="text-base leading-tight line-clamp-2">{template.service_name}</CardTitle>
+                                    <div className="flex gap-1 flex-shrink-0">
+                                      <Button
+                                        variant="ghost"
+                                        size="sm"
+                                        onClick={() => handleDuplicate(template)}
+                                        className="h-7 px-2 hover:bg-primary/10 hover:text-primary"
+                                        title="Duplicate"
+                                      >
+                                        <Copy className="h-3 w-3" />
+                                      </Button>
+                                      <Button
+                                        variant="ghost"
+                                        size="sm"
+                                        onClick={() => handleEdit(template)}
+                                        className="h-7 px-2 hover:bg-primary/10 hover:text-primary"
+                                        title="Edit"
+                                      >
+                                        <Edit2 className="h-3 w-3" />
+                                      </Button>
+                                      <AlertDialog>
+                                        <AlertDialogTrigger asChild>
+                                          <Button 
+                                            variant="ghost" 
+                                            size="sm" 
+                                            className="h-7 px-2 text-destructive hover:text-destructive hover:bg-destructive/10"
+                                            title="Delete"
+                                          >
+                                            <Trash2 className="h-3 w-3" />
+                                          </Button>
+                                        </AlertDialogTrigger>
+                                        <AlertDialogContent>
+                                          <AlertDialogHeader>
+                                            <AlertDialogTitle>Delete Template?</AlertDialogTitle>
+                                            <AlertDialogDescription>
+                                              This will permanently delete the "{template.service_name}" template. This action cannot be undone.
+                                            </AlertDialogDescription>
+                                          </AlertDialogHeader>
+                                          <AlertDialogFooter>
+                                            <AlertDialogCancel>Cancel</AlertDialogCancel>
+                                            <AlertDialogAction
+                                              onClick={() => handleDelete(template.id)}
+                                              className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
+                                            >
+                                              Delete
+                                            </AlertDialogAction>
+                                          </AlertDialogFooter>
+                                        </AlertDialogContent>
+                                      </AlertDialog>
                                     </div>
-                                   </div>
-                                   <div className="flex gap-1 justify-end pt-2 border-t border-border/60">
-                                     <Button
-                                       variant="ghost"
-                                       size="icon"
-                                       className="h-8 w-8 hover:bg-primary/10 hover:text-primary transition-colors"
-                                       onClick={() => handleDuplicate(template)}
-                                       title="Duplicate template"
-                                     >
-                                       <Copy className="h-3.5 w-3.5" />
-                                     </Button>
-                                     <Button
-                                       variant="ghost"
-                                       size="icon"
-                                       className="h-8 w-8 hover:bg-primary/10 hover:text-primary transition-colors"
-                                       onClick={() => handleEdit(template)}
-                                       title="Edit template"
-                                     >
-                                       <Edit2 className="h-3.5 w-3.5" />
-                                     </Button>
-                                     <AlertDialog>
-                                       <AlertDialogTrigger asChild>
-                                         <Button 
-                                           variant="ghost" 
-                                           size="icon" 
-                                           className="h-8 w-8 text-destructive"
-                                           title="Delete template"
-                                         >
-                                           <Trash2 className="h-3.5 w-3.5" />
-                                         </Button>
-                                       </AlertDialogTrigger>
-                                       <AlertDialogContent>
-                                         <AlertDialogHeader>
-                                           <AlertDialogTitle>Delete Template?</AlertDialogTitle>
-                                           <AlertDialogDescription>
-                                             This will permanently delete the "{template.service_name}" template.
-                                             This action cannot be undone.
-                                           </AlertDialogDescription>
-                                         </AlertDialogHeader>
-                                         <AlertDialogFooter>
-                                           <AlertDialogCancel>Cancel</AlertDialogCancel>
-                                           <AlertDialogAction
-                                             onClick={() => handleDelete(template.id)}
-                                             className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
-                                           >
-                                             Delete
-                                           </AlertDialogAction>
-                                         </AlertDialogFooter>
-                                       </AlertDialogContent>
-                                     </AlertDialog>
-                                   </div>
-                                 </CardHeader>
+                                  </div>
+                                </CardHeader>
                               </Card>
                             </SortableItem>
                           ))}
                         </div>
                       </SortableContext>
-                    </DndContext>
+                     </DndContext>
                   </div>
                 );
               });
             })()}
           </div>
         )}
-          </TabsContent>
+      </TabsContent>
 
           <TabsContent value="objections" className="space-y-6">
             <div className="flex justify-end">
