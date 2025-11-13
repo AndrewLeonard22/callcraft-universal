@@ -267,7 +267,7 @@ export default function CallAgents() {
         .from('clients' as any)
         .select('id, name, service_type, city')
         .eq('organization_id', orgMember.organization_id)
-        .neq('call_agent_id', agentId)
+        .or(`call_agent_id.is.null,call_agent_id.neq.${agentId}`)
         .eq('archived', false)
         .order('name');
 
