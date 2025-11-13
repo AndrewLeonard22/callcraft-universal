@@ -219,6 +219,10 @@ export default function Training() {
     }
   };
 
+  const shuffleQuestions = () => {
+    setQuestions(prev => [...prev].sort(() => Math.random() - 0.5));
+  };
+
   const loadCallAgents = async () => {
     try {
       const { data, error } = await (supabase as any)
@@ -344,6 +348,29 @@ export default function Training() {
     setIncorrectAnswers(new Set());
     setQuizCompleted(false);
     setSelectedAgentId("");
+    shuffleQuestions(); // Re-shuffle on restart
+  };
+
+  const handleDeleteScore = async (scoreId: string) => {
+    if (!confirm("Delete this score from the leaderboard?")) return;
+    
+    try {
+      const { error } = await (supabase as any)
+        .from("quiz_scores")
+        .delete()
+        .eq("id", scoreId);
+
+      if (error) throw error;
+      toast({ title: "Score deleted" });
+      loadScoreboard();
+    } catch (error) {
+      console.error("Error deleting score:", error);
+      toast({
+        title: "Error",
+        description: "Failed to delete score",
+        variant: "destructive",
+      });
+    }
   };
 
   const handleSaveQuestion = async () => {
@@ -951,11 +978,21 @@ export default function Training() {
                                 </div>
                               </div>
                             </div>
-                            <div className="text-right">
-                              <div className="font-bold">{score.score}/{score.total_questions}</div>
-                              <div className="text-sm text-muted-foreground">
-                                {Math.round((score.score / score.total_questions) * 100)}%
+                            <div className="flex items-center gap-3">
+                              <div className="text-right">
+                                <div className="font-bold">{score.score}/{score.total_questions}</div>
+                                <div className="text-sm text-muted-foreground">
+                                  {Math.round((score.score / score.total_questions) * 100)}%
+                                </div>
                               </div>
+                              <Button
+                                variant="ghost"
+                                size="sm"
+                                onClick={() => handleDeleteScore(score.id)}
+                                className="h-8 w-8 p-0"
+                              >
+                                <Trash2 className="h-4 w-4" />
+                              </Button>
                             </div>
                           </div>
                         ))}
