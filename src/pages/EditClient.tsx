@@ -44,10 +44,23 @@ export default function EditClient() {
   // Logo
   const [logoUrl, setLogoUrl] = useState("");
   const [uploading, setUploading] = useState(false);
+  
+  // Service Detail Fields
+  const [serviceDetailFields, setServiceDetailFields] = useState<Array<{
+    id: string;
+    field_name: string;
+    field_label: string;
+    field_type: string;
+    is_required: boolean;
+    placeholder?: string;
+    display_order: number;
+  }>>([]);
+  const [serviceFieldValues, setServiceFieldValues] = useState<Record<string, string>>({});
 
   useEffect(() => {
     if (clientId) {
       loadClientData();
+      loadServiceDetailFields();
 
       // Set up real-time subscriptions
       const clientChannel = supabase
@@ -89,6 +102,11 @@ export default function EditClient() {
       setClientName(clientResult.data.name);
       setServiceType(clientResult.data.service_type);
       setCity(clientResult.data.city || "");
+      
+      // Load service detail fields when service type is available
+      if (clientResult.data.service_type) {
+        await loadServiceDetailFields();
+      }
       if (detailsResult.data) {
         const detailsMap = new Map(
           detailsResult.data.map(d => [d.field_name, d.field_value || ""])
@@ -109,6 +127,18 @@ export default function EditClient() {
         setRescheduleCalendar(detailsMap.get("reschedule_calendar") || "");
         setServiceRadiusMiles(detailsMap.get("service_radius_miles") || "");
         setLogoUrl(detailsMap.get("logo_url") || "");
+        
+        // Load all service field values from client_details
+        const serviceFields: Record<string, string> = {};
+        detailsResult.data.forEach(detail => {
+          if (!["business_name", "owners_name", "sales_rep_name", "sales_rep_phone", 
+                "address", "services_offered", "other_key_info", "service_radius_miles",
+                "website", "facebook_page", "instagram", "crm_account_link", 
+                "appointment_calendar", "reschedule_calendar", "logo_url"].includes(detail.field_name)) {
+            serviceFields[detail.field_name] = detail.field_value || "";
+          }
+        });
+        setServiceFieldValues(serviceFields);
       }
     } catch (error) {
       console.error("Error loading client data:", error);
@@ -118,6 +148,42 @@ export default function EditClient() {
     }
   };
 
+  const loadServiceDetailFields = async () => {
+    try {
+      const { data: { user } } = await supabase.auth.getUser();
+      if (!user) return;
+
+      const { data: orgMember } = await supabase
+        .from('organization_members')
+        .select('organization_id')
+        .eq('user_id', user.id)
+        .maybeSingle();
+
+      if (!orgMember?.organization_id) return;
+
+      // First get the service type ID from the service type name
+      const { data: serviceTypeData } = await supabase
+        .from('service_types')
+        .select('id')
+        .eq('name', serviceType)
+        .eq('organization_id', orgMember.organization_id)
+        .maybeSingle();
+
+      if (!serviceTypeData) return;
+
+      const { data: fields, error } = await supabase
+        .from("service_detail_fields")
+        .select("*")
+        .eq("service_type_id", serviceTypeData.id)
+        .eq("organization_id", orgMember.organization_id)
+        .order("display_order", { ascending: true });
+
+      if (error) throw error;
+      setServiceDetailFields(fields || []);
+    } catch (error) {
+      console.error("Error loading service detail fields:", error);
+    }
+  };
 
   const handleLogoUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
@@ -207,6 +273,7 @@ export default function EditClient() {
         "appointment_calendar",
         "reschedule_calendar",
         "service_radius_miles",
+        ...serviceDetailFields.map(f => f.field_name), // Include service field names
       ];
       await supabase
         .from("client_details")
@@ -275,6 +342,18 @@ export default function EditClient() {
           field_value: String(radiusNumber),
         });
       }
+
+      // Add service detail field values
+      serviceDetailFields.forEach(field => {
+        const value = serviceFieldValues[field.field_name];
+        if (value) {
+          detailsArray.push({
+            client_id: clientId as string,
+            field_name: field.field_name,
+            field_value: value,
+          });
+        }
+      });
 
       if (detailsArray.length > 0) {
         const { error: detailsError } = await supabase
@@ -413,8 +492,9 @@ export default function EditClient() {
             </CardHeader>
             <CardContent>
               <Tabs defaultValue="business" className="w-full">
-                <TabsList className="grid w-full grid-cols-2 mb-4">
+                <TabsList className="grid w-full grid-cols-3 mb-4">
                   <TabsTrigger value="business">Business Info</TabsTrigger>
+                  <TabsTrigger value="service-details">Service Details</TabsTrigger>
                   <TabsTrigger value="links">Links</TabsTrigger>
                 </TabsList>
                 
@@ -490,6 +570,51 @@ export default function EditClient() {
                   </div>
                 </TabsContent>
 
+                <TabsContent value="service-details">
+                  <div className="space-y-4">
+                    {serviceDetailFields.length === 0 ? (
+                      <p className="text-muted-foreground">
+                        No custom service fields defined for {serviceType}. 
+                        <Link to="/service-types" className="text-primary hover:underline ml-1">
+                          Add custom fields in Service Types
+                        </Link>
+                      </p>
+                    ) : (
+                      serviceDetailFields.map((field) => (
+                        <div key={field.id}>
+                          <Label htmlFor={field.field_name}>
+                            {field.field_label}
+                            {field.is_required && <span className="text-destructive ml-1">*</span>}
+                          </Label>
+                          {field.field_type === "textarea" ? (
+                            <Textarea
+                              id={field.field_name}
+                              placeholder={field.placeholder || ""}
+                              value={serviceFieldValues[field.field_name] || ""}
+                              onChange={(e) => setServiceFieldValues(prev => ({
+                                ...prev,
+                                [field.field_name]: e.target.value
+                              }))}
+                              rows={4}
+                            />
+                          ) : (
+                            <Input
+                              id={field.field_name}
+                              type={field.field_type}
+                              placeholder={field.placeholder || ""}
+                              value={serviceFieldValues[field.field_name] || ""}
+                              onChange={(e) => setServiceFieldValues(prev => ({
+                                ...prev,
+                                [field.field_name]: e.target.value
+                              }))}
+                            />
+                          )}
+                        </div>
+                      ))
+                    )}
+                  </div>
+                </TabsContent>
+                
                 <TabsContent value="links">
                   <div className="space-y-4">
                     <div>
