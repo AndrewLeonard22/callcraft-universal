@@ -221,7 +221,7 @@ export default function Training() {
 
   const loadCallAgents = async () => {
     try {
-      const { data, error } = await supabase
+      const { data, error } = await (supabase as any)
         .from("call_agents")
         .select("*")
         .eq("organization_id", organizationId)
@@ -236,7 +236,7 @@ export default function Training() {
 
   const loadScoreboard = async () => {
     try {
-      const { data, error } = await supabase
+      const { data, error } = await (supabase as any)
         .from("quiz_scores")
         .select(`
           *,
@@ -248,7 +248,9 @@ export default function Training() {
         .limit(10);
 
       if (error) throw error;
-      setScoreboard(data || []);
+      // Filter out entries without call agents
+      const filteredData = (data || []).filter((score: any) => score.call_agents?.name);
+      setScoreboard(filteredData);
     } catch (error) {
       console.error("Error loading scoreboard:", error);
     }
@@ -309,7 +311,7 @@ export default function Training() {
       const { data: { user } } = await supabase.auth.getUser();
       if (!user || !organizationId) return;
 
-      const { error } = await supabase.from("quiz_scores").insert({
+      const { error } = await (supabase as any).from("quiz_scores").insert({
         user_id: user.id,
         organization_id: organizationId,
         call_agent_id: selectedAgentId,
@@ -663,23 +665,13 @@ export default function Training() {
           </TabsContent>
 
           <TabsContent value="flashcards" className="mt-0">
-            <div className="flex justify-between items-center mb-6">
+            <div className="mb-6">
               <div>
                 <h3 className="text-2xl font-bold mb-1">Quiz Mode</h3>
                 <p className="text-sm text-muted-foreground">
                   Practice with flashcards to master your knowledge
                 </p>
               </div>
-              <Button
-                onClick={() => {
-                  setEditingQuestion(null);
-                  setQuestionForm({ question: "", answer: "" });
-                  setQuestionDialogOpen(true);
-                }}
-              >
-                <Plus className="mr-2 h-4 w-4" />
-                Add Question
-              </Button>
             </div>
 
             {questions.length === 0 ? (
