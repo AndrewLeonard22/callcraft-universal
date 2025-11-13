@@ -9,6 +9,7 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Textarea } from "@/components/ui/textarea";
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Label } from "@/components/ui/label";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
 import socialWorksLogo from "@/assets/social-works-logo.png";
@@ -69,6 +70,13 @@ interface TrainingQuestion {
   display_order: number;
 }
 
+interface CallAgent {
+  id: string;
+  name: string;
+  email: string | null;
+  phone: string | null;
+}
+
 export default function Training() {
   const [modules, setModules] = useState<TrainingModule[]>([]);
   const [loading, setLoading] = useState(true);
@@ -84,6 +92,8 @@ export default function Training() {
   const [incorrectAnswers, setIncorrectAnswers] = useState<Set<string>>(new Set());
   const [quizCompleted, setQuizCompleted] = useState(false);
   const [scoreboard, setScoreboard] = useState<any[]>([]);
+  const [callAgents, setCallAgents] = useState<CallAgent[]>([]);
+  const [selectedAgentId, setSelectedAgentId] = useState<string>("");
   const { toast } = useToast();
 
   useEffect(() => {
@@ -95,6 +105,7 @@ export default function Training() {
       loadModules();
       loadQuestions();
       loadScoreboard();
+      loadCallAgents();
     }
   }, [organizationId]);
 
@@ -208,13 +219,28 @@ export default function Training() {
     }
   };
 
+  const loadCallAgents = async () => {
+    try {
+      const { data, error } = await supabase
+        .from("call_agents")
+        .select("*")
+        .eq("organization_id", organizationId)
+        .order("name");
+
+      if (error) throw error;
+      setCallAgents(data || []);
+    } catch (error) {
+      console.error("Error loading call agents:", error);
+    }
+  };
+
   const loadScoreboard = async () => {
     try {
       const { data, error } = await supabase
         .from("quiz_scores")
         .select(`
           *,
-          profiles!quiz_scores_user_id_fkey(display_name, username)
+          call_agents(name)
         `)
         .eq("organization_id", organizationId)
         .order("score", { ascending: false })
@@ -267,6 +293,15 @@ export default function Training() {
   };
 
   const handleCompleteQuiz = async () => {
+    if (!selectedAgentId) {
+      toast({
+        title: "Agent Required",
+        description: "Please select which agent is taking the quiz",
+        variant: "destructive",
+      });
+      return;
+    }
+
     const score = correctAnswers.size;
     const total = questions.length;
 
@@ -277,6 +312,7 @@ export default function Training() {
       const { error } = await supabase.from("quiz_scores").insert({
         user_id: user.id,
         organization_id: organizationId,
+        call_agent_id: selectedAgentId,
         score,
         total_questions: total,
       });
@@ -305,6 +341,7 @@ export default function Training() {
     setCorrectAnswers(new Set());
     setIncorrectAnswers(new Set());
     setQuizCompleted(false);
+    setSelectedAgentId("");
   };
 
   const handleSaveQuestion = async () => {
@@ -671,6 +708,32 @@ export default function Training() {
               <div className="space-y-6">
                 {!quizCompleted ? (
                   <>
+                    {/* Agent Selection */}
+                    <Card className="max-w-4xl mx-auto">
+                      <CardContent className="pt-6">
+                        <div className="space-y-2">
+                          <Label htmlFor="agent-select">Select Agent Taking Quiz</Label>
+                          <Select value={selectedAgentId} onValueChange={setSelectedAgentId}>
+                            <SelectTrigger id="agent-select">
+                              <SelectValue placeholder="Choose an agent..." />
+                            </SelectTrigger>
+                            <SelectContent>
+                              {callAgents.map((agent) => (
+                                <SelectItem key={agent.id} value={agent.id}>
+                                  {agent.name}
+                                </SelectItem>
+                              ))}
+                            </SelectContent>
+                          </Select>
+                          {!selectedAgentId && (
+                            <p className="text-sm text-muted-foreground">
+                              Please select an agent to track their quiz performance
+                            </p>
+                          )}
+                        </div>
+                      </CardContent>
+                    </Card>
+
                     {/* Flashcard Section */}
                     <div className="max-w-4xl mx-auto space-y-6">
                       {/* Progress Bar */}
@@ -889,7 +952,7 @@ export default function Training() {
                               </div>
                               <div>
                                 <div className="font-medium">
-                                  {score.profiles?.display_name || score.profiles?.username || 'Anonymous'}
+                                  {score.call_agents?.name || 'Unknown Agent'}
                                 </div>
                                 <div className="text-sm text-muted-foreground">
                                   {new Date(score.completed_at).toLocaleDateString()}
