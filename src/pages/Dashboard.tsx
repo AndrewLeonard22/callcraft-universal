@@ -460,8 +460,8 @@ export default function Dashboard() {
             <div className="flex items-center gap-2 sm:gap-4 min-w-0">
               <img 
                 src={profile?.company_logo_url || agentIqLogo} 
-                alt="Company Logo" 
-                className="h-8 sm:h-10 w-auto flex-shrink-0"
+                alt="Agent IQ" 
+                className="h-12 sm:h-16 w-auto flex-shrink-0"
               />
               <div className="h-6 sm:h-8 w-px bg-border/50 hidden sm:block" />
               <div className="min-w-0">

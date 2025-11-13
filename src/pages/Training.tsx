@@ -476,7 +476,7 @@ export default function Training() {
         <div className="container mx-auto px-4 sm:px-6 py-3 max-w-7xl">
           <div className="flex items-center justify-between">
             <div className="flex items-center gap-3">
-              <img src={agentIqLogo} alt="Agent IQ" className="h-8 w-auto" />
+              <img src={agentIqLogo} alt="Agent IQ" className="h-12 sm:h-14 w-auto" />
               <div className="h-6 w-px bg-border/50" />
               <div className="flex items-center gap-2">
                 <div className="p-1.5 bg-primary/10 rounded-lg">
