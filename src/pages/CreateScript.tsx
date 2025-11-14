@@ -100,7 +100,7 @@ export default function CreateScript() {
       if (clientError) throw clientError;
       setClient(clientData);
     } catch (error) {
-      console.error("Error loading data:", error);
+      logger.error("Error loading data:", error);
       toast.error("Failed to load client data");
     }
   };
@@ -129,7 +129,7 @@ export default function CreateScript() {
       if (error) throw error;
       setTemplates(data || []);
     } catch (error) {
-      console.error("Error loading templates:", error);
+      logger.error("Error loading templates:", error);
       toast.error("Failed to load templates");
     }
   };
@@ -144,7 +144,7 @@ export default function CreateScript() {
       if (error) throw error;
       setServiceTypes(data || []);
     } catch (error) {
-      console.error("Error loading service types:", error);
+      logger.error("Error loading service types:", error);
       toast.error("Failed to load service types");
     }
   };
@@ -179,7 +179,7 @@ export default function CreateScript() {
       });
       setFieldValues(initialValues);
     } catch (error) {
-      console.error("Error loading service detail fields:", error);
+      logger.error("Error loading service detail fields:", error);
     }
   };
 
@@ -203,6 +203,25 @@ export default function CreateScript() {
       return;
     }
 
+    // Check if all required fields are filled
+    const missingFields = serviceDetailFields
+      .filter(field => field.is_required && !fieldValues[field.field_name]?.trim())
+      .map(field => field.field_label);
+
+    if (missingFields.length > 0) {
+      toast.error(`Please fill in required fields: ${missingFields.join(", ")}`);
+      return;
+    }
+
+    // Validate field lengths
+    for (const [fieldName, value] of Object.entries(fieldValues)) {
+      if (value && value.length > 5000) {
+        const field = serviceDetailFields.find(f => f.field_name === fieldName);
+        toast.error(`${field?.field_label || fieldName} is too long (max 5000 characters)`);
+        return;
+      }
+    }
+
     setLoading(true);
     try {
       // CRITICAL: Always fetch the absolute LATEST template directly from database
@@ -218,7 +237,7 @@ export default function CreateScript() {
 
       if (templateError || !freshTemplate) {
         toast.error("Failed to load template. Please try again.");
-        console.error("Template fetch error:", templateError);
+        logger.error("Template fetch error:", templateError);
         setLoading(false);
         return;
       }
@@ -294,7 +313,7 @@ export default function CreateScript() {
       toast.success("Script generated successfully!");
       navigate(`/client/${clientId}`);
     } catch (error: any) {
-      console.error("Error generating script:", error);
+      logger.error("Error generating script:", error);
       toast.error(error.message || "Failed to generate script");
     } finally {
       setLoading(false);

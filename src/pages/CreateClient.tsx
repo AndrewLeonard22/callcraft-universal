@@ -60,9 +60,19 @@ export default function CreateClient() {
       toast.error("Please provide a business name");
       return;
     }
+
+    if (businessName.length > 200) {
+      toast.error("Business name must be less than 200 characters");
+      return;
+    }
     
     if (!serviceArea.trim()) {
       toast.error("Please provide a service area");
+      return;
+    }
+
+    if (serviceArea.length > 500) {
+      toast.error("Service area description is too long (max 500 characters)");
       return;
     }
 
