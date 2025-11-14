@@ -136,3 +136,5 @@ function HtmlPreviewFrame({ html, className }: HtmlPreviewFrameProps) {
     />
   );
 }
+
+export default HtmlPreviewFrame;
