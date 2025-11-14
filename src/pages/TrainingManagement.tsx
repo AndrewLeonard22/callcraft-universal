@@ -9,7 +9,7 @@ const MODULE_TYPES = [
     label: 'Pricing', 
     icon: DollarSign,
     description: 'Pricing models, tiers, and payment options',
-    defaultSections: ['Overview', 'Packages & Tiers', 'Payment Options']
+    defaultSections: []
   },
   { 
     id: 'features_benefits', 
