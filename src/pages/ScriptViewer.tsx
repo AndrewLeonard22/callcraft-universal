@@ -12,12 +12,10 @@ import { toast } from "sonner";
 import ServiceAreaMap from "@/components/ServiceAreaMap";
 import OutdoorLivingCalculator from "@/components/OutdoorLivingCalculator";
 import { RichTextEditor } from "@/components/RichTextEditor";
-import HtmlPreviewFrame from "@/components/HtmlPreviewFrame";
-import logoDefault from "@/assets/logo-default.png";
-import logoPergola from "@/assets/logo-pergola.png";
-import logoHvac from "@/assets/logo-hvac.png";
-import logoSolar from "@/assets/logo-solar.png";
-import logoLandscaping from "@/assets/logo-landscaping.png";
+import { FormattedScript } from "@/components/FormattedScript";
+import { ScriptActions } from "@/components/ScriptActions";
+import { getClientLogo, safeUrl } from "@/utils/clientHelpers";
+import { logger } from "@/utils/logger";
 
 interface ClientData {
   id: string;
@@ -75,22 +73,6 @@ interface ServiceDetailField {
   placeholder?: string;
   display_order: number;
 }
-
-// Helper to get logo based on service type
-const getClientLogo = (serviceType: string, customLogoUrl?: string): string => {
-  // If custom logo exists, use it
-  if (customLogoUrl) return customLogoUrl;
-  
-  // Otherwise fall back to default logos based on service type
-  const type = serviceType.toLowerCase();
-  
-  if (type.includes("pergola")) return logoPergola;
-  if (type.includes("hvac") || type.includes("heating") || type.includes("cooling")) return logoHvac;
-  if (type.includes("solar") || type.includes("panel")) return logoSolar;
-  if (type.includes("landscape") || type.includes("lawn") || type.includes("garden")) return logoLandscaping;
-  
-  return logoDefault;
-};
 
 export default function ScriptViewer() {
   const { scriptId } = useParams();
@@ -188,12 +170,12 @@ export default function ScriptViewer() {
         .order("created_at", { ascending: false });
 
       if (error) {
-        console.error('Error loading FAQs:', error);
+        logger.error('Error loading FAQs:', error);
       } else {
         setFaqs(data || []);
       }
     } catch (error) {
-      console.error("Error loading FAQs:", error);
+      logger.error("Error loading FAQs:", error);
     }
   };
 
@@ -209,12 +191,12 @@ export default function ScriptViewer() {
         .order("display_order", { ascending: true });
 
       if (error) {
-        console.error('Error loading qualification questions:', error);
+        logger.error('Error loading qualification questions:', error);
       } else {
         setQualificationQuestions(data || []);
       }
     } catch (error) {
-      console.error("Error loading qualification questions:", error);
+      logger.error("Error loading qualification questions:", error);
     }
   };
 
@@ -309,7 +291,7 @@ export default function ScriptViewer() {
       // Reload the data
       loadClientData();
     } catch (error) {
-      console.error("Error saving service details:", error);
+      logger.error("Error saving service details:", error);
       toast.error("Failed to save service details");
     } finally {
       setSaving(false);
@@ -328,12 +310,12 @@ export default function ScriptViewer() {
         .order("display_order");
 
       if (error) {
-        console.error('Error loading service detail fields:', error);
+        logger.error('Error loading service detail fields:', error);
       } else {
         setServiceDetailFields(data || []);
       }
     } catch (error) {
-      console.error("Error loading service detail fields:", error);
+      logger.error("Error loading service detail fields:", error);
     }
   };
 
@@ -371,19 +353,19 @@ export default function ScriptViewer() {
         ]);
 
         if (faqResult.error) {
-          console.error('Error loading FAQs:', faqResult.error);
+          logger.error('Error loading FAQs:', faqResult.error);
         } else {
           setFaqs(faqResult.data || []);
         }
 
         if (qualQuestionsResult.error) {
-          console.error('Error loading qualification questions:', qualQuestionsResult.error);
+          logger.error('Error loading qualification questions:', qualQuestionsResult.error);
         } else {
           setQualificationQuestions(qualQuestionsResult.data || []);
         }
 
         if (qualResponsesResult.error) {
-          console.error('Error loading qualification responses:', qualResponsesResult.error);
+          logger.error('Error loading qualification responses:', qualResponsesResult.error);
         } else {
           const responsesMap: Record<string, QualificationResponse> = {};
           (qualResponsesResult.data || []).forEach((response: QualificationResponse) => {
@@ -404,7 +386,7 @@ export default function ScriptViewer() {
       setClient(clientResult.data);
       setDetails(detailsResult.data || []);
     } catch (error) {
-      console.error("Error loading client data:", error);
+      logger.error("Error loading client data:", error);
       toast.error("Failed to load client data");
     } finally {
       setLoading(false);
@@ -421,7 +403,7 @@ export default function ScriptViewer() {
       if (error) throw error;
       setObjectionTemplates(data || []);
     } catch (error) {
-      console.error("Error loading objection templates:", error);
+      logger.error("Error loading objection templates:", error);
     }
   };
 
@@ -484,7 +466,7 @@ export default function ScriptViewer() {
         }));
       }
     } catch (error) {
-      console.error("Error updating qualification check:", error);
+      logger.error("Error updating qualification check:", error);
       toast.error("Failed to update question status");
       // Revert on failure
       setQualificationResponses(prev => ({
@@ -553,7 +535,7 @@ export default function ScriptViewer() {
           }));
         }
       } catch (error) {
-        console.error("Error updating qualification response:", error);
+        logger.error("Error updating qualification response:", error);
       }
     }, 500);
   };
@@ -590,7 +572,7 @@ export default function ScriptViewer() {
       setIsEditing(false);
       toast.success("Script updated successfully!");
     } catch (error) {
-      console.error("Error saving script:", error);
+      logger.error("Error saving script:", error);
       toast.error("Failed to save script");
     } finally {
       setSaving(false);
@@ -658,7 +640,7 @@ export default function ScriptViewer() {
 
       toast.success("Summary generated successfully!");
     } catch (error) {
-      console.error("Error generating summary:", error);
+      logger.error("Error generating summary:", error);
       toast.error("Failed to generate summary");
     } finally {
       setGeneratingSummary(false);
@@ -794,259 +776,6 @@ export default function ScriptViewer() {
   const estimate = calculateEstimate();
   const autoCalcPrice = calculatedPricePerSqFt();
 
-  const FormattedScript = ({ content }: { content: string }) => {
-    // If content looks like HTML, render it EXACTLY as-is (no transforms)
-    const looksLikeHtml = /<[^>]+>/.test(content);
-    if (looksLikeHtml) {
-      console.info('[ScriptViewer] Rendering HTML content');
-      console.info('[ScriptViewer] tag counts', {
-        blockquote: (content.match(/<blockquote/gi) || []).length,
-        ul: (content.match(/<ul/gi) || []).length,
-        ol: (content.match(/<ol/gi) || []).length,
-        li: (content.match(/<li/gi) || []).length,
-        mark: (content.match(/<mark/gi) || []).length,
-      });
-      return (
-        <HtmlPreviewFrame html={content} />
-      );
-    }
-    
-    // Otherwise, use the marker-based formatting (backward compatibility)
-    const lines = content.split('\n');
-    
-    const formatLine = (text: string) => {
-      const parts: (string | JSX.Element)[] = [];
-      let remaining = text;
-      let key = 0;
-      
-      // Process the text to find and replace patterns
-      while (remaining.length > 0) {
-        let matched = false;
-
-        // Priority 1: Color formatting (most specific) - {red:text}
-        const colorMatch = remaining.match(/\{(red|blue|green|yellow|purple|orange):([^}]+)\}/);
-        if (colorMatch && colorMatch.index !== undefined) {
-          if (colorMatch.index > 0) {
-            parts.push(remaining.substring(0, colorMatch.index));
-          }
-          const colorClass = {
-            red: 'text-red-600 dark:text-red-400',
-            blue: 'text-blue-600 dark:text-blue-400',
-            green: 'text-green-600 dark:text-green-400',
-            yellow: 'text-yellow-600 dark:text-yellow-400',
-            purple: 'text-purple-600 dark:text-purple-400',
-            orange: 'text-orange-600 dark:text-orange-400',
-          }[colorMatch[1]];
-          parts.push(
-            <span key={`color-${key++}`} className={`${colorClass} font-medium`}>
-              {colorMatch[2]}
-            </span>
-          );
-          remaining = remaining.substring(colorMatch.index + colorMatch[0].length);
-          matched = true;
-        }
-        
-        if (!matched) {
-          // Priority 2: Large text - ^text^
-          const largeMatch = remaining.match(/\^([^^]+)\^/);
-          if (largeMatch && largeMatch.index !== undefined) {
-            if (largeMatch.index > 0) {
-              parts.push(remaining.substring(0, largeMatch.index));
-            }
-            parts.push(
-              <span key={`large-${key++}`} className="text-lg font-semibold">
-                {largeMatch[1]}
-              </span>
-            );
-            remaining = remaining.substring(largeMatch.index + largeMatch[0].length);
-            matched = true;
-          }
-        }
-        
-        if (!matched) {
-          // Priority 3: Small text - ~text~
-          const smallMatch = remaining.match(/~([^~]+)~/);
-          if (smallMatch && smallMatch.index !== undefined) {
-            if (smallMatch.index > 0) {
-              parts.push(remaining.substring(0, smallMatch.index));
-            }
-            parts.push(
-              <span key={`small-${key++}`} className="text-xs">
-                {smallMatch[1]}
-              </span>
-            );
-            remaining = remaining.substring(smallMatch.index + smallMatch[0].length);
-            matched = true;
-          }
-        }
-        
-        if (!matched) {
-          // Priority 4: Bracket highlights - [text]
-          const bracketMatch = remaining.match(/\[([^\]]+)\]/);
-          if (bracketMatch && bracketMatch.index !== undefined) {
-            if (bracketMatch.index > 0) {
-              parts.push(remaining.substring(0, bracketMatch.index));
-            }
-            parts.push(
-              <span key={`bracket-${key++}`} className="bg-yellow-500/20 text-yellow-700 dark:text-yellow-400 font-medium px-2 py-0.5 rounded">
-                {bracketMatch[1]}
-              </span>
-            );
-            remaining = remaining.substring(bracketMatch.index + bracketMatch[0].length);
-            matched = true;
-          }
-        }
-        
-        if (!matched) {
-          // Priority 5: Quote formatting - "text"
-          const quoteMatch = remaining.match(/"([^"]+)"/);
-          if (quoteMatch && quoteMatch.index !== undefined) {
-            if (quoteMatch.index > 0) {
-              parts.push(remaining.substring(0, quoteMatch.index));
-            }
-            parts.push(
-              <span key={`quote-${key++}`} className="bg-blue-500/20 text-blue-700 dark:text-blue-400 font-medium px-1.5 rounded italic">
-                "{quoteMatch[1]}"
-              </span>
-            );
-            remaining = remaining.substring(quoteMatch.index + quoteMatch[0].length);
-            matched = true;
-          }
-        }
-        
-        if (!matched) {
-          // Priority 6: Bold with ** (must check before single *)
-          const boldMatch = remaining.match(/\*\*([^*]+)\*\*/);
-          if (boldMatch && boldMatch.index !== undefined) {
-            if (boldMatch.index > 0) {
-              parts.push(remaining.substring(0, boldMatch.index));
-            }
-            parts.push(
-              <strong key={`bold-${key++}`} className="font-bold">
-                {boldMatch[1]}
-              </strong>
-            );
-            remaining = remaining.substring(boldMatch.index + boldMatch[0].length);
-            matched = true;
-          }
-        }
-        
-        if (!matched) {
-          // Priority 7: Bold with __ (underscore)
-          const underscoreMatch = remaining.match(/__([^_]+)__/);
-          if (underscoreMatch && underscoreMatch.index !== undefined) {
-            if (underscoreMatch.index > 0) {
-              parts.push(remaining.substring(0, underscoreMatch.index));
-            }
-            parts.push(
-              <strong key={`underscore-${key++}`} className="font-bold">
-                {underscoreMatch[1]}
-              </strong>
-            );
-            remaining = remaining.substring(underscoreMatch.index + underscoreMatch[0].length);
-            matched = true;
-          }
-        }
-        
-        if (!matched) {
-          // Priority 8: Single * for semibold (last to avoid conflicts)
-          const italicMatch = remaining.match(/\*([^*]+)\*/);
-          if (italicMatch && italicMatch.index !== undefined) {
-            if (italicMatch.index > 0) {
-              parts.push(remaining.substring(0, italicMatch.index));
-            }
-            parts.push(
-              <strong key={`semi-${key++}`} className="font-semibold">
-                {italicMatch[1]}
-              </strong>
-            );
-            remaining = remaining.substring(italicMatch.index + italicMatch[0].length);
-            matched = true;
-          }
-        }
-        
-        // If nothing matched, add the rest and break
-        if (!matched) {
-          parts.push(remaining);
-          break;
-        }
-      }
-      
-      return parts.length > 0 ? parts : text;
-    };
-    
-    // Build elements preserving multiple blank lines as larger gaps
-    const elements: JSX.Element[] = [];
-    for (let i = 0; i < lines.length; i++) {
-      const line = lines[i];
-
-      // Handle consecutive blank lines -> add proportional spacer matching template paragraph margins
-      if (!line.trim()) {
-        let count = 1;
-        while (i + 1 < lines.length && !lines[i + 1].trim()) {
-          count++;
-          i++;
-        }
-        const height = 16 * count; // 1rem per blank line for clear visual separation
-        elements.push(<div key={`spacer-${i}`} style={{ height }} aria-hidden="true" />);
-        continue;
-      }
-
-      // Main numbered sections (like "1. SECTION NAME" or "3. UNDERSTAND WHY THEY CALLED")
-      if (line.match(/^\d+\.\s+[A-Z]/)) {
-        elements.push(
-          <h3 key={`h3-${i}`} className="text-sm font-bold mt-2 mb-1 first:mt-0 text-foreground">
-            {line}
-          </h3>
-        );
-        continue;
-      }
-      
-      // Section headers (all caps or ending with colon)
-      if (line.match(/^[A-Z\s]+:$/) || line.match(/^[*#]+\s*[A-Z][^a-z]*$/)) {
-        elements.push(
-          <h3 key={`h3b-${i}`} className="text-sm font-bold mt-2 mb-1 first:mt-0 text-foreground">
-            {line.replace(/^[*#]+\s*/, '').replace(/:$/, '')}
-          </h3>
-        );
-        continue;
-      }
-      
-      // Stage markers (like "Stage 1:", "Phase 2:")
-      if (line.match(/^(Stage|Phase|Step)\s+\d+/i)) {
-        elements.push(
-          <h4 key={`h4-${i}`} className="text-sm font-semibold mt-2 mb-1 text-foreground">
-            {line}
-          </h4>
-        );
-        continue;
-      }
-      
-      // Sub-headers (lines starting with ** or ending with :)
-      if (line.match(/^\*\*[^*]+\*\*/) || (line.endsWith(':') && line.length < 60 && !line.includes('.'))) {
-        elements.push(
-          <h5 key={`h5-${i}`} className="font-semibold text-sm mt-2 mb-1 text-foreground">
-            {line.replace(/^\*\*/, '').replace(/\*\*$/, '').replace(/:$/, '')}
-          </h5>
-        );
-        continue;
-      }
-      
-      // Regular content with formatting
-      elements.push(
-        <p key={`p-${i}`} className="text-sm leading-relaxed whitespace-pre-wrap text-foreground/80">
-          {formatLine(line)}
-        </p>
-      );
-    }
-    
-    return (
-      <div className="html-content">
-        {elements}
-      </div>
-    );
-  };
-
   return (
     <div className="min-h-screen bg-background">
       <div className="max-w-7xl mx-auto px-6 py-12">
@@ -1075,35 +804,15 @@ export default function ScriptViewer() {
                 </p>
               </div>
             </div>
-            <div className="flex gap-3">
-              {isEditing ? (
-                <>
-                  <Button onClick={handleSaveEdit} disabled={saving} className="h-9">
-                    <Save className="mr-2 h-4 w-4" />
-                    {saving ? "Saving..." : "Save"}
-                  </Button>
-                  <Button variant="outline" onClick={handleCancelEdit} disabled={saving} className="h-9">
-                    <XCircle className="mr-2 h-4 w-4" />
-                    Cancel
-                  </Button>
-                </>
-              ) : (
-                <>
-                  <Button variant="outline" onClick={handleEditClick} className="h-9">
-                    <Edit2 className="mr-2 h-4 w-4" />
-                    Edit Script
-                  </Button>
-                  <Button variant="outline" onClick={handleCopy} className="h-9">
-                    <Copy className="mr-2 h-4 w-4" />
-                    Copy
-                  </Button>
-                  <Button variant="outline" onClick={handleDownload} className="h-9">
-                    <Download className="mr-2 h-4 w-4" />
-                    Download
-                  </Button>
-                </>
-              )}
-            </div>
+            <ScriptActions
+              isEditing={isEditing}
+              isSaving={saving}
+              onEdit={handleEditClick}
+              onSave={handleSaveEdit}
+              onCancel={handleCancelEdit}
+              onCopy={handleCopy}
+              onDownload={handleDownload}
+            />
           </div>
         </div>
 

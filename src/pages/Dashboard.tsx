@@ -31,13 +31,9 @@ import { useToast } from "@/hooks/use-toast";
 import { useDebounce } from "@/hooks/useDebounce";
 import { logger } from "@/utils/logger";
 import type { User } from "@supabase/supabase-js";
-import logoDefault from "@/assets/logo-default.png";
-import logoPergola from "@/assets/logo-pergola.png";
-import logoHvac from "@/assets/logo-hvac.png";
-import logoSolar from "@/assets/logo-solar.png";
-import logoLandscaping from "@/assets/logo-landscaping.png";
 import agentIqLogo from "@/assets/agent-iq-logo.png";
 import { CompanyLogoSettings } from "@/components/CompanyLogoSettings";
+import { getClientLogo } from "@/utils/clientHelpers";
 
 interface ServiceType {
   id: string;
@@ -84,19 +80,6 @@ interface CallAgent {
   id: string;
   name: string;
 }
-
-const getClientLogo = (serviceType: string, customLogoUrl?: string): string => {
-  if (customLogoUrl) return customLogoUrl;
-  
-  const type = serviceType.toLowerCase();
-  
-  if (type.includes("pergola")) return logoPergola;
-  if (type.includes("hvac") || type.includes("heating") || type.includes("cooling")) return logoHvac;
-  if (type.includes("solar") || type.includes("panel")) return logoSolar;
-  if (type.includes("landscape") || type.includes("lawn") || type.includes("garden")) return logoLandscaping;
-  
-  return logoDefault;
-};
 
 export default function Dashboard() {
   const navigate = useNavigate();
