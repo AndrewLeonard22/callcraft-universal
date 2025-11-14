@@ -26,6 +26,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
 import agentIqLogo from "@/assets/agent-iq-logo.png";
 import QuizQuestionsAdmin from "@/components/QuizQuestionsAdmin";
+import WheelSegmentsAdmin from "@/components/WheelSegmentsAdmin";
 
 interface TrainingModule {
   id: string;
@@ -573,6 +574,9 @@ export default function TrainingManagement() {
           <div className="space-y-6">
             {/* Quiz Questions Admin */}
             <QuizQuestionsAdmin organizationId={organizationId} />
+
+            {/* Wheel Segments Admin */}
+            <WheelSegmentsAdmin organizationId={organizationId} />
 
             {modules.length === 0 ? (
               <Card>
