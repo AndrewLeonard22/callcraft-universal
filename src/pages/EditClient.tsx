@@ -113,7 +113,7 @@ export default function EditClient() {
         setLogoUrl(detailsMap.get("logo_url") || "");
       }
     } catch (error) {
-      console.error("Error loading client data:", error);
+      logger.error("Error loading client data:", error);
       toast.error("Failed to load client data");
     } finally {
       setLoading(false);
@@ -161,7 +161,7 @@ export default function EditClient() {
       setLogoUrl(publicUrl);
       toast.success("Logo uploaded successfully!");
     } catch (error) {
-      console.error("Error uploading logo:", error);
+      logger.error("Error uploading logo:", error);
       toast.error("Failed to upload logo");
     } finally {
       setUploading(false);
@@ -170,8 +170,14 @@ export default function EditClient() {
 
 
   const handleSave = async () => {
+    // Validate required fields
     if (!clientName.trim()) {
       toast.error("Client name is required");
+      return;
+    }
+
+    if (clientName.length > 200) {
+      toast.error("Client name must be less than 200 characters");
       return;
     }
     

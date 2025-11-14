@@ -27,6 +27,7 @@ import { useToast } from "@/hooks/use-toast";
 import agentIqLogo from "@/assets/agent-iq-logo.png";
 import QuizQuestionsAdmin from "@/components/QuizQuestionsAdmin";
 import WheelSegmentsAdmin from "@/components/WheelSegmentsAdmin";
+import { logger } from "@/utils/logger";
 
 interface TrainingModule {
   id: string;
@@ -148,7 +149,7 @@ const [moduleForm, setModuleForm] = useState({
       if (error) throw error;
       setServiceTypes(data || []);
     } catch (error: any) {
-      console.error("Error loading service types:", error);
+      logger.error("Error loading service types:", error);
     }
   };
 
@@ -225,7 +226,7 @@ const [moduleForm, setModuleForm] = useState({
 
       setModules(modulesWithSections);
     } catch (error) {
-      console.error("Error loading modules:", error);
+      logger.error("Error loading modules:", error);
       toast({
         title: "Error",
         description: "Failed to load training modules",
@@ -239,10 +240,29 @@ const [moduleForm, setModuleForm] = useState({
   const handleSaveModule = async () => {
     if (!organizationId) return;
     
+    // Validate required fields
     if (!moduleForm.service_type_id) {
       toast({ 
         title: "Service required", 
         description: "Please select a service for this module",
+        variant: "destructive" 
+      });
+      return;
+    }
+
+    if (!moduleForm.title.trim()) {
+      toast({ 
+        title: "Title required", 
+        description: "Please enter a module title",
+        variant: "destructive" 
+      });
+      return;
+    }
+
+    if (moduleForm.title.length > 100) {
+      toast({ 
+        title: "Title too long", 
+        description: "Module title must be less than 100 characters",
         variant: "destructive" 
       });
       return;
@@ -275,11 +295,11 @@ const [moduleForm, setModuleForm] = useState({
       setEditingModule(null);
       setModuleForm({ title: "", description: "", category: "pricing", icon_name: "DollarSign", service_type_id: "" });
       loadModules();
-    } catch (error) {
-      console.error("Error saving module:", error);
+    } catch (error: any) {
+      logger.error("Error saving module:", error);
       toast({
         title: "Error",
-        description: "Failed to save module",
+        description: error.message || "Failed to save module",
         variant: "destructive",
       });
     }
@@ -309,6 +329,25 @@ const [moduleForm, setModuleForm] = useState({
 
   const handleSaveSection = async () => {
     if (!selectedModuleId) return;
+
+    // Validate required fields
+    if (!sectionForm.title.trim()) {
+      toast({ 
+        title: "Title required", 
+        description: "Please enter a section title",
+        variant: "destructive" 
+      });
+      return;
+    }
+
+    if (sectionForm.title.length > 200) {
+      toast({ 
+        title: "Title too long", 
+        description: "Section title must be less than 200 characters",
+        variant: "destructive" 
+      });
+      return;
+    }
 
     try {
       if (editingSection) {
