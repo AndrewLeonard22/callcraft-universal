@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+import { useEffect, useState, useCallback, useMemo } from "react";
 import { GraduationCap, DollarSign, Phone, BookOpen, Lightbulb, Package, Shield, TrendingUp, Award, CheckCircle2, XCircle, AlertCircle, Video, ExternalLink, Brain, ArrowRight, RotateCcw, Check, X, Plus, Trash2, Edit, Trophy, Disc3 } from "lucide-react";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from "@/components/ui/accordion";
@@ -206,7 +206,8 @@ export default function Training() {
     }
   };
 
-  const loadQuestions = async () => {
+  const loadQuestions = useCallback(async () => {
+    if (!organizationId) return;
     try {
       const { data, error } = await (supabase as any)
         .from("training_questions")
@@ -229,13 +230,19 @@ export default function Training() {
         variant: "destructive",
       });
     }
-  };
+  }, [organizationId, toast]);
 
-  const shuffleQuestions = () => {
+  // Optimized: Memoized handlers
+  const shuffleQuestions = useCallback(() => {
     setQuestions(prev => [...prev].sort(() => Math.random() - 0.5));
-  };
+    setCurrentQuestionIndex(0);
+    setCorrectAnswers(new Set());
+    setIncorrectAnswers(new Set());
+    setIsFlipped(false);
+  }, []);
 
-  const loadCallAgents = async () => {
+  const loadCallAgents = useCallback(async () => {
+    if (!organizationId) return;
     try {
       const { data, error } = await (supabase as any)
         .from("call_agents")
@@ -248,9 +255,10 @@ export default function Training() {
     } catch (error) {
       console.error("Error loading call agents:", error);
     }
-  };
+  }, [organizationId]);
 
-  const loadWheelSegments = async () => {
+  const loadWheelSegments = useCallback(async () => {
+    if (!organizationId) return;
     try {
       const { data, error } = await supabase
         .from("wheel_segments")
@@ -263,9 +271,10 @@ export default function Training() {
     } catch (error) {
       console.error("Error loading wheel segments:", error);
     }
-  };
+  }, [organizationId]);
 
-  const loadScoreboard = async () => {
+  const loadScoreboard = useCallback(async () => {
+    if (!organizationId) return;
     try {
       const { data, error } = await (supabase as any)
         .from("quiz_scores")
@@ -285,9 +294,9 @@ export default function Training() {
     } catch (error) {
       console.error("Error loading scoreboard:", error);
     }
-  };
+  }, [organizationId]);
 
-  const handleMarkCorrect = () => {
+  const handleMarkCorrect = useCallback(() => {
     const currentQuestionId = questions[currentQuestionIndex]?.id;
     if (currentQuestionId) {
       setCorrectAnswers(prev => new Set([...prev, currentQuestionId]));
@@ -297,9 +306,9 @@ export default function Training() {
         return newSet;
       });
     }
-  };
+  }, [questions, currentQuestionIndex]);
 
-  const handleMarkIncorrect = () => {
+  const handleMarkIncorrect = useCallback(() => {
     const currentQuestionId = questions[currentQuestionIndex]?.id;
     if (currentQuestionId) {
       setIncorrectAnswers(prev => new Set([...prev, currentQuestionId]));
@@ -309,23 +318,23 @@ export default function Training() {
         return newSet;
       });
     }
-  };
+  }, [questions, currentQuestionIndex]);
 
-  const handleNextQuestion = () => {
+  const handleNextQuestion = useCallback(() => {
     if (currentQuestionIndex < questions.length - 1) {
       setCurrentQuestionIndex(currentQuestionIndex + 1);
       setIsFlipped(false);
     }
-  };
+  }, [currentQuestionIndex, questions.length]);
 
-  const handlePreviousQuestion = () => {
+  const handlePreviousQuestion = useCallback(() => {
     if (currentQuestionIndex > 0) {
       setCurrentQuestionIndex(currentQuestionIndex - 1);
       setIsFlipped(false);
     }
-  };
+  }, [currentQuestionIndex]);
 
-  const handleCompleteQuiz = async () => {
+  const handleCompleteQuiz = useCallback(async () => {
     if (!selectedAgentId) {
       toast({
         title: "Agent Required",
@@ -366,9 +375,9 @@ export default function Training() {
         variant: "destructive",
       });
     }
-  };
+  }, [selectedAgentId, correctAnswers, questions.length, organizationId, loadScoreboard, toast]);
 
-  const handleRestart = () => {
+  const handleRestart = useCallback(() => {
     setCurrentQuestionIndex(0);
     setIsFlipped(false);
     setCorrectAnswers(new Set());
@@ -376,7 +385,7 @@ export default function Training() {
     setQuizCompleted(false);
     setSelectedAgentId("");
     shuffleQuestions(); // Re-shuffle on restart
-  };
+  }, [shuffleQuestions]);
 
   const handleDeleteScore = async (scoreId: string) => {
     try {

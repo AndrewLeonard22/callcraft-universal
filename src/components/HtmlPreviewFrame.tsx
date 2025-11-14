@@ -60,12 +60,12 @@ function HtmlPreviewFrame({ html, className }: HtmlPreviewFrameProps) {
             }
             h = Math.max(h, body.scrollHeight, body.offsetHeight, docEl.scrollHeight, docEl.offsetHeight);
             h = Math.ceil(h);
-            // Only send if height changed significantly (more than 5px)
-            if (Math.abs(h - lastHeight) > 5) {
+            // Optimized: Only send if height changed significantly (more than 10px for less frequent updates)
+            if (Math.abs(h - lastHeight) > 10) {
               lastHeight = h;
               parent.postMessage({ type: 'HTML_FRAME_RESIZE', h }, '*'); 
             }
-          }, 200);
+          }, 250);
         };
         
         window.addEventListener('load', function() {
@@ -98,8 +98,8 @@ function HtmlPreviewFrame({ html, className }: HtmlPreviewFrameProps) {
         if (isScrollingRef.current) return;
         
         const newH = e.data.h as number;
-        // Ignore if height unchanged to avoid layout thrash
-        if (Math.abs(newH - currentHeightRef.current) <= 2) return;
+        // Optimized: Ignore if height unchanged to avoid layout thrash (increased threshold)
+        if (Math.abs(newH - currentHeightRef.current) <= 5) return;
         
         // Debounce height updates to prevent excessive re-renders
         if (resizeTimeoutRef.current) {
