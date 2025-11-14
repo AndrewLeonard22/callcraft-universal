@@ -1,6 +1,7 @@
 import { useEffect, useState, useRef, useCallback, useMemo } from "react";
 import { useParams, useNavigate, Link } from "react-router-dom";
 import { ArrowLeft, Edit2, Download, Copy, MessageSquare, X, ClipboardCheck, Sparkles, Save, XCircle } from "lucide-react";
+import { DebouncedSaveManager } from "@/utils/saveHelpers";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
@@ -103,14 +104,20 @@ export default function ScriptViewer() {
   const [saving, setSaving] = useState(false);
   const [isEditingServiceDetails, setIsEditingServiceDetails] = useState(false);
   const [editedServiceDetails, setEditedServiceDetails] = useState<Record<string, string>>({});
-  const responseTimeouts = useRef<Record<string, number>>({});
+  const [savingStates, setSavingStates] = useState<Record<string, boolean>>({});
+  const saveManager = useRef(new DebouncedSaveManager());
   const responsesRef = useRef<Record<string, QualificationResponse>>({});
+  
   useEffect(() => {
     responsesRef.current = qualificationResponses;
   }, [qualificationResponses]);
+  
+  // Cleanup: wait for pending saves before unmount
   useEffect(() => {
     return () => {
-      Object.values(responseTimeouts.current).forEach((id) => clearTimeout(id));
+      saveManager.current.waitForPendingSaves().then(() => {
+        saveManager.current.cancelAll();
+      });
     };
   }, []);
 
@@ -238,21 +245,27 @@ export default function ScriptViewer() {
   };
 
   const handleSaveServiceDetails = async () => {
-    if (!client) return;
+    if (!client) {
+      toast.error("Client data not loaded");
+      return;
+    }
 
     setSaving(true);
     try {
-      // Delete all existing service detail field values for this client
       const fieldNamesToDelete = serviceDetailFields.map(f => f.field_name);
+      
+      // Delete existing values
       if (fieldNamesToDelete.length > 0) {
-        await supabase
+        const { error: deleteError } = await supabase
           .from("client_details")
           .delete()
           .eq("client_id", client.id)
           .in("field_name", fieldNamesToDelete);
+        
+        if (deleteError) throw deleteError;
       }
 
-      // Insert new values for all fields that have values
+      // Build inserts
       const inserts = serviceDetailFields
         .filter((field) => editedServiceDetails[field.field_name]?.trim())
         .map((field) => ({
@@ -262,22 +275,22 @@ export default function ScriptViewer() {
         }));
 
       if (inserts.length > 0) {
-        const { error } = await supabase
+        const { error: insertError } = await supabase
           .from("client_details")
           .insert(inserts);
 
-        if (error) throw error;
+        if (insertError) {
+          throw new Error(`Failed to save details: ${insertError.message}`);
+        }
       }
 
       toast.success("Service details updated successfully");
       setIsEditingServiceDetails(false);
       setEditedServiceDetails({});
-      
-      // Reload the data
-      loadClientData();
-    } catch (error) {
+      await loadClientData();
+    } catch (error: any) {
       logger.error("Error saving service details:", error);
-      toast.error("Failed to save service details");
+      toast.error(error.message || "Failed to save service details. Please try again.");
     } finally {
       setSaving(false);
     }
@@ -443,22 +456,18 @@ export default function ScriptViewer() {
     }
   };
 
-  const handleQualificationResponse = async (questionId: string, response: string) => {
+  const handleQualificationResponse = useCallback(async (questionId: string, response: string) => {
     // Update local state immediately for responsive UI
     setQualificationResponses(prev => ({
       ...prev,
       [questionId]: { ...(prev[questionId] || {} as QualificationResponse), customer_response: response },
     }));
     
-    // Clear existing timeout for this question
-    if (responseTimeouts.current[questionId]) {
-      window.clearTimeout(responseTimeouts.current[questionId]);
-    }
-    
-    // Debounce the database update (500ms after user stops typing)
-    responseTimeouts.current[questionId] = window.setTimeout(async () => {
-      try {
-        const currentState = qualificationResponses[questionId];
+    // Use debounced save manager to ensure saves complete
+    await saveManager.current.debouncedSave(
+      `qual-response-${questionId}`,
+      async () => {
+        const currentState = responsesRef.current[questionId];
         const existing = currentState;
         let rowId = existing?.id;
 
@@ -501,11 +510,17 @@ export default function ScriptViewer() {
             [questionId]: data,
           }));
         }
-      } catch (error) {
-        logger.error("Error updating qualification response:", error);
+      },
+      500,
+      () => setSavingStates(prev => ({ ...prev, [questionId]: true })),
+      (success) => {
+        setSavingStates(prev => ({ ...prev, [questionId]: false }));
+        if (!success) {
+          toast.error("Failed to save response");
+        }
       }
-    }, 500);
-  };
+    );
+  }, [scriptId]);
 
   const handleEditClick = () => {
     if (script) {
@@ -520,27 +535,36 @@ export default function ScriptViewer() {
   };
 
   const handleSaveEdit = async () => {
-    if (!scriptId || !editedContent.trim()) {
+    if (!script || !scriptId) return;
+    
+    if (!editedContent.trim()) {
       toast.error("Script content cannot be empty");
       return;
     }
-
+    
     setSaving(true);
     try {
-      const { error } = await supabase
+      const { data, error } = await supabase
         .from("scripts")
         .update({ script_content: editedContent })
-        .eq("id", scriptId);
+        .eq("id", scriptId)
+        .select()
+        .single();
 
       if (error) throw error;
+      
+      // Verify the save was successful
+      if (!data) {
+        throw new Error("Script update returned no data");
+      }
 
-      // Update local state
-      setScript(prev => prev ? { ...prev, script_content: editedContent } : null);
+      setScript({ ...script, script_content: editedContent });
       setIsEditing(false);
-      toast.success("Script updated successfully!");
+      toast.success("Script saved successfully");
     } catch (error) {
       logger.error("Error saving script:", error);
-      toast.error("Failed to save script");
+      toast.error("Failed to save script. Please try again.");
+      // Keep editing mode open so user doesn't lose their changes
     } finally {
       setSaving(false);
     }
