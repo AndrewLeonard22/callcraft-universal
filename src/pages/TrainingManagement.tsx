@@ -491,24 +491,58 @@ export default function TrainingManagement() {
       </div>
 
       <div className="container mx-auto px-4 sm:px-6 py-8 max-w-7xl">
-        <div className="flex justify-between items-center mb-8">
-          <div>
-            <h2 className="text-3xl font-bold mb-2">Manage Training Content</h2>
-            <p className="text-muted-foreground">
-              Add and edit training modules, sections, benefits, features, videos, and quiz questions
-            </p>
+        <div className="mb-12">
+          <div className="flex justify-between items-center">
+            <div>
+              <h2 className="text-3xl font-bold mb-2">Training Management</h2>
+              <p className="text-muted-foreground">
+                Create and manage training modules, quiz questions, and wheel games
+              </p>
+            </div>
           </div>
-          <Dialog open={moduleDialogOpen} onOpenChange={setModuleDialogOpen}>
-            <DialogTrigger asChild>
-              <Button onClick={() => {
-                setEditingModule(null);
-                setModuleForm({ title: "", description: "", category: "pricing", icon_name: "DollarSign" });
-              }}>
-                <Plus className="mr-2 h-4 w-4" />
-                New Module
-              </Button>
-            </DialogTrigger>
-            <DialogContent>
+        </div>
+
+        {loading ? (
+          <div className="text-center py-12">Loading...</div>
+        ) : (
+          <div className="space-y-12">
+            {/* Quiz & Games Section */}
+            <section>
+              <div className="mb-6">
+                <h3 className="text-2xl font-semibold mb-2">Quiz & Interactive Games</h3>
+                <p className="text-sm text-muted-foreground">
+                  Manage quiz questions and spin the wheel segments for gamified learning
+                </p>
+              </div>
+              <div className="grid gap-6">
+                <QuizQuestionsAdmin organizationId={organizationId} />
+                <WheelSegmentsAdmin organizationId={organizationId} />
+              </div>
+            </section>
+
+            {/* Divider */}
+            <div className="border-t border-border"></div>
+
+            {/* Training Modules Section */}
+            <section>
+              <div className="flex justify-between items-center mb-6">
+                <div>
+                  <h3 className="text-2xl font-semibold mb-2">Training Modules</h3>
+                  <p className="text-sm text-muted-foreground">
+                    Create structured training content with sections, benefits, features, and videos
+                  </p>
+                </div>
+                <Dialog open={moduleDialogOpen} onOpenChange={setModuleDialogOpen}>
+                  <DialogTrigger asChild>
+                    <Button onClick={() => {
+                      setEditingModule(null);
+                      setModuleForm({ title: "", description: "", category: "pricing", icon_name: "DollarSign" });
+                    }}>
+                      <Plus className="mr-2 h-4 w-4" />
+                      New Module
+                    </Button>
+                  </DialogTrigger>
+                  <DialogContent>
               <DialogHeader>
                 <DialogTitle>{editingModule ? "Edit" : "Create"} Module</DialogTitle>
                 <DialogDescription>
@@ -564,32 +598,22 @@ export default function TrainingManagement() {
                 </Button>
                 <Button onClick={handleSaveModule}>Save Module</Button>
               </DialogFooter>
-            </DialogContent>
-          </Dialog>
-        </div>
+                  </DialogContent>
+                </Dialog>
+              </div>
 
-        {loading ? (
-          <div className="text-center py-12">Loading...</div>
-        ) : (
-          <div className="space-y-6">
-            {/* Quiz Questions Admin */}
-            <QuizQuestionsAdmin organizationId={organizationId} />
-
-            {/* Wheel Segments Admin */}
-            <WheelSegmentsAdmin organizationId={organizationId} />
-
-            {modules.length === 0 ? (
-              <Card>
-                <CardContent className="py-12 text-center">
-                  <p className="text-muted-foreground mb-4">No training modules yet</p>
-                  <Button onClick={() => setModuleDialogOpen(true)}>
-                    <Plus className="mr-2 h-4 w-4" />
-                    Create Your First Module
-                  </Button>
-                </CardContent>
-              </Card>
-            ) : (
-              <>
+              {modules.length === 0 ? (
+                <Card>
+                  <CardContent className="py-12 text-center">
+                    <p className="text-muted-foreground mb-4">No training modules yet</p>
+                    <Button onClick={() => setModuleDialogOpen(true)}>
+                      <Plus className="mr-2 h-4 w-4" />
+                      Create Your First Module
+                    </Button>
+                  </CardContent>
+                </Card>
+              ) : (
+                <div className="grid gap-6">
                 {modules.map((module) => (
                   <Card key={module.id} className="border-2">
                 <CardHeader>
@@ -813,9 +837,10 @@ export default function TrainingManagement() {
                   )}
                 </CardContent>
               </Card>
-            ))}
-              </>
-            )}
+                ))}
+                </div>
+              )}
+            </section>
           </div>
         )}
 
