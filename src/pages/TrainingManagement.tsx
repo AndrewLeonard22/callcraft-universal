@@ -133,8 +133,24 @@ const [moduleForm, setModuleForm] = useState({
   useEffect(() => {
     if (organizationId) {
       loadModules();
+      loadServiceTypes();
     }
   }, [organizationId]);
+
+  const loadServiceTypes = async () => {
+    try {
+      const { data, error } = await supabase
+        .from("service_types")
+        .select("*")
+        .eq("organization_id", organizationId)
+        .order("name");
+
+      if (error) throw error;
+      setServiceTypes(data || []);
+    } catch (error: any) {
+      console.error("Error loading service types:", error);
+    }
+  };
 
   const loadOrganization = async () => {
     const { data: { user } } = await supabase.auth.getUser();
@@ -222,12 +238,26 @@ const [moduleForm, setModuleForm] = useState({
 
   const handleSaveModule = async () => {
     if (!organizationId) return;
+    
+    if (!moduleForm.service_type_id) {
+      toast({ 
+        title: "Service required", 
+        description: "Please select a service for this module",
+        variant: "destructive" 
+      });
+      return;
+    }
 
     try {
+      const moduleData = {
+        ...moduleForm,
+        service_type_id: moduleForm.service_type_id || null,
+      };
+
       if (editingModule) {
         const { error } = await supabase
           .from("training_modules")
-          .update(moduleForm)
+          .update(moduleData)
           .eq("id", editingModule.id);
 
         if (error) throw error;
@@ -235,7 +265,7 @@ const [moduleForm, setModuleForm] = useState({
       } else {
         const { error } = await supabase
           .from("training_modules")
-          .insert([{ ...moduleForm, organization_id: organizationId }]);
+          .insert([{ ...moduleData, organization_id: organizationId }]);
 
         if (error) throw error;
         toast({ title: "Module created successfully" });
@@ -243,7 +273,7 @@ const [moduleForm, setModuleForm] = useState({
 
       setModuleDialogOpen(false);
       setEditingModule(null);
-      setModuleForm({ title: "", description: "", category: "pricing", icon_name: "DollarSign" });
+      setModuleForm({ title: "", description: "", category: "pricing", icon_name: "DollarSign", service_type_id: "" });
       loadModules();
     } catch (error) {
       console.error("Error saving module:", error);
@@ -539,7 +569,7 @@ const [moduleForm, setModuleForm] = useState({
                   <DialogTrigger asChild>
                     <Button onClick={() => {
                       setEditingModule(null);
-                      setModuleForm({ title: "", description: "", category: "pricing", icon_name: "DollarSign" });
+                      setModuleForm({ title: "", description: "", category: "pricing", icon_name: "DollarSign", service_type_id: "" });
                     }}>
                       <Plus className="mr-2 h-4 w-4" />
                       New Module
@@ -554,11 +584,29 @@ const [moduleForm, setModuleForm] = useState({
               </DialogHeader>
               <div className="space-y-4 py-4">
                 <div>
+                  <Label>Service <span className="text-destructive">*</span></Label>
+                  <Select
+                    value={moduleForm.service_type_id}
+                    onValueChange={(value) => setModuleForm({ ...moduleForm, service_type_id: value })}
+                  >
+                    <SelectTrigger>
+                      <SelectValue placeholder="Select a service..." />
+                    </SelectTrigger>
+                    <SelectContent>
+                      {serviceTypes.map((service) => (
+                        <SelectItem key={service.id} value={service.id}>
+                          {service.name}
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                </div>
+                <div>
                   <Label>Title</Label>
                   <Input
                     value={moduleForm.title}
                     onChange={(e) => setModuleForm({ ...moduleForm, title: e.target.value })}
-                    placeholder="e.g., Pricing Guidelines"
+                    placeholder="e.g., Pricing"
                   />
                 </div>
                 <div>
@@ -649,6 +697,7 @@ const [moduleForm, setModuleForm] = useState({
                             description: module.description,
                             category: module.category,
                             icon_name: module.icon_name,
+                            service_type_id: module.service_type_id || "",
                           });
                           setModuleDialogOpen(true);
                         }}
