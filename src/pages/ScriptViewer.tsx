@@ -1,4 +1,4 @@
-import { useEffect, useState, useRef } from "react";
+import { useEffect, useState, useRef, useCallback, useMemo } from "react";
 import { useParams, useNavigate, Link } from "react-router-dom";
 import { ArrowLeft, Edit2, Download, Copy, MessageSquare, X, ClipboardCheck, Sparkles, Save, XCircle } from "lucide-react";
 import { Button } from "@/components/ui/button";
@@ -114,52 +114,37 @@ export default function ScriptViewer() {
     };
   }, []);
 
+  // Optimized: Combined real-time subscriptions into single channel
   useEffect(() => {
     if (scriptId) {
       loadClientData();
       loadObjectionTemplates();
 
-      // Set up real-time subscriptions
-      const scriptChannel = supabase
-        .channel('script-viewer-changes')
-        .on('postgres_changes', { event: 'UPDATE', schema: 'public', table: 'scripts' }, (payload) => {
-          if ((payload.new as any).id === scriptId) {
-            loadClientData();
-          }
+      // Single channel for all script-related updates
+      const channel = supabase
+        .channel('script-viewer-all')
+        .on('postgres_changes', { event: 'UPDATE', schema: 'public', table: 'scripts', filter: `id=eq.${scriptId}` }, () => {
+          loadClientData();
         })
-        .subscribe();
-
-      const objectionChannel = supabase
-        .channel('script-objections-changes')
         .on('postgres_changes', { event: '*', schema: 'public', table: 'objection_handling_templates' }, () => {
           loadObjectionTemplates();
         })
-        .subscribe();
-
-      const faqsChannel = supabase
-        .channel('script-faqs-changes')
         .on('postgres_changes', { event: '*', schema: 'public', table: 'faqs' }, () => {
           loadFaqsOnly();
         })
-        .subscribe();
-
-      const qualChannel = supabase
-        .channel('script-qualification-changes')
         .on('postgres_changes', { event: '*', schema: 'public', table: 'qualification_questions' }, () => {
           loadQualificationsOnly();
         })
         .subscribe();
 
       return () => {
-        supabase.removeChannel(scriptChannel);
-        supabase.removeChannel(objectionChannel);
-        supabase.removeChannel(faqsChannel);
-        supabase.removeChannel(qualChannel);
+        supabase.removeChannel(channel);
       };
     }
   }, [scriptId]);
 
-  const loadFaqsOnly = async () => {
+  // Optimized: Memoized to prevent recreation
+  const loadFaqsOnly = useCallback(async () => {
     if (!serviceTypeId) return;
     
     try {
@@ -177,9 +162,9 @@ export default function ScriptViewer() {
     } catch (error) {
       logger.error("Error loading FAQs:", error);
     }
-  };
+  }, [serviceTypeId]);
 
-  const loadQualificationsOnly = async () => {
+  const loadQualificationsOnly = useCallback(async () => {
     if (!serviceTypeId || !organizationId) return;
 
     try {
@@ -198,7 +183,7 @@ export default function ScriptViewer() {
     } catch (error) {
       logger.error("Error loading qualification questions:", error);
     }
-  };
+  }, [serviceTypeId, organizationId]);
 
   useEffect(() => {
     if (!serviceTypeId || !organizationId) return;
@@ -298,7 +283,7 @@ export default function ScriptViewer() {
     }
   };
 
-  const loadServiceDetailFields = async () => {
+  const loadServiceDetailFields = useCallback(async () => {
     if (!serviceTypeId || !organizationId) return;
 
     try {
@@ -317,83 +302,64 @@ export default function ScriptViewer() {
     } catch (error) {
       logger.error("Error loading service detail fields:", error);
     }
-  };
+  }, [serviceTypeId, organizationId]);
 
-  const loadClientData = async () => {
+  // Optimized: Fully parallelized data loading
+  const loadClientData = useCallback(async () => {
     try {
-      // First load the script to get the client_id
-      const scriptResult = await supabase
+      // Load script first to get IDs
+      const { data: scriptData, error: scriptError } = await supabase
         .from("scripts")
         .select("*, client_id, service_name, service_type_id, organization_id")
         .eq("id", scriptId)
         .single();
 
-      if (scriptResult.error) throw scriptResult.error;
-      setScript(scriptResult.data);
-      setServiceTypeId(scriptResult.data.service_type_id);
-      setOrganizationId(scriptResult.data.organization_id);
-      console.info('[ScriptViewer] Loaded script', { htmlLength: (scriptResult.data.script_content || '').length });
-      if (scriptResult.data.service_type_id) {
-        const [faqResult, qualQuestionsResult, qualResponsesResult] = await Promise.all([
-          supabase
-            .from("faqs")
-            .select("*")
-            .eq('service_type_id', scriptResult.data.service_type_id)
-            .order("created_at", { ascending: false }),
-          supabase
-            .from("qualification_questions")
-            .select("*")
-            .eq('organization_id', scriptResult.data.organization_id)
-            .or(`service_type_id.eq.${scriptResult.data.service_type_id},service_type_id.is.null`)
-            .order("display_order", { ascending: true }),
-          supabase
-            .from("qualification_responses")
-            .select("*")
-            .eq('script_id', scriptId)
-        ]);
-
-        if (faqResult.error) {
-          logger.error('Error loading FAQs:', faqResult.error);
-        } else {
-          setFaqs(faqResult.data || []);
-        }
-
-        if (qualQuestionsResult.error) {
-          logger.error('Error loading qualification questions:', qualQuestionsResult.error);
-        } else {
-          setQualificationQuestions(qualQuestionsResult.data || []);
-        }
-
-        if (qualResponsesResult.error) {
-          logger.error('Error loading qualification responses:', qualResponsesResult.error);
-        } else {
-          const responsesMap: Record<string, QualificationResponse> = {};
-          (qualResponsesResult.data || []).forEach((response: QualificationResponse) => {
-            responsesMap[response.question_id] = response;
-          });
-          setQualificationResponses(responsesMap);
-        }
-      }
-
-      // Then load client and details
-      const [clientResult, detailsResult] = await Promise.all([
-        supabase.from("clients").select("*").eq("id", scriptResult.data.client_id).single(),
-        supabase.from("client_details").select("*").eq("client_id", scriptResult.data.client_id),
+      if (scriptError) throw scriptError;
+      
+      setScript(scriptData);
+      setServiceTypeId(scriptData.service_type_id);
+      setOrganizationId(scriptData.organization_id);
+      
+      // Parallel load ALL data at once
+      const [
+        clientResult,
+        detailsResult,
+        faqResult,
+        qualQuestionsResult,
+        qualResponsesResult
+      ] = await Promise.all([
+        supabase.from("clients").select("*").eq("id", scriptData.client_id).single(),
+        supabase.from("client_details").select("*").eq("client_id", scriptData.client_id),
+        scriptData.service_type_id 
+          ? supabase.from("faqs").select("*").eq('service_type_id', scriptData.service_type_id).order("created_at", { ascending: false })
+          : Promise.resolve({ data: [], error: null }),
+        scriptData.service_type_id && scriptData.organization_id
+          ? supabase.from("qualification_questions").select("*").eq('organization_id', scriptData.organization_id).or(`service_type_id.eq.${scriptData.service_type_id},service_type_id.is.null`).order("display_order", { ascending: true })
+          : Promise.resolve({ data: [], error: null }),
+        supabase.from("qualification_responses").select("*").eq('script_id', scriptId)
       ]);
 
       if (clientResult.error) throw clientResult.error;
-
       setClient(clientResult.data);
       setDetails(detailsResult.data || []);
+      setFaqs(faqResult.data || []);
+      setQualificationQuestions(qualQuestionsResult.data || []);
+      
+      const responsesMap: Record<string, QualificationResponse> = {};
+      (qualResponsesResult.data || []).forEach((response: QualificationResponse) => {
+        responsesMap[response.question_id] = response;
+      });
+      setQualificationResponses(responsesMap);
+      
     } catch (error) {
       logger.error("Error loading client data:", error);
       toast.error("Failed to load client data");
     } finally {
       setLoading(false);
     }
-  };
+  }, [scriptId]);
 
-  const loadObjectionTemplates = async () => {
+  const loadObjectionTemplates = useCallback(async () => {
     try {
       const { data, error } = await supabase
         .from("objection_handling_templates")
@@ -404,8 +370,9 @@ export default function ScriptViewer() {
       setObjectionTemplates(data || []);
     } catch (error) {
       logger.error("Error loading objection templates:", error);
+      toast.error("Failed to load objection templates");
     }
-  };
+  }, []);
 
   const handleCopy = () => {
     if (script) {
