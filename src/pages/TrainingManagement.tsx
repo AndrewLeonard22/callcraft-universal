@@ -35,6 +35,7 @@ interface TrainingModule {
   category: string;
   icon_name: string;
   display_order: number;
+  service_type_id?: string | null;
   sections?: TrainingSection[];
 }
 
@@ -76,20 +77,22 @@ interface TrainingVideo {
 }
 
 export default function TrainingManagement() {
-  const [modules, setModules] = useState<TrainingModule[]>([]);
-  const [loading, setLoading] = useState(true);
-  const [organizationId, setOrganizationId] = useState<string | null>(null);
-  const { toast } = useToast();
+const [modules, setModules] = useState<TrainingModule[]>([]);
+const [serviceTypes, setServiceTypes] = useState<Array<{ id: string; name: string; icon_url?: string | null }>>([]);
+const [loading, setLoading] = useState(true);
+const [organizationId, setOrganizationId] = useState<string | null>(null);
+const { toast } = useToast();
 
-  // Module dialog state
-  const [moduleDialogOpen, setModuleDialogOpen] = useState(false);
-  const [editingModule, setEditingModule] = useState<TrainingModule | null>(null);
-  const [moduleForm, setModuleForm] = useState({
-    title: "",
-    description: "",
-    category: "pricing",
-    icon_name: "DollarSign",
-  });
+// Module dialog state
+const [moduleDialogOpen, setModuleDialogOpen] = useState(false);
+const [editingModule, setEditingModule] = useState<TrainingModule | null>(null);
+const [moduleForm, setModuleForm] = useState({
+  title: "",
+  description: "",
+  category: "pricing",
+  icon_name: "DollarSign",
+  service_type_id: "",
+});
 
   // Section dialog state
   const [sectionDialogOpen, setSectionDialogOpen] = useState(false);
