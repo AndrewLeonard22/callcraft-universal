@@ -732,6 +732,7 @@ export type Database = {
           id: string
           is_active: boolean | null
           organization_id: string
+          service_type_id: string | null
           title: string
           updated_at: string
         }
@@ -744,6 +745,7 @@ export type Database = {
           id?: string
           is_active?: boolean | null
           organization_id: string
+          service_type_id?: string | null
           title: string
           updated_at?: string
         }
@@ -756,10 +758,19 @@ export type Database = {
           id?: string
           is_active?: boolean | null
           organization_id?: string
+          service_type_id?: string | null
           title?: string
           updated_at?: string
         }
-        Relationships: []
+        Relationships: [
+          {
+            foreignKeyName: "training_modules_service_type_id_fkey"
+            columns: ["service_type_id"]
+            isOneToOne: false
+            referencedRelation: "service_types"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       training_questions: {
         Row: {
