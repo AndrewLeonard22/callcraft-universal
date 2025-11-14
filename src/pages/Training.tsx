@@ -1,5 +1,5 @@
 import { useEffect, useState } from "react";
-import { GraduationCap, DollarSign, Phone, BookOpen, Lightbulb, Package, Shield, TrendingUp, Award, CheckCircle2, XCircle, AlertCircle, Video, ExternalLink, Brain, ArrowRight, RotateCcw, Check, X, Plus, Trash2, Edit, Trophy } from "lucide-react";
+import { GraduationCap, DollarSign, Phone, BookOpen, Lightbulb, Package, Shield, TrendingUp, Award, CheckCircle2, XCircle, AlertCircle, Video, ExternalLink, Brain, ArrowRight, RotateCcw, Check, X, Plus, Trash2, Edit, Trophy, Disc3 } from "lucide-react";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from "@/components/ui/accordion";
 import { Badge } from "@/components/ui/badge";
@@ -14,6 +14,7 @@ import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, 
 import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
 import agentIqLogo from "@/assets/agent-iq-logo.png";
+import { SpinWheel } from "@/components/SpinWheel";
 
 interface TrainingModule {
   id: string;
@@ -78,6 +79,13 @@ interface CallAgent {
   phone: string | null;
 }
 
+interface WheelSegment {
+  id: string;
+  label: string;
+  color: string;
+  display_order: number;
+}
+
 export default function Training() {
   const [modules, setModules] = useState<TrainingModule[]>([]);
   const [loading, setLoading] = useState(true);
@@ -97,6 +105,7 @@ export default function Training() {
   const [selectedAgentId, setSelectedAgentId] = useState<string>("");
   const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
   const [scoreToDelete, setScoreToDelete] = useState<string | null>(null);
+  const [wheelSegments, setWheelSegments] = useState<WheelSegment[]>([]);
   const { toast } = useToast();
   useEffect(() => {
     loadOrganization();
@@ -108,6 +117,7 @@ export default function Training() {
       loadQuestions();
       loadScoreboard();
       loadCallAgents();
+      loadWheelSegments();
     }
   }, [organizationId]);
 
@@ -237,6 +247,21 @@ export default function Training() {
       setCallAgents(data || []);
     } catch (error) {
       console.error("Error loading call agents:", error);
+    }
+  };
+
+  const loadWheelSegments = async () => {
+    try {
+      const { data, error } = await supabase
+        .from("wheel_segments")
+        .select("*")
+        .eq("organization_id", organizationId)
+        .order("display_order");
+
+      if (error) throw error;
+      setWheelSegments(data || []);
+    } catch (error) {
+      console.error("Error loading wheel segments:", error);
     }
   };
 
@@ -500,7 +525,7 @@ export default function Training() {
       <div className="container mx-auto px-4 sm:px-6 py-8 max-w-6xl">
 
         <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full">
-          <TabsList className="grid w-full max-w-md mx-auto grid-cols-2 mb-8">
+          <TabsList className="grid w-full max-w-2xl mx-auto grid-cols-3 mb-8">
             <TabsTrigger value="modules" className="gap-2">
               <BookOpen className="h-4 w-4" />
               Training Modules
@@ -508,6 +533,10 @@ export default function Training() {
             <TabsTrigger value="flashcards" className="gap-2">
               <Brain className="h-4 w-4" />
               Quiz Mode
+            </TabsTrigger>
+            <TabsTrigger value="wheel" className="gap-2">
+              <Disc3 className="h-4 w-4" />
+              Spin the Wheel
             </TabsTrigger>
           </TabsList>
 
@@ -1017,6 +1046,26 @@ export default function Training() {
                 </Card>
               </div>
             )}
+          </TabsContent>
+
+          <TabsContent value="wheel" className="mt-0">
+            <div className="mb-6 text-center">
+              <h3 className="text-2xl font-bold mb-1">Spin the Wheel</h3>
+              <p className="text-sm text-muted-foreground">
+                Test your luck and win exciting rewards!
+              </p>
+            </div>
+
+            <SpinWheel 
+              segments={wheelSegments.map(segment => ({
+                id: segment.id,
+                label: segment.label,
+                color: segment.color
+              }))}
+              onSpin={(winner) => {
+                console.log("Winner:", winner);
+              }}
+            />
           </TabsContent>
 
           <AlertDialog open={deleteDialogOpen} onOpenChange={setDeleteDialogOpen}>
