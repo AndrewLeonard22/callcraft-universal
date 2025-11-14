@@ -101,9 +101,11 @@ export function SpinWheel({ segments, onSpin }: SpinWheelProps) {
     // Determine winner after spin
     setTimeout(() => {
       const segmentAngle = 360 / segments.length;
-      const normalizedRotation = (totalRotation % 360);
-      // The pointer is at the top (270 degrees or -90), so we adjust
-      const winningIndex = Math.floor(((360 - normalizedRotation + 90) % 360) / segmentAngle) % segments.length;
+      const normalizedRotation = totalRotation % 360;
+      // Calculate which segment is under the pointer at the top
+      // After rotating by X degrees, the segment that's X degrees back is now at top
+      const pointerAngle = (360 - normalizedRotation) % 360;
+      const winningIndex = Math.floor(pointerAngle / segmentAngle) % segments.length;
       const winningSegment = segments[winningIndex];
       
       setWinner(winningSegment);
