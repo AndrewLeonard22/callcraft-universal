@@ -1,6 +1,59 @@
 import { useState, useEffect } from "react";
 import { Link } from "react-router-dom";
-import { Plus, Edit, Trash2, ArrowLeft, Video, Package, CheckCircle2, DollarSign } from "lucide-react";
+import { Plus, Edit, Trash2, ArrowLeft, Video, Package, CheckCircle2, DollarSign, Lightbulb, Shield, BookOpen, HelpCircle } from "lucide-react";
+
+// Module Type definitions with auto-scaffolding
+const MODULE_TYPES = [
+  { 
+    id: 'pricing', 
+    label: 'Pricing', 
+    icon: DollarSign,
+    description: 'Pricing models, tiers, and payment options',
+    defaultSections: ['Overview', 'Packages & Tiers', 'Payment Options']
+  },
+  { 
+    id: 'features_benefits', 
+    label: 'Features & Benefits', 
+    icon: Lightbulb,
+    description: 'Product features and customer benefits',
+    defaultSections: ['Key Features', 'Customer Benefits', 'Value Proposition']
+  },
+  { 
+    id: 'objection_handling', 
+    label: 'Objection Handling', 
+    icon: Shield,
+    description: 'Common objections and how to address them',
+    defaultSections: ['Common Objections', 'Response Scripts', 'Success Stories']
+  },
+  { 
+    id: 'sales_playbook', 
+    label: 'Sales Playbook', 
+    icon: BookOpen,
+    description: 'Sales processes and best practices',
+    defaultSections: ['Sales Process', 'Best Practices', 'Scripts & Templates']
+  },
+  { 
+    id: 'faqs', 
+    label: 'FAQs', 
+    icon: HelpCircle,
+    description: 'Frequently asked questions',
+    defaultSections: ['General Questions', 'Technical Questions', 'Pricing Questions']
+  },
+  { 
+    id: 'training_videos', 
+    label: 'Training Videos', 
+    icon: Video,
+    description: 'Video tutorials and demonstrations',
+    defaultSections: ['Getting Started', 'Advanced Techniques', 'Case Studies']
+  },
+  { 
+    id: 'custom', 
+    label: 'Custom', 
+    icon: Package,
+    description: 'Custom training content',
+    defaultSections: []
+  },
+] as const;
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
@@ -250,6 +303,15 @@ const [moduleForm, setModuleForm] = useState({
       return;
     }
 
+    if (!moduleForm.category) {
+      toast({ 
+        title: "Module type required", 
+        description: "Please select a module type",
+        variant: "destructive" 
+      });
+      return;
+    }
+
     if (!moduleForm.title.trim()) {
       toast({ 
         title: "Title required", 
@@ -269,8 +331,15 @@ const [moduleForm, setModuleForm] = useState({
     }
 
     try {
+      // Get icon based on module type
+      const moduleType = MODULE_TYPES.find(t => t.id === moduleForm.category);
+      const iconName = moduleType?.icon.name || 'Package';
+
       const moduleData = {
-        ...moduleForm,
+        title: moduleForm.title,
+        description: moduleForm.description,
+        category: moduleForm.category,
+        icon_name: iconName,
         service_type_id: moduleForm.service_type_id || null,
       };
 
@@ -283,17 +352,38 @@ const [moduleForm, setModuleForm] = useState({
         if (error) throw error;
         toast({ title: "Module updated successfully" });
       } else {
-        const { error } = await supabase
+        const { data: newModule, error } = await supabase
           .from("training_modules")
-          .insert([{ ...moduleData, organization_id: organizationId }]);
+          .insert([{ ...moduleData, organization_id: organizationId }])
+          .select()
+          .single();
 
         if (error) throw error;
+
+        // Auto-scaffold default sections if module type has them
+        if (newModule && moduleType?.defaultSections && moduleType.defaultSections.length > 0) {
+          const sectionsToCreate = moduleType.defaultSections.map((sectionTitle, index) => ({
+            module_id: newModule.id,
+            title: sectionTitle,
+            content: '',
+            display_order: index,
+          }));
+
+          const { error: sectionsError } = await supabase
+            .from("training_sections")
+            .insert(sectionsToCreate);
+
+          if (sectionsError) {
+            logger.error("Error creating default sections:", sectionsError);
+          }
+        }
+
         toast({ title: "Module created successfully" });
       }
 
       setModuleDialogOpen(false);
       setEditingModule(null);
-      setModuleForm({ title: "", description: "", category: "pricing", icon_name: "DollarSign", service_type_id: "" });
+      setModuleForm({ title: "", description: "", category: "", icon_name: "", service_type_id: "" });
       loadModules();
     } catch (error: any) {
       logger.error("Error saving module:", error);
@@ -608,28 +698,29 @@ const [moduleForm, setModuleForm] = useState({
                   <DialogTrigger asChild>
                     <Button onClick={() => {
                       setEditingModule(null);
-                      setModuleForm({ title: "", description: "", category: "pricing", icon_name: "DollarSign", service_type_id: "" });
+                      setModuleForm({ title: "", description: "", category: "", icon_name: "", service_type_id: "" });
                     }}>
                       <Plus className="mr-2 h-4 w-4" />
                       New Module
                     </Button>
                   </DialogTrigger>
-                  <DialogContent>
+                  <DialogContent className="max-w-3xl max-h-[90vh] overflow-y-auto">
               <DialogHeader>
                 <DialogTitle>{editingModule ? "Edit" : "Create"} Module</DialogTitle>
                 <DialogDescription>
                   {editingModule ? "Update" : "Add"} a training module for your team
                 </DialogDescription>
               </DialogHeader>
-              <div className="space-y-4 py-4">
+              <div className="space-y-6 py-4">
+                {/* Step 1: Service Selection */}
                 <div>
-                  <Label>Service <span className="text-destructive">*</span></Label>
+                  <Label>Select Service <span className="text-destructive">*</span></Label>
                   <Select
                     value={moduleForm.service_type_id}
                     onValueChange={(value) => setModuleForm({ ...moduleForm, service_type_id: value })}
                   >
                     <SelectTrigger>
-                      <SelectValue placeholder="Select a service..." />
+                      <SelectValue placeholder="Choose the service this module belongs to" />
                     </SelectTrigger>
                     <SelectContent>
                       {serviceTypes.map((service) => (
@@ -640,56 +731,98 @@ const [moduleForm, setModuleForm] = useState({
                     </SelectContent>
                   </Select>
                 </div>
+
+                {/* Step 2: Module Type Selection */}
                 <div>
-                  <Label>Title</Label>
-                  <Input
-                    value={moduleForm.title}
-                    onChange={(e) => setModuleForm({ ...moduleForm, title: e.target.value })}
-                    placeholder="e.g., Pricing"
-                  />
+                  <Label>Module Type <span className="text-destructive">*</span></Label>
+                  <p className="text-sm text-muted-foreground mb-3">
+                    Choose the type of training content
+                  </p>
+                  <div className="grid grid-cols-2 gap-3">
+                    {MODULE_TYPES.map((type) => {
+                      const IconComponent = type.icon;
+                      const isSelected = moduleForm.category === type.id;
+                      return (
+                        <button
+                          key={type.id}
+                          type="button"
+                          onClick={() => setModuleForm({ ...moduleForm, category: type.id, icon_name: type.icon.name })}
+                          className={`p-4 rounded-lg border-2 text-left transition-all hover:shadow-md ${
+                            isSelected 
+                              ? 'border-primary bg-primary/5' 
+                              : 'border-border hover:border-primary/50'
+                          }`}
+                        >
+                          <div className="flex items-start gap-3">
+                            <div className={`p-2 rounded-lg ${
+                              isSelected ? 'bg-primary/10' : 'bg-muted'
+                            }`}>
+                              <IconComponent className={`h-5 w-5 ${
+                                isSelected ? 'text-primary' : 'text-muted-foreground'
+                              }`} />
+                            </div>
+                            <div className="flex-1 min-w-0">
+                              <div className="font-semibold text-sm mb-1">{type.label}</div>
+                              <div className="text-xs text-muted-foreground line-clamp-2">
+                                {type.description}
+                              </div>
+                            </div>
+                          </div>
+                        </button>
+                      );
+                    })}
+                  </div>
                 </div>
-                <div>
-                  <Label>Description</Label>
-                  <Textarea
-                    value={moduleForm.description}
-                    onChange={(e) => setModuleForm({ ...moduleForm, description: e.target.value })}
-                    placeholder="Brief description of this module"
-                  />
-                </div>
-                <div>
-                  <Label>Category</Label>
-                  <Select
-                    value={moduleForm.category}
-                    onValueChange={(value) => setModuleForm({ ...moduleForm, category: value })}
-                  >
-                    <SelectTrigger>
-                      <SelectValue />
-                    </SelectTrigger>
-                    <SelectContent>
-                      <SelectItem value="pricing">Pricing</SelectItem>
-                      <SelectItem value="product">Product Knowledge</SelectItem>
-                      <SelectItem value="sales">Sales Techniques</SelectItem>
-                      <SelectItem value="tips">Quick Tips</SelectItem>
-                    </SelectContent>
-                  </Select>
-                </div>
-                <div>
-                  <Label>Icon Name</Label>
-                  <Input
-                    value={moduleForm.icon_name}
-                    onChange={(e) => setModuleForm({ ...moduleForm, icon_name: e.target.value })}
-                    placeholder="Lucide icon name (e.g., DollarSign)"
-                  />
+
+                {/* Step 3: Module Details */}
+                <div className="space-y-4 pt-4 border-t">
+                  <div>
+                    <Label>Module Title <span className="text-destructive">*</span></Label>
+                    <Input
+                      value={moduleForm.title}
+                      onChange={(e) => setModuleForm({ ...moduleForm, title: e.target.value })}
+                      placeholder="e.g., Premium Tier Pricing"
+                      maxLength={100}
+                    />
+                  </div>
+                  <div>
+                    <Label>Description (Optional)</Label>
+                    <Textarea
+                      value={moduleForm.description}
+                      onChange={(e) => setModuleForm({ ...moduleForm, description: e.target.value })}
+                      placeholder="Brief description of this module"
+                      rows={3}
+                    />
+                  </div>
+                  {moduleForm.category && MODULE_TYPES.find(t => t.id === moduleForm.category)?.defaultSections.length > 0 && !editingModule && (
+                    <div className="p-3 bg-muted/50 rounded-lg">
+                      <p className="text-sm font-medium mb-2">Auto-scaffolded sections:</p>
+                      <ul className="text-sm text-muted-foreground space-y-1">
+                        {MODULE_TYPES.find(t => t.id === moduleForm.category)?.defaultSections.map((section, idx) => (
+                          <li key={idx} className="flex items-center gap-2">
+                            <div className="h-1.5 w-1.5 rounded-full bg-primary" />
+                            {section}
+                          </li>
+                        ))}
+                      </ul>
+                    </div>
+                  )}
                 </div>
               </div>
               <DialogFooter>
-                <Button variant="outline" onClick={() => setModuleDialogOpen(false)}>
+                <Button variant="outline" onClick={() => {
+                  setModuleDialogOpen(false);
+                  setEditingModule(null);
+                  setModuleForm({ title: "", description: "", category: "", icon_name: "", service_type_id: "" });
+                }}>
                   Cancel
                 </Button>
-                <Button onClick={handleSaveModule}>Save Module</Button>
+                <Button onClick={handleSaveModule}>
+                  {editingModule ? "Update" : "Create"} Module
+                </Button>
               </DialogFooter>
-                  </DialogContent>
-                </Dialog>
+            </DialogContent>
+              </Dialog>
               </div>
 
               {modules.length === 0 ? (

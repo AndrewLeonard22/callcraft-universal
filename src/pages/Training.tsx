@@ -1,5 +1,16 @@
 import { useEffect, useState, useCallback, useMemo } from "react";
-import { GraduationCap, DollarSign, Phone, BookOpen, Lightbulb, Package, Shield, TrendingUp, Award, CheckCircle2, XCircle, AlertCircle, Video, ExternalLink, Brain, ArrowRight, RotateCcw, Check, X, Plus, Trash2, Edit, Trophy, Disc3 } from "lucide-react";
+import { GraduationCap, DollarSign, Phone, BookOpen, Lightbulb, Package, Shield, TrendingUp, Award, CheckCircle2, XCircle, AlertCircle, Video, ExternalLink, Brain, ArrowRight, RotateCcw, Check, X, Plus, Trash2, Edit, Trophy, Disc3, HelpCircle } from "lucide-react";
+
+// Module Types matching TrainingManagement
+const MODULE_TYPES = [
+  { id: 'pricing', label: 'Pricing', icon: DollarSign },
+  { id: 'features_benefits', label: 'Features & Benefits', icon: Lightbulb },
+  { id: 'objection_handling', label: 'Objection Handling', icon: Shield },
+  { id: 'sales_playbook', label: 'Sales Playbook', icon: BookOpen },
+  { id: 'faqs', label: 'FAQs', icon: HelpCircle },
+  { id: 'training_videos', label: 'Training Videos', icon: Video },
+  { id: 'custom', label: 'Custom', icon: Package },
+] as const;
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from "@/components/ui/accordion";
 import { Badge } from "@/components/ui/badge";
@@ -96,6 +107,7 @@ interface WheelSegment {
 export default function Training() {
   const [modules, setModules] = useState<TrainingModule[]>([]);
   const [serviceTypes, setServiceTypes] = useState<ServiceType[]>([]);
+  const [selectedServiceId, setSelectedServiceId] = useState<string | null>(null);
   const [loading, setLoading] = useState(true);
   const [organizationId, setOrganizationId] = useState<string | null>(null);
   const [questions, setQuestions] = useState<TrainingQuestion[]>([]);
@@ -229,6 +241,13 @@ export default function Training() {
       console.error("Error loading service types:", error);
     }
   };
+
+  // Auto-select first service when loaded
+  useEffect(() => {
+    if (serviceTypes.length > 0 && !selectedServiceId) {
+      setSelectedServiceId(serviceTypes[0].id);
+    }
+  }, [serviceTypes]);
 
   const loadQuestions = useCallback(async () => {
     if (!organizationId) return;
@@ -511,6 +530,22 @@ export default function Training() {
       });
     }
   };
+
+  // Group modules by service and module type
+  const groupedModules = useMemo(() => {
+    const filtered = modules.filter(m => m.service_type_id === selectedServiceId);
+    const grouped: Record<string, TrainingModule[]> = {};
+    
+    filtered.forEach(module => {
+      const moduleType = module.category || 'custom';
+      if (!grouped[moduleType]) {
+        grouped[moduleType] = [];
+      }
+      grouped[moduleType].push(module);
+    });
+    
+    return grouped;
+  }, [modules, selectedServiceId]);
 
   const getIconComponent = (iconName: string) => {
     const icons: Record<string, any> = {
