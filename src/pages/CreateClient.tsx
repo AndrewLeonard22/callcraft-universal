@@ -9,6 +9,7 @@ import { Label } from "@/components/ui/label";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { logger } from "@/utils/logger";
 
 export default function CreateClient() {
   const navigate = useNavigate();
@@ -59,32 +60,39 @@ export default function CreateClient() {
       toast.error("Please provide a business name");
       return;
     }
+    
+    if (!serviceArea.trim()) {
+      toast.error("Please provide a service area");
+      return;
+    }
 
     setLoading(true);
+    let uploadedFilePath: string | null = null;
+    
     try {
       // Upload logo first if provided
       let logoUrl = "";
       if (logoFile) {
         const fileExt = logoFile.name.split(".").pop();
         const fileName = `${Date.now()}-${businessName.replace(/\s+/g, "-")}.${fileExt}`;
-        const filePath = fileName;
+        uploadedFilePath = fileName;
 
         const { error: uploadError } = await supabase.storage
           .from("client-logos")
-          .upload(filePath, logoFile, {
+          .upload(uploadedFilePath, logoFile, {
             cacheControl: "3600",
             upsert: false,
           });
 
         if (uploadError) {
-          console.error("Logo upload error:", uploadError);
-          toast.error("Failed to upload logo");
+          logger.error("Logo upload error:", uploadError);
+          toast.error("Failed to upload logo. Please try again.");
           return;
         }
 
         const { data: urlData } = supabase.storage
           .from("client-logos")
-          .getPublicUrl(filePath);
+          .getPublicUrl(uploadedFilePath);
         
         logoUrl = urlData.publicUrl;
       }
@@ -110,34 +118,63 @@ export default function CreateClient() {
         },
       });
 
-      if (error) throw error;
+      if (error) {
+        throw new Error(error.message || "Failed to create client");
+      }
+      
+      if (!data || !data.client_id) {
+        throw new Error("Client creation returned no ID");
+      }
 
       const newClientId = data.client_id as string;
 
-      // Save logo URL if uploaded
+      // Save additional details in a single transaction-like operation
+      const additionalDetails: Array<{ client_id: string; field_name: string; field_value: string }> = [];
+      
       if (logoUrl) {
-        await supabase.from("client_details").insert({
+        additionalDetails.push({
           client_id: newClientId,
           field_name: "logo_url",
           field_value: logoUrl,
         });
       }
 
-      // Save numeric service radius for accurate map rendering
       const radiusNumber = parseFloat(serviceRadiusMiles);
-      if (!isNaN(radiusNumber)) {
-        await supabase.from("client_details").insert({
+      if (!isNaN(radiusNumber) && radiusNumber > 0) {
+        additionalDetails.push({
           client_id: newClientId,
           field_name: "service_radius_miles",
           field_value: String(radiusNumber),
         });
       }
+      
+      if (additionalDetails.length > 0) {
+        const { error: detailsError } = await supabase
+          .from("client_details")
+          .insert(additionalDetails);
+        
+        if (detailsError) {
+          logger.error("Failed to save some client details:", detailsError);
+          // Don't fail the whole operation, just warn
+          toast("Client created, but some details may need to be re-entered", {
+            description: "Please review the client information"
+          });
+        }
+      }
 
-      toast.success("Company created successfully!");
+      toast.success("Company created successfully");
       navigate(`/client/${newClientId}`);
     } catch (error: any) {
-      console.error("Error creating client:", error);
-      toast.error(error.message || "Failed to create client");
+      logger.error("Error creating client:", error);
+      toast.error(error.message || "Failed to create client. Please try again.");
+      
+      // Clean up uploaded logo if client creation failed
+      if (uploadedFilePath) {
+        await supabase.storage
+          .from("client-logos")
+          .remove([uploadedFilePath])
+          .catch(err => logger.error("Failed to cleanup logo:", err));
+      }
     } finally {
       setLoading(false);
     }

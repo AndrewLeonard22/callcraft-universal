@@ -291,7 +291,7 @@ export default function EditScript() {
           script_length: freshTemplate.script_content?.length || 0
         });
 
-        const { error } = await supabase.functions.invoke("extract-client-data", {
+        const { data: updateResult, error } = await supabase.functions.invoke("extract-client-data", {
           body: {
             client_id: client?.id,
             service_name: selectedServiceType.name,
@@ -317,25 +317,38 @@ export default function EditScript() {
           },
         });
 
-        if (error) throw error;
+        if (error) {
+          throw new Error(error.message || "Failed to update script");
+        }
+        
+        if (!updateResult) {
+          throw new Error("Script update returned no confirmation");
+        }
       } else {
         // Just update service type and name
-        const { error } = await supabase
+        const { data: updatedScript, error } = await supabase
           .from("scripts")
           .update({ 
             service_name: selectedServiceType.name,
             service_type_id: selectedServiceTypeId
           })
-          .eq("id", scriptId);
+          .eq("id", scriptId)
+          .select()
+          .single();
 
         if (error) throw error;
+        
+        if (!updatedScript) {
+          throw new Error("Script update returned no data");
+        }
       }
 
-      toast.success("Script updated successfully!");
+      toast.success("Script updated successfully");
       navigate(`/script/${scriptId}`);
     } catch (error: any) {
-      console.error("Error saving script:", error);
-      toast.error(error.message || "Failed to save script");
+      logger.error("Error saving script:", error);
+      toast.error(error.message || "Failed to save script. Please try again.");
+      // Keep user on page so they can retry
     } finally {
       setSaving(false);
     }

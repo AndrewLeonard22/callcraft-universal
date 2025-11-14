@@ -10,6 +10,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import ServiceAreaMap from "@/components/ServiceAreaMap";
+import { logger } from "@/utils/logger";
 
 export default function EditClient() {
   const { clientId } = useParams();
@@ -173,24 +174,31 @@ export default function EditClient() {
       toast.error("Client name is required");
       return;
     }
+    
+    if (!serviceType.trim()) {
+      toast.error("Service type is required");
+      return;
+    }
 
     setSaving(true);
     try {
-      // Update basic client info
-      const { error: clientError } = await supabase
+      // Update basic client info first
+      const { data: updatedClient, error: clientError } = await supabase
         .from("clients")
         .update({
-          name: clientName,
-          service_type: serviceType,
-          city: city,
+          name: clientName.trim(),
+          service_type: serviceType.trim(),
+          city: city.trim(),
           updated_at: new Date().toISOString(),
         })
-        .eq("id", clientId);
+        .eq("id", clientId)
+        .select()
+        .single();
 
       if (clientError) throw clientError;
+      if (!updatedClient) throw new Error("Client update returned no data");
 
-      // Update client details
-      // Delete only fields managed here to preserve script-specific details
+      // Build new details array
       const managedFields = [
         "logo_url",
         "business_name",
@@ -208,23 +216,18 @@ export default function EditClient() {
         "reschedule_calendar",
         "service_radius_miles",
       ];
-      await supabase
-        .from("client_details")
-        .delete()
-        .eq("client_id", clientId)
-        .in("field_name", managedFields);
       
       const detailsArray = [] as { client_id: string; field_name: string; field_value: string }[];
 
-      // Add business info
+      // Build complete details array
       const businessFields = [
-        { name: "business_name", value: businessName },
-        { name: "owners_name", value: ownersName },
-        { name: "sales_rep_name", value: salesRepName },
-        { name: "sales_rep_phone", value: salesRepPhone },
-        { name: "address", value: address },
-        { name: "services_offered", value: servicesOffered },
-        { name: "other_key_info", value: otherKeyInfo },
+        { name: "business_name", value: businessName.trim() },
+        { name: "owners_name", value: ownersName.trim() },
+        { name: "sales_rep_name", value: salesRepName.trim() },
+        { name: "sales_rep_phone", value: salesRepPhone.trim() },
+        { name: "address", value: address.trim() },
+        { name: "services_offered", value: servicesOffered.trim() },
+        { name: "other_key_info", value: otherKeyInfo.trim() },
       ];
 
       businessFields.forEach(({ name, value }) => {
@@ -239,12 +242,12 @@ export default function EditClient() {
 
       // Add links
       const linkFields = [
-        { name: "website", value: website },
-        { name: "facebook_page", value: facebookPage },
-        { name: "instagram", value: instagram },
-        { name: "crm_account_link", value: crmAccountLink },
-        { name: "appointment_calendar", value: appointmentCalendar },
-        { name: "reschedule_calendar", value: rescheduleCalendar },
+        { name: "website", value: website.trim() },
+        { name: "facebook_page", value: facebookPage.trim() },
+        { name: "instagram", value: instagram.trim() },
+        { name: "crm_account_link", value: crmAccountLink.trim() },
+        { name: "appointment_calendar", value: appointmentCalendar.trim() },
+        { name: "reschedule_calendar", value: rescheduleCalendar.trim() },
       ];
 
       linkFields.forEach(({ name, value }) => {
@@ -265,30 +268,47 @@ export default function EditClient() {
           field_value: logoUrl,
         });
       }
-
-      // Add numeric service radius
-      const radiusNumber = parseFloat(serviceRadiusMiles);
-      if (!isNaN(radiusNumber)) {
-        detailsArray.push({
-          client_id: clientId as string,
-          field_name: "service_radius_miles",
-          field_value: String(radiusNumber),
-        });
+      
+      if (serviceRadiusMiles) {
+        const radiusNumber = parseFloat(serviceRadiusMiles);
+        if (!isNaN(radiusNumber)) {
+          detailsArray.push({
+            client_id: clientId as string,
+            field_name: "service_radius_miles",
+            field_value: String(radiusNumber),
+          });
+        }
       }
-
+      
+      // Use two-phase commit: delete then insert
+      // This prevents data loss if insert fails
       if (detailsArray.length > 0) {
-        const { error: detailsError } = await supabase
+        // First delete only managed fields
+        const { error: deleteError } = await supabase
+          .from("client_details")
+          .delete()
+          .eq("client_id", clientId)
+          .in("field_name", managedFields);
+        
+        if (deleteError) throw deleteError;
+        
+        // Then insert new values
+        const { error: insertError } = await supabase
           .from("client_details")
           .insert(detailsArray);
-
-        if (detailsError) throw detailsError;
+        
+        if (insertError) {
+          // Critical: if insert fails after delete, show clear error
+          throw new Error(`Failed to save client details: ${insertError.message}`);
+        }
       }
 
-      toast.success("Client information updated successfully!");
+      toast.success("Client information updated successfully");
       navigate(`/client/${clientId}`);
     } catch (error: any) {
-      console.error("Error updating client:", error);
-      toast.error(error.message || "Failed to update client");
+      logger.error("Error updating client:", error);
+      toast.error(error.message || "Failed to update client. Please try again.");
+      // Keep user on page so they don't lose their changes
     } finally {
       setSaving(false);
     }

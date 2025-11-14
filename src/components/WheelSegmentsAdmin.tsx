@@ -79,41 +79,47 @@ export default function WheelSegmentsAdmin({ organizationId }: WheelSegmentsAdmi
 
     try {
       if (editingSegment) {
-        const { error } = await supabase
+        const { data, error } = await supabase
           .from("wheel_segments")
           .update({
-            label: formData.label,
+            label: formData.label.trim(),
             color: formData.color,
           })
-          .eq("id", editingSegment.id);
+          .eq("id", editingSegment.id)
+          .select()
+          .single();
 
         if (error) throw error;
-        toast.success("Wheel segment updated successfully");
+        if (!data) throw new Error("Update returned no data");
+        toast.success("Wheel segment updated");
       } else {
         const maxOrder = segments.length > 0 
           ? Math.max(...segments.map(s => s.display_order))
           : -1;
 
-        const { error } = await supabase
+        const { data, error } = await supabase
           .from("wheel_segments")
           .insert({
             organization_id: organizationId,
-            label: formData.label,
+            label: formData.label.trim(),
             color: formData.color,
             display_order: maxOrder + 1,
-          });
+          })
+          .select()
+          .single();
 
         if (error) throw error;
-        toast.success("Wheel segment added successfully");
+        if (!data) throw new Error("Insert returned no data");
+        toast.success("Wheel segment added");
       }
 
       setDialogOpen(false);
       setEditingSegment(null);
       setFormData({ label: "", color: "#3b82f6" });
-      loadSegments();
-    } catch (error) {
+      await loadSegments();
+    } catch (error: any) {
       console.error("Error saving wheel segment:", error);
-      toast.error("Failed to save wheel segment");
+      toast.error(error.message || "Failed to save. Please try again.");
     }
   };
 
