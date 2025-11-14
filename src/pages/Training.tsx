@@ -389,19 +389,30 @@ export default function Training() {
 
   const handleDeleteScore = async (scoreId: string) => {
     try {
-      const { error } = await (supabase as any)
+      const { data, error } = await supabase
         .from("quiz_scores")
         .delete()
-        .eq("id", scoreId);
+        .eq("id", scoreId)
+        .select();
 
       if (error) throw error;
-      toast({ title: "Score deleted" });
-      loadScoreboard();
-    } catch (error) {
+      
+      if (!data || data.length === 0) {
+        throw new Error("Score not found or could not be deleted");
+      }
+
+      toast({ title: "Score deleted successfully" });
+      
+      // Immediately update local state to remove the deleted score
+      setScoreboard(prev => prev.filter(score => score.id !== scoreId));
+      
+      // Reload to ensure consistency with database
+      await loadScoreboard();
+    } catch (error: any) {
       console.error("Error deleting score:", error);
       toast({
-        title: "Error",
-        description: "Failed to delete score",
+        title: "Failed to delete score",
+        description: error.message || "Please try again",
         variant: "destructive",
       });
     }
