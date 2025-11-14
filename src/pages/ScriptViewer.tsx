@@ -1,5 +1,5 @@
 import { useEffect, useState, useRef } from "react";
-import { useParams, useNavigate } from "react-router-dom";
+import { useParams, useNavigate, Link } from "react-router-dom";
 import { ArrowLeft, Edit2, Download, Copy, MessageSquare, X, ClipboardCheck, Sparkles, Save, XCircle } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
@@ -119,6 +119,8 @@ export default function ScriptViewer() {
   const [isEditing, setIsEditing] = useState(false);
   const [editedContent, setEditedContent] = useState("");
   const [saving, setSaving] = useState(false);
+  const [isEditingServiceDetails, setIsEditingServiceDetails] = useState(false);
+  const [editedServiceDetails, setEditedServiceDetails] = useState<Record<string, string>>({});
   const responseTimeouts = useRef<Record<string, number>>({});
   const responsesRef = useRef<Record<string, QualificationResponse>>({});
   useEffect(() => {
@@ -251,6 +253,68 @@ export default function ScriptViewer() {
       supabase.removeChannel(detailsChannel);
     };
   }, [client]);
+
+  const handleEditServiceDetails = () => {
+    // Initialize edited values with current values
+    const currentValues: Record<string, string> = {};
+    serviceDetailFields.forEach((field) => {
+      const value = getDetailValue(field.field_name);
+      currentValues[field.field_name] = value !== "N/A" ? value : "";
+    });
+    setEditedServiceDetails(currentValues);
+    setIsEditingServiceDetails(true);
+  };
+
+  const handleCancelEditServiceDetails = () => {
+    setIsEditingServiceDetails(false);
+    setEditedServiceDetails({});
+  };
+
+  const handleSaveServiceDetails = async () => {
+    if (!client) return;
+
+    setSaving(true);
+    try {
+      // Delete all existing service detail field values for this client
+      const fieldNamesToDelete = serviceDetailFields.map(f => f.field_name);
+      if (fieldNamesToDelete.length > 0) {
+        await supabase
+          .from("client_details")
+          .delete()
+          .eq("client_id", client.id)
+          .in("field_name", fieldNamesToDelete);
+      }
+
+      // Insert new values for all fields that have values
+      const inserts = serviceDetailFields
+        .filter((field) => editedServiceDetails[field.field_name]?.trim())
+        .map((field) => ({
+          client_id: client.id,
+          field_name: field.field_name,
+          field_value: editedServiceDetails[field.field_name].trim(),
+        }));
+
+      if (inserts.length > 0) {
+        const { error } = await supabase
+          .from("client_details")
+          .insert(inserts);
+
+        if (error) throw error;
+      }
+
+      toast.success("Service details updated successfully");
+      setIsEditingServiceDetails(false);
+      setEditedServiceDetails({});
+      
+      // Reload the data
+      loadClientData();
+    } catch (error) {
+      console.error("Error saving service details:", error);
+      toast.error("Failed to save service details");
+    } finally {
+      setSaving(false);
+    }
+  };
 
   const loadServiceDetailFields = async () => {
     if (!serviceTypeId || !organizationId) return;
@@ -1288,39 +1352,127 @@ export default function ScriptViewer() {
               </Card>
 
               {/* Service Details */}
-              {serviceDetailFields.length > 0 && serviceDetailFields.some(field => getDetailValue(field.field_name) !== "N/A") && (
+              {serviceDetailFields.length > 0 && (
                 <Card className="border border-border shadow-sm">
                   <CardContent className="p-6">
-                    <h2 className="text-base font-semibold mb-4 text-foreground">Service Details</h2>
-                    
-                    <div className="space-y-4">
-                      {serviceDetailFields.map((field) => {
-                        const value = getDetailValue(field.field_name);
-                        if (value === "N/A") return null;
-                        
-                        return (
-                          <div key={field.id} className="space-y-1">
-                            <div className="text-xs font-medium text-muted-foreground uppercase tracking-wide">
-                              {field.field_label}
-                            </div>
-                            <div className="text-sm font-medium text-foreground whitespace-pre-wrap">
-                              {field.field_type === 'url' ? (
-                                <a 
-                                  href={safeUrl(value)} 
-                                  target="_blank" 
-                                  rel="noopener noreferrer" 
-                                  className="text-primary hover:text-primary/80 break-all transition-colors"
-                                >
-                                  {value}
-                                </a>
-                              ) : (
-                                value
-                              )}
-                            </div>
-                          </div>
-                        );
-                      })}
+                    <div className="flex items-center justify-between mb-4">
+                      <h2 className="text-base font-semibold text-foreground">Service Details</h2>
+                      {!isEditingServiceDetails ? (
+                        <Button
+                          variant="ghost"
+                          size="sm"
+                          onClick={handleEditServiceDetails}
+                          className="h-8 px-2"
+                        >
+                          <Edit2 className="w-4 h-4 mr-1" />
+                          Edit
+                        </Button>
+                      ) : (
+                        <div className="flex gap-2">
+                          <Button
+                            variant="ghost"
+                            size="sm"
+                            onClick={handleCancelEditServiceDetails}
+                            disabled={saving}
+                            className="h-8 px-2"
+                          >
+                            <XCircle className="w-4 h-4 mr-1" />
+                            Cancel
+                          </Button>
+                          <Button
+                            variant="default"
+                            size="sm"
+                            onClick={handleSaveServiceDetails}
+                            disabled={saving}
+                            className="h-8 px-2"
+                          >
+                            <Save className="w-4 h-4 mr-1" />
+                            {saving ? "Saving..." : "Save"}
+                          </Button>
+                        </div>
+                      )}
                     </div>
+                    
+                    {!isEditingServiceDetails ? (
+                      <div className="space-y-4">
+                        {serviceDetailFields.map((field) => {
+                          const value = getDetailValue(field.field_name);
+                          if (value === "N/A") return null;
+                          
+                          return (
+                            <div key={field.id} className="space-y-1">
+                              <div className="text-xs font-medium text-muted-foreground uppercase tracking-wide">
+                                {field.field_label}
+                              </div>
+                              <div className="text-sm font-medium text-foreground whitespace-pre-wrap">
+                                {field.field_type === 'url' ? (
+                                  <a 
+                                    href={safeUrl(value)} 
+                                    target="_blank" 
+                                    rel="noopener noreferrer" 
+                                    className="text-primary hover:text-primary/80 break-all transition-colors"
+                                  >
+                                    {value}
+                                  </a>
+                                ) : (
+                                  value
+                                )}
+                              </div>
+                            </div>
+                          );
+                        })}
+                        {serviceDetailFields.every(field => getDetailValue(field.field_name) === "N/A") && (
+                          <p className="text-sm text-muted-foreground">
+                            No service details added yet. Click Edit to add details.
+                          </p>
+                        )}
+                      </div>
+                    ) : (
+                      <div className="space-y-4">
+                        {serviceDetailFields.map((field) => (
+                          <div key={field.id} className="space-y-2">
+                            <Label htmlFor={field.field_name} className="text-xs font-medium uppercase tracking-wide">
+                              {field.field_label}
+                              {field.is_required && <span className="text-destructive ml-1">*</span>}
+                            </Label>
+                            {field.field_type === 'textarea' ? (
+                              <Textarea
+                                id={field.field_name}
+                                value={editedServiceDetails[field.field_name] || ""}
+                                onChange={(e) =>
+                                  setEditedServiceDetails((prev) => ({
+                                    ...prev,
+                                    [field.field_name]: e.target.value,
+                                  }))
+                                }
+                                placeholder={field.placeholder}
+                                className="min-h-[80px]"
+                              />
+                            ) : (
+                              <Input
+                                id={field.field_name}
+                                type={field.field_type === 'url' ? 'url' : 'text'}
+                                value={editedServiceDetails[field.field_name] || ""}
+                                onChange={(e) =>
+                                  setEditedServiceDetails((prev) => ({
+                                    ...prev,
+                                    [field.field_name]: e.target.value,
+                                  }))
+                                }
+                                placeholder={field.placeholder}
+                              />
+                            )}
+                          </div>
+                        ))}
+                        <p className="text-xs text-muted-foreground mt-4">
+                          Need to add more fields? Go to{" "}
+                          <Link to="/service-types" className="text-primary hover:underline">
+                            Service Types
+                          </Link>{" "}
+                          to create custom fields.
+                        </p>
+                      </div>
+                    )}
                   </CardContent>
                 </Card>
               )}

@@ -14,6 +14,36 @@ export type Database = {
   }
   public: {
     Tables: {
+      call_agents: {
+        Row: {
+          created_at: string
+          email: string | null
+          id: string
+          name: string
+          organization_id: string
+          phone: string | null
+          updated_at: string
+        }
+        Insert: {
+          created_at?: string
+          email?: string | null
+          id?: string
+          name: string
+          organization_id: string
+          phone?: string | null
+          updated_at?: string
+        }
+        Update: {
+          created_at?: string
+          email?: string | null
+          id?: string
+          name?: string
+          organization_id?: string
+          phone?: string | null
+          updated_at?: string
+        }
+        Relationships: []
+      }
       client_details: {
         Row: {
           client_id: string
@@ -49,6 +79,7 @@ export type Database = {
       clients: {
         Row: {
           archived: boolean
+          call_agent_id: string | null
           city: string | null
           created_at: string | null
           id: string
@@ -60,6 +91,7 @@ export type Database = {
         }
         Insert: {
           archived?: boolean
+          call_agent_id?: string | null
           city?: string | null
           created_at?: string | null
           id?: string
@@ -71,6 +103,7 @@ export type Database = {
         }
         Update: {
           archived?: boolean
+          call_agent_id?: string | null
           city?: string | null
           created_at?: string | null
           id?: string
@@ -81,6 +114,13 @@ export type Database = {
           updated_at?: string | null
         }
         Relationships: [
+          {
+            foreignKeyName: "clients_call_agent_id_fkey"
+            columns: ["call_agent_id"]
+            isOneToOne: false
+            referencedRelation: "call_agents"
+            referencedColumns: ["id"]
+          },
           {
             foreignKeyName: "clients_organization_id_fkey"
             columns: ["organization_id"]
@@ -389,6 +429,47 @@ export type Database = {
           },
         ]
       }
+      quiz_scores: {
+        Row: {
+          call_agent_id: string | null
+          completed_at: string
+          created_at: string
+          id: string
+          organization_id: string
+          score: number
+          total_questions: number
+          user_id: string
+        }
+        Insert: {
+          call_agent_id?: string | null
+          completed_at?: string
+          created_at?: string
+          id?: string
+          organization_id: string
+          score?: number
+          total_questions?: number
+          user_id: string
+        }
+        Update: {
+          call_agent_id?: string | null
+          completed_at?: string
+          created_at?: string
+          id?: string
+          organization_id?: string
+          score?: number
+          total_questions?: number
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "quiz_scores_call_agent_id_fkey"
+            columns: ["call_agent_id"]
+            isOneToOne: false
+            referencedRelation: "call_agents"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       scripts: {
         Row: {
           client_id: string
@@ -679,6 +760,54 @@ export type Database = {
           updated_at?: string
         }
         Relationships: []
+      }
+      training_questions: {
+        Row: {
+          answer: string
+          created_at: string
+          display_order: number | null
+          id: string
+          module_id: string | null
+          organization_id: string
+          question: string
+          section_id: string | null
+        }
+        Insert: {
+          answer: string
+          created_at?: string
+          display_order?: number | null
+          id?: string
+          module_id?: string | null
+          organization_id: string
+          question: string
+          section_id?: string | null
+        }
+        Update: {
+          answer?: string
+          created_at?: string
+          display_order?: number | null
+          id?: string
+          module_id?: string | null
+          organization_id?: string
+          question?: string
+          section_id?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "training_questions_module_id_fkey"
+            columns: ["module_id"]
+            isOneToOne: false
+            referencedRelation: "training_modules"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "training_questions_section_id_fkey"
+            columns: ["section_id"]
+            isOneToOne: false
+            referencedRelation: "training_sections"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       training_sections: {
         Row: {
