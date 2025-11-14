@@ -582,172 +582,189 @@ export default function Training() {
                 </CardContent>
               </Card>
             ) : (
-              <div className="grid gap-4">
-                {modules.map((module) => {
-              const IconComponent = getIconComponent(module.icon_name);
-              const categoryColor = getCategoryColor(module.category);
+              <div className="space-y-8">
+                {Object.entries(
+                  modules.reduce((acc, module) => {
+                    const category = module.category || 'General';
+                    if (!acc[category]) acc[category] = [];
+                    acc[category].push(module);
+                    return acc;
+                  }, {} as Record<string, TrainingModule[]>)
+                ).map(([category, categoryModules]) => (
+                  <div key={category} className="space-y-4">
+                    {/* Category Header */}
+                    <div className="flex items-center gap-3 pb-2 border-b">
+                      <div className="p-2 bg-primary/10 rounded-lg">
+                        <Package className={`h-5 w-5 ${getCategoryColor(category)}`} />
+                      </div>
+                      <div>
+                        <h2 className="text-xl font-bold capitalize">{category}</h2>
+                        <p className="text-sm text-muted-foreground">
+                          {categoryModules.length} {categoryModules.length === 1 ? 'module' : 'modules'}
+                        </p>
+                      </div>
+                    </div>
 
-                  return (
-                    <Card key={module.id} className="group hover:shadow-lg transition-all duration-200 border-border/50">
-                      <CardHeader className="pb-4 bg-gradient-to-br from-muted/20 to-transparent">
-                        <div className="flex items-start gap-3">
-                          <div className="p-2 bg-background rounded-lg shadow-sm border border-border/50">
-                            <IconComponent className={`h-5 w-5 ${categoryColor}`} />
-                          </div>
-                          <div className="flex-1 min-w-0">
-                            <div className="flex items-center gap-2 mb-1">
-                              <CardTitle className="text-lg font-bold truncate">{module.title}</CardTitle>
-                              <Badge variant="secondary" className="capitalize text-xs">
-                                {module.category}
-                              </Badge>
-                            </div>
-                            <CardDescription className="text-sm line-clamp-2">
-                              {module.description}
-                            </CardDescription>
-                          </div>
-                        </div>
-                      </CardHeader>
-                      <CardContent className="pt-0">
-                        {module.sections && module.sections.length > 0 ? (
-                          <Accordion type="single" collapsible className="w-full">
-                            {module.sections.map((section) => (
-                              <AccordionItem key={section.id} value={section.id} className="border-b last:border-0">
-                                <AccordionTrigger className="hover:no-underline py-3 group">
-                                  <div className="flex items-center gap-2">
-                                    <div className="p-1 bg-primary/10 rounded group-hover:bg-primary/20 transition-colors">
-                                      <Package className="h-4 w-4 text-primary" />
-                                    </div>
-                                    <span className="font-semibold text-sm text-left">{section.title}</span>
-                                  </div>
-                                </AccordionTrigger>
-                                <AccordionContent>
-                                  <div className="space-y-4 pt-2 pb-2 px-1">
-                                    {section.content && (
-                                      <div className="prose prose-sm max-w-none">
-                                        <p className="text-sm text-foreground/80 leading-relaxed whitespace-pre-wrap">
-                                          {section.content}
-                                        </p>
-                                      </div>
-                                    )}
-
-                                    {section.features && section.features.length > 0 && (
-                                      <div className="border rounded-lg p-4 bg-gradient-to-br from-muted/20 to-muted/5">
-                                        <h4 className="font-bold text-sm mb-3 flex items-center gap-2">
-                                          <DollarSign className="h-4 w-4 text-primary" />
-                                          Pricing & Details
-                                        </h4>
-                                        <div className="space-y-2">
-                                          {section.features.map((feature) => (
-                                            <div
-                                              key={feature.id}
-                                              className="flex justify-between items-center py-2 px-3 bg-background/60 rounded border border-border/50"
-                                            >
-                                              <span className="text-xs font-medium text-muted-foreground">
-                                                {feature.feature_name}
-                                              </span>
-                                              <span className="font-bold text-sm">{feature.feature_value}</span>
-                                            </div>
-                                          ))}
+                    {/* Module Cards Grid */}
+                    <div className="grid gap-4 md:grid-cols-2">
+                      {categoryModules.map((module) => {
+                        const IconComponent = getIconComponent(module.icon_name);
+                        
+                        return (
+                          <Card key={module.id} className="group hover:shadow-lg transition-all duration-200 border-border/50 hover:border-primary/30">
+                            <CardHeader className="pb-3">
+                              <div className="flex items-start gap-3">
+                                <div className="p-2 bg-primary/10 rounded-lg group-hover:bg-primary/20 transition-colors">
+                                  <IconComponent className="h-5 w-5 text-primary" />
+                                </div>
+                                <div className="flex-1 min-w-0">
+                                  <CardTitle className="text-base font-bold mb-1">{module.title}</CardTitle>
+                                  <CardDescription className="text-xs line-clamp-2">
+                                    {module.description}
+                                  </CardDescription>
+                                </div>
+                              </div>
+                            </CardHeader>
+                            <CardContent className="pt-0">
+                              {module.sections && module.sections.length > 0 ? (
+                                <Accordion type="single" collapsible className="w-full">
+                                  {module.sections.map((section) => (
+                                    <AccordionItem key={section.id} value={section.id} className="border-b last:border-0">
+                                      <AccordionTrigger className="hover:no-underline py-2.5 text-sm">
+                                        <div className="flex items-center gap-2">
+                                          <ArrowRight className="h-3.5 w-3.5 text-muted-foreground" />
+                                          <span className="font-medium text-left">{section.title}</span>
                                         </div>
-                                      </div>
-                                    )}
-
-                                    {section.benefits && section.benefits.length > 0 && (
-                                      <div className="grid md:grid-cols-2 gap-3">
-                                        {section.benefits.filter(b => b.benefit_type === "pro").length > 0 && (
-                                          <div className="border border-green-500/30 rounded-lg p-4 bg-gradient-to-br from-green-500/10 to-green-500/5">
-                                            <div className="flex items-center gap-2 mb-3">
-                                              <div className="p-1 bg-green-500/20 rounded">
-                                                <CheckCircle2 className="h-4 w-4 text-green-600 dark:text-green-500" />
-                                              </div>
-                                              <h5 className="font-bold text-sm">Benefits</h5>
+                                      </AccordionTrigger>
+                                      <AccordionContent>
+                                        <div className="space-y-3 pt-2 pb-2">
+                                          {section.content && (
+                                            <div className="prose prose-sm max-w-none">
+                                              <p className="text-xs text-foreground/80 leading-relaxed whitespace-pre-wrap">
+                                                {section.content}
+                                              </p>
                                             </div>
-                                            <div className="space-y-2">
-                                              {section.benefits
-                                                .filter(b => b.benefit_type === "pro")
-                                                .map((benefit) => (
-                                                  <div key={benefit.id} className="flex items-start gap-2 text-xs">
-                                                    <CheckCircle2 className="h-3 w-3 text-green-600 dark:text-green-500 mt-0.5 flex-shrink-0" />
-                                                    <span className="leading-relaxed">{benefit.benefit_text}</span>
+                                          )}
+
+                                          {section.features && section.features.length > 0 && (
+                                            <div className="border rounded-lg p-3 bg-muted/20">
+                                              <h4 className="font-semibold text-xs mb-2 flex items-center gap-1.5">
+                                                <DollarSign className="h-3.5 w-3.5 text-primary" />
+                                                Details
+                                              </h4>
+                                              <div className="space-y-1.5">
+                                                {section.features.map((feature) => (
+                                                  <div
+                                                    key={feature.id}
+                                                    className="flex justify-between items-center py-1.5 px-2 bg-background/60 rounded text-xs"
+                                                  >
+                                                    <span className="font-medium text-muted-foreground">
+                                                      {feature.feature_name}
+                                                    </span>
+                                                    <span className="font-bold text-xs">{feature.feature_value}</span>
                                                   </div>
                                                 ))}
-                                            </div>
-                                          </div>
-                                        )}
-
-                                        {section.benefits.filter(b => b.benefit_type === "con").length > 0 && (
-                                          <div className="border border-amber-500/30 rounded-lg p-4 bg-gradient-to-br from-amber-500/10 to-amber-500/5">
-                                            <div className="flex items-center gap-2 mb-3">
-                                              <div className="p-1 bg-amber-500/20 rounded">
-                                                <AlertCircle className="h-4 w-4 text-amber-600 dark:text-amber-500" />
                                               </div>
-                                              <h5 className="font-bold text-sm">Considerations</h5>
                                             </div>
-                                            <div className="space-y-2">
-                                              {section.benefits
-                                                .filter(b => b.benefit_type === "con")
-                                                .map((benefit) => (
-                                                  <div key={benefit.id} className="flex items-start gap-2 text-xs">
-                                                    <AlertCircle className="h-3 w-3 text-amber-600 dark:text-amber-500 mt-0.5 flex-shrink-0" />
-                                                    <span className="leading-relaxed">{benefit.benefit_text}</span>
-                                                  </div>
-                                                ))}
-                                            </div>
-                                          </div>
-                                        )}
-                                      </div>
-                                    )}
+                                          )}
 
-                                    {section.videos && section.videos.length > 0 && (
-                                      <div className="border rounded-lg p-4 bg-gradient-to-br from-primary/5 to-primary/10">
-                                        <div className="flex items-center gap-2 mb-3">
-                                          <div className="p-1 bg-primary/20 rounded">
-                                            <Video className="h-4 w-4 text-primary" />
-                                          </div>
-                                          <h5 className="font-bold text-sm">Training Videos</h5>
-                                        </div>
-                                        <div className="space-y-2">
-                                          {section.videos.map((video) => (
-                                            <a
-                                              key={video.id}
-                                              href={video.video_url}
-                                              target="_blank"
-                                              rel="noopener noreferrer"
-                                              className="block p-3 border rounded-lg hover:bg-background/80 hover:shadow-sm transition-all duration-200 bg-background/60 group"
-                                            >
-                                              <div className="flex items-start justify-between gap-2">
-                                                <div className="flex-1">
-                                                  <div className="flex items-center gap-2 mb-1">
-                                                    <Video className="h-3 w-3 text-primary" />
-                                                    <span className="font-semibold text-xs group-hover:text-primary transition-colors">{video.title}</span>
+                                          {section.benefits && section.benefits.length > 0 && (
+                                            <div className="grid gap-3 sm:grid-cols-2">
+                                              {section.benefits.filter(b => b.benefit_type === "pro").length > 0 && (
+                                                <div className="border border-green-500/30 rounded-lg p-3 bg-gradient-to-br from-green-500/10 to-green-500/5">
+                                                  <div className="flex items-center gap-2 mb-2">
+                                                    <div className="p-1 bg-green-500/20 rounded">
+                                                      <CheckCircle2 className="h-3.5 w-3.5 text-green-600 dark:text-green-500" />
+                                                    </div>
+                                                    <h5 className="font-semibold text-xs">Benefits</h5>
                                                   </div>
-                                                  {video.description && (
-                                                    <p className="text-xs text-muted-foreground leading-relaxed">
-                                                      {video.description}
-                                                    </p>
-                                                  )}
+                                                  <div className="space-y-1.5">
+                                                    {section.benefits
+                                                      .filter(b => b.benefit_type === "pro")
+                                                      .map((benefit) => (
+                                                        <div key={benefit.id} className="flex items-start gap-1.5 text-xs">
+                                                          <CheckCircle2 className="h-3 w-3 text-green-600 dark:text-green-500 mt-0.5 flex-shrink-0" />
+                                                          <span className="leading-relaxed">{benefit.benefit_text}</span>
+                                                        </div>
+                                                      ))}
+                                                  </div>
                                                 </div>
-                                                <ExternalLink className="h-3 w-3 text-muted-foreground group-hover:text-primary transition-colors flex-shrink-0 mt-0.5" />
+                                              )}
+
+                                              {section.benefits.filter(b => b.benefit_type === "con").length > 0 && (
+                                                <div className="border border-amber-500/30 rounded-lg p-3 bg-gradient-to-br from-amber-500/10 to-amber-500/5">
+                                                  <div className="flex items-center gap-2 mb-2">
+                                                    <div className="p-1 bg-amber-500/20 rounded">
+                                                      <AlertCircle className="h-3.5 w-3.5 text-amber-600 dark:text-amber-500" />
+                                                    </div>
+                                                    <h5 className="font-semibold text-xs">Considerations</h5>
+                                                  </div>
+                                                  <div className="space-y-1.5">
+                                                    {section.benefits
+                                                      .filter(b => b.benefit_type === "con")
+                                                      .map((benefit) => (
+                                                        <div key={benefit.id} className="flex items-start gap-1.5 text-xs">
+                                                          <XCircle className="h-3 w-3 text-amber-600 dark:text-amber-500 mt-0.5 flex-shrink-0" />
+                                                          <span className="leading-relaxed">{benefit.benefit_text}</span>
+                                                        </div>
+                                                      ))}
+                                                  </div>
+                                                </div>
+                                              )}
+                                            </div>
+                                          )}
+
+                                          {section.videos && section.videos.length > 0 && (
+                                            <div className="space-y-2">
+                                              <h4 className="font-semibold text-xs flex items-center gap-1.5">
+                                                <Video className="h-3.5 w-3.5 text-primary" />
+                                                Training Videos
+                                              </h4>
+                                              <div className="space-y-2">
+                                                {section.videos.map((video) => (
+                                                  <a
+                                                    key={video.id}
+                                                    href={video.video_url}
+                                                    target="_blank"
+                                                    rel="noopener noreferrer"
+                                                    className="block p-2.5 border rounded-lg hover:bg-background/80 hover:shadow-sm transition-all duration-200 bg-background/60 group"
+                                                  >
+                                                    <div className="flex items-start justify-between gap-2">
+                                                      <div className="flex-1">
+                                                        <div className="flex items-center gap-1.5 mb-1">
+                                                          <Video className="h-3 w-3 text-primary" />
+                                                          <span className="font-semibold text-xs group-hover:text-primary transition-colors">{video.title}</span>
+                                                        </div>
+                                                        {video.description && (
+                                                          <p className="text-xs text-muted-foreground leading-relaxed">
+                                                            {video.description}
+                                                          </p>
+                                                        )}
+                                                      </div>
+                                                      <ExternalLink className="h-3 w-3 text-muted-foreground group-hover:text-primary transition-colors flex-shrink-0 mt-0.5" />
+                                                    </div>
+                                                  </a>
+                                                ))}
                                               </div>
-                                            </a>
-                                          ))}
+                                            </div>
+                                          )}
                                         </div>
-                                      </div>
-                                    )}
-                                  </div>
-                                </AccordionContent>
-                              </AccordionItem>
-                            ))}
-                          </Accordion>
-                        ) : (
-                          <p className="text-muted-foreground text-xs py-4 px-3 text-center bg-muted/20 rounded">
-                            No sections added yet. Go to Manage Content to add sections.
-                          </p>
-                        )}
-                      </CardContent>
-                    </Card>
-                  );
-                })}
+                                      </AccordionContent>
+                                    </AccordionItem>
+                                  ))}
+                                </Accordion>
+                              ) : (
+                                <p className="text-muted-foreground text-xs py-3 px-3 text-center bg-muted/20 rounded">
+                                  No sections added yet. Go to Manage Content to add sections.
+                                </p>
+                              )}
+                            </CardContent>
+                          </Card>
+                        );
+                      })}
+                    </div>
+                  </div>
+                ))}
               </div>
             )}
           </TabsContent>
