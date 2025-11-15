@@ -75,20 +75,43 @@ export default function EditClient() {
         supabase.removeChannel(clientChannel);
         supabase.removeChannel(detailsChannel);
       };
+    } else {
+      // Invalid or missing client ID - redirect to dashboard
+      toast.error("Invalid client ID");
+      navigate("/");
     }
-  }, [clientId]);
+  }, [clientId, navigate]);
 
   const loadClientData = async () => {
+    if (!clientId) {
+      toast.error("Client ID is missing");
+      navigate("/");
+      return;
+    }
+    
     try {
       const [clientResult, detailsResult] = await Promise.all([
         supabase.from("clients").select("*").eq("id", clientId).single(),
         supabase.from("client_details").select("*").eq("client_id", clientId),
       ]);
 
-      if (clientResult.error) throw clientResult.error;
+      if (clientResult.error) {
+        if (clientResult.error.code === 'PGRST116') {
+          toast.error("Client not found");
+          navigate("/");
+          return;
+        }
+        throw clientResult.error;
+      }
+      
+      if (!clientResult.data) {
+        toast.error("Client data not found");
+        navigate("/");
+        return;
+      }
 
-      setClientName(clientResult.data.name);
-      setServiceType(clientResult.data.service_type);
+      setClientName(clientResult.data.name || "");
+      setServiceType(clientResult.data.service_type || "");
       setCity(clientResult.data.city || "");
       
       if (detailsResult.data) {
