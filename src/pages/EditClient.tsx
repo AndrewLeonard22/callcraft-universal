@@ -309,26 +309,73 @@ export default function EditClient() {
         }
       }
       
-      // Use two-phase commit: delete then insert
-      // This prevents data loss if insert fails
-      if (detailsArray.length > 0) {
-        // First delete only managed fields
-        const { error: deleteError } = await supabase
+      // Robust per-field upsert: update/insert non-empty values, delete empties
+      // Always process managed fields so clearing a value removes it in DB
+      {
+        // Fetch existing rows for managed fields
+        const { data: existingRows } = await supabase
           .from("client_details")
-          .delete()
+          .select("id, field_name")
           .eq("client_id", clientId)
           .in("field_name", managedFields);
-        
-        if (deleteError) throw deleteError;
-        
-        // Then insert new values
-        const { error: insertError } = await supabase
-          .from("client_details")
-          .insert(detailsArray);
-        
-        if (insertError) {
-          // Critical: if insert fails after delete, show clear error
-          throw new Error(`Failed to save client details: ${insertError.message}`);
+
+        const existingMap = new Map((existingRows || []).map(r => [r.field_name as string, r.id as string]));
+
+        const operations: Promise<any>[] = [];
+
+        // Build a lookup of desired values for each managed field
+        const desiredMap = new Map<string, string | null>();
+        managedFields.forEach((name) => {
+          const item = detailsArray.find(d => d.field_name === name);
+          desiredMap.set(name, item ? item.field_value : null);
+        });
+
+        for (const fieldName of managedFields) {
+          const value = desiredMap.get(fieldName);
+          const existingId = existingMap.get(fieldName);
+
+          if (value && value.trim()) {
+            if (existingId) {
+              operations.push(
+                (async () => {
+                  const { error } = await supabase
+                    .from("client_details")
+                    .update({ field_value: value.trim() })
+                    .eq("id", existingId)
+                    .select();
+                  if (error) throw error;
+                })()
+              );
+            } else {
+              operations.push(
+                (async () => {
+                  const { error } = await supabase
+                    .from("client_details")
+                    .insert({ client_id: clientId as string, field_name: fieldName, field_value: value.trim() });
+                  if (error) throw error;
+                })()
+              );
+            }
+          } else if (existingId) {
+            operations.push(
+              (async () => {
+                const { error } = await supabase
+                  .from("client_details")
+                  .delete()
+                  .eq("id", existingId)
+                  .select();
+                if (error) throw error;
+              })()
+            );
+          }
+        }
+
+        if (operations.length > 0) {
+          const results = await Promise.allSettled(operations);
+          const failures = results.filter(r => r.status === 'rejected');
+          if (failures.length > 0) {
+            throw new Error(`Failed to save ${failures.length} detail field(s). Please try again.`);
+          }
         }
       }
 
