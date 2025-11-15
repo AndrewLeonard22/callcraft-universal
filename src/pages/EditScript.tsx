@@ -247,24 +247,57 @@ export default function EditScript() {
         { name: `${scriptPrefix}reschedule_calendar`, value: rescheduleCalendar },
       ];
 
-      // Delete existing script-specific details
-      await supabase
+      // Robust per-field upsert for script-specific details
+      const names = detailsToSave.map(d => d.name);
+      const clientIdVal = client?.id as string;
+      if (!clientIdVal) throw new Error("Missing client ID for saving details");
+
+      const { data: existing } = await supabase
         .from("client_details")
-        .delete()
-        .eq("client_id", client?.id)
-        .like("field_name", `${scriptPrefix}%`);
+        .select("id, field_name")
+        .eq("client_id", clientIdVal)
+        .in("field_name", names);
 
-      // Insert new details
-      const detailsArray = detailsToSave
-        .filter(d => d.value.trim())
-        .map(d => ({
-          client_id: client?.id,
-          field_name: d.name,
-          field_value: d.value,
-        }));
+      const existingMap = new Map((existing || []).map(r => [r.field_name as string, r.id as string]));
+      const ops: Promise<any>[] = [];
 
-      if (detailsArray.length > 0) {
-        await supabase.from("client_details").insert(detailsArray);
+      for (const d of detailsToSave) {
+        const val = d.value.trim();
+        const exId = existingMap.get(d.name);
+        if (val) {
+          if (exId) {
+            ops.push(
+              (async () => {
+                const { error } = await supabase
+                  .from("client_details")
+                  .update({ field_value: val })
+                  .eq("id", exId);
+                if (error) throw error;
+              })()
+            );
+          } else {
+            ops.push(
+              (async () => {
+                const { error } = await supabase
+                  .from("client_details")
+                  .insert({ client_id: clientIdVal, field_name: d.name, field_value: val });
+                if (error) throw error;
+              })()
+            );
+          }
+        } else if (exId) {
+          ops.push(
+            supabase.from("client_details").delete().eq("id", exId)
+          );
+        }
+      }
+
+      if (ops.length > 0) {
+        const results = await Promise.allSettled(ops);
+        const failures = results.filter(r => r.status === 'rejected');
+        if (failures.length > 0) {
+          throw new Error(`Failed to save ${failures.length} detail field(s). Please try again.`);
+        }
       }
 
       // If template is selected, regenerate script with new details
