@@ -252,41 +252,73 @@ export default function ScriptViewer() {
 
     setSaving(true);
     try {
-      const fieldNamesToDelete = serviceDetailFields.map(f => f.field_name);
+      // Prepare upsert operations for each field
+      const operations = [];
       
-      // Delete existing values
-      if (fieldNamesToDelete.length > 0) {
-        const { error: deleteError } = await supabase
-          .from("client_details")
-          .delete()
-          .eq("client_id", client.id)
-          .in("field_name", fieldNamesToDelete);
-        
-        if (deleteError) throw deleteError;
-      }
+      // First, get all existing records for these fields
+      const fieldNames = serviceDetailFields.map(f => f.field_name);
+      const { data: existingRecords } = await supabase
+        .from("client_details")
+        .select("id, field_name")
+        .eq("client_id", client.id)
+        .in("field_name", fieldNames);
 
-      // Build inserts
-      const inserts = serviceDetailFields
-        .filter((field) => editedServiceDetails[field.field_name]?.trim())
-        .map((field) => ({
-          client_id: client.id,
-          field_name: field.field_name,
-          field_value: editedServiceDetails[field.field_name].trim(),
-        }));
+      const existingMap = new Map(
+        (existingRecords || []).map(r => [r.field_name, r.id])
+      );
 
-      if (inserts.length > 0) {
-        const { error: insertError } = await supabase
-          .from("client_details")
-          .insert(inserts);
+      // Build upsert operations
+      for (const field of serviceDetailFields) {
+        const value = editedServiceDetails[field.field_name]?.trim();
+        const existingId = existingMap.get(field.field_name);
 
-        if (insertError) {
-          throw new Error(`Failed to save details: ${insertError.message}`);
+        if (value) {
+          // Update or insert
+          if (existingId) {
+            operations.push(
+              supabase
+                .from("client_details")
+                .update({ field_value: value })
+                .eq("id", existingId)
+            );
+          } else {
+            operations.push(
+              supabase
+                .from("client_details")
+                .insert({
+                  client_id: client.id,
+                  field_name: field.field_name,
+                  field_value: value,
+                })
+            );
+          }
+        } else if (existingId) {
+          // Delete if empty and exists
+          operations.push(
+            supabase
+              .from("client_details")
+              .delete()
+              .eq("id", existingId)
+          );
         }
       }
 
-      toast.success("Service details updated successfully");
+      // Execute all operations
+      if (operations.length > 0) {
+        const results = await Promise.allSettled(operations);
+        const failures = results.filter(r => r.status === 'rejected');
+        
+        if (failures.length > 0) {
+          logger.error("Some service details failed to save:", failures);
+          throw new Error(`Failed to save ${failures.length} field(s). Please try again.`);
+        }
+      }
+
+      toast.success("Service details saved successfully");
       setIsEditingServiceDetails(false);
       setEditedServiceDetails({});
+      
+      // Reload to ensure UI is in sync
       await loadClientData();
     } catch (error: any) {
       logger.error("Error saving service details:", error);
