@@ -729,6 +729,11 @@ export default function ScriptViewer() {
     return client.service_type.toLowerCase().includes('backyard');
   };
   
+  // Ensure only one calculator displays per service
+  const showPergola = isPergolaService();
+  const showTurf = !showPergola && isTurfService();
+  const showBackyard = !showPergola && !showTurf && isBackyardService();
+  
   const calculateEstimate = () => {
     // Check if this is a pergola service
     const aluminumPrice = getDetailValue("price_per_sq_ft_aluminum");
@@ -1197,7 +1202,7 @@ export default function ScriptViewer() {
 
               {/* Estimate Calculator */}
               {/* Pergola Calculator - Only for Pergola services */}
-              {isPergolaService() && (getDetailValue("price_per_sq_ft_aluminum") !== "N/A" || getDetailValue("price_per_sq_ft_wood") !== "N/A") && (
+              {showPergola && (getDetailValue("price_per_sq_ft_aluminum") !== "N/A" || getDetailValue("price_per_sq_ft_wood") !== "N/A") && (
                 <Card className="border border-border shadow-sm">
                   <CardContent className="p-6">
                     <h2 className="text-base font-semibold mb-4 text-foreground">Pergola Estimate Calculator</h2>
@@ -1288,7 +1293,7 @@ export default function ScriptViewer() {
               )}
 
               {/* Turf Calculator - Only for Turf/Artificial Turf services */}
-              {isTurfService() && getDetailValue("price_per_sq_ft") !== "N/A" && (
+              {showTurf && getDetailValue("price_per_sq_ft") !== "N/A" && (
                 <Card className="border border-border shadow-sm">
                   <CardContent className="p-6">
                     <h2 className="text-base font-semibold mb-4 text-foreground">Turf Estimate Calculator</h2>
@@ -1354,7 +1359,7 @@ export default function ScriptViewer() {
               )}
 
               {/* Outdoor Living Calculator - Only for Backyard Remodel */}
-              {isBackyardService() && (
+              {showBackyard && (
                 <OutdoorLivingCalculator />
               )}
             </div>
