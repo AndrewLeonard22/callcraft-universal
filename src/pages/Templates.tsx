@@ -23,6 +23,16 @@ import {
   AlertDialogTitle,
   AlertDialogTrigger,
 } from "@/components/ui/alert-dialog";
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
+} from "@/components/ui/dialog";
+import { Checkbox } from "@/components/ui/checkbox";
+import { ScrollArea } from "@/components/ui/scroll-area";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
@@ -266,6 +276,10 @@ export default function Templates() {
   const [userOrganizationId, setUserOrganizationId] = useState<string | null>(null);
   const [selectedTemplateServiceTypeId, setSelectedTemplateServiceTypeId] = useState<string>("");
   const [updatingScripts, setUpdatingScripts] = useState<string | null>(null);
+  const [showPushDialog, setShowPushDialog] = useState(false);
+  const [pushTemplate, setPushTemplate] = useState<Template | null>(null);
+  const [availableClients, setAvailableClients] = useState<Array<{ id: string; name: string; script_id: string }>>([]);
+  const [selectedClientIds, setSelectedClientIds] = useState<string[]>([]);
 
   useEffect(() => {
     loadUserOrganization();
@@ -545,26 +559,73 @@ export default function Templates() {
     }
   };
 
-  const handleUpdateAllScripts = async (template: Template) => {
+  const handleOpenPushDialog = async (template: Template) => {
     if (!template.service_type_id) {
       toast.error("This template doesn't have a service type assigned");
       return;
     }
 
-    setUpdatingScripts(template.id);
+    setPushTemplate(template);
     
     try {
-      // Find all non-template scripts with matching service type
-      const { data: scriptsToUpdate, error: scriptsError } = await supabase
+      // Fetch all clients with scripts of this service type
+      const { data: scriptsData, error: scriptsError } = await supabase
         .from("scripts")
-        .select("id, client_id, service_name, service_type_id")
+        .select("id, client_id, clients(name)")
         .eq("service_type_id", template.service_type_id)
         .eq("is_template", false);
 
       if (scriptsError) throw scriptsError;
 
+      // Map to client list with unique clients
+      const clientsMap = new Map<string, { id: string; name: string; script_id: string }>();
+      scriptsData?.forEach((script: any) => {
+        if (script.clients && !clientsMap.has(script.client_id)) {
+          clientsMap.set(script.client_id, {
+            id: script.client_id,
+            name: script.clients.name,
+            script_id: script.id,
+          });
+        }
+      });
+
+      setAvailableClients(Array.from(clientsMap.values()));
+      setSelectedClientIds([]);
+      setShowPushDialog(true);
+    } catch (error: any) {
+      console.error("Error loading clients:", error);
+      toast.error("Failed to load clients");
+    }
+  };
+
+  const handleUpdateAllScripts = async (clientIds?: string[]) => {
+    if (!pushTemplate?.service_type_id) {
+      toast.error("This template doesn't have a service type assigned");
+      return;
+    }
+
+    setUpdatingScripts(pushTemplate.id);
+    setShowPushDialog(false);
+    
+    try {
+      // Find all non-template scripts with matching service type
+      let query = supabase
+        .from("scripts")
+        .select("id, client_id, service_name, service_type_id")
+        .eq("service_type_id", pushTemplate.service_type_id)
+        .eq("is_template", false);
+
+      // Filter by specific clients if provided
+      if (clientIds && clientIds.length > 0) {
+        query = query.in("client_id", clientIds);
+      }
+
+      const { data: scriptsToUpdate, error: scriptsError } = await query;
+
+      if (scriptsError) throw scriptsError;
+
       if (!scriptsToUpdate || scriptsToUpdate.length === 0) {
-        toast.info("No scripts found using this template");
+        toast.info("No scripts found to update");
         return;
       }
 
@@ -607,7 +668,7 @@ export default function Templates() {
                 service_name: script.service_name, // Preserve original service name
                 service_type_id: script.service_type_id, // Preserve original service type
                 use_template: true,
-                template_script: template.script_content,
+                template_script: pushTemplate.script_content,
                 service_details: serviceDetails,
               },
             }
@@ -634,6 +695,23 @@ export default function Templates() {
       toast.error(error.message || "Failed to update scripts");
     } finally {
       setUpdatingScripts(null);
+      setPushTemplate(null);
+    }
+  };
+
+  const handleToggleClient = (clientId: string) => {
+    setSelectedClientIds(prev => 
+      prev.includes(clientId)
+        ? prev.filter(id => id !== clientId)
+        : [...prev, clientId]
+    );
+  };
+
+  const handleSelectAllClients = () => {
+    if (selectedClientIds.length === availableClients.length) {
+      setSelectedClientIds([]);
+    } else {
+      setSelectedClientIds(availableClients.map(c => c.id));
     }
   };
 
@@ -1203,10 +1281,10 @@ export default function Templates() {
                                       <Button
                                         variant="ghost"
                                         size="sm"
-                                        onClick={() => handleUpdateAllScripts(template)}
+                                        onClick={() => handleOpenPushDialog(template)}
                                         disabled={updatingScripts === template.id || !template.service_type_id}
                                         className="h-7 px-2 hover:bg-primary/10 hover:text-primary"
-                                        title="Update all scripts using this template"
+                                        title="Push template to scripts"
                                       >
                                         <RefreshCw className={`h-3 w-3 ${updatingScripts === template.id ? 'animate-spin' : ''}`} />
                                       </Button>
@@ -1866,6 +1944,86 @@ export default function Templates() {
           </TabsContent>
         </Tabs>
       </div>
+
+      {/* Push to Scripts Dialog */}
+      <Dialog open={showPushDialog} onOpenChange={setShowPushDialog}>
+        <DialogContent className="max-w-2xl">
+          <DialogHeader>
+            <DialogTitle>Push Template to Scripts</DialogTitle>
+            <DialogDescription>
+              Choose which {pushTemplate?.service_name || 'service'} scripts to update with this template.
+            </DialogDescription>
+          </DialogHeader>
+
+          <div className="space-y-4 py-4">
+            {availableClients.length === 0 ? (
+              <p className="text-sm text-muted-foreground text-center py-6">
+                No client scripts found for this service type.
+              </p>
+            ) : (
+              <>
+                <div className="flex items-center justify-between border-b border-border pb-3">
+                  <div className="flex items-center gap-2">
+                    <Checkbox
+                      id="select-all"
+                      checked={selectedClientIds.length === availableClients.length}
+                      onCheckedChange={handleSelectAllClients}
+                    />
+                    <Label htmlFor="select-all" className="text-sm font-medium cursor-pointer">
+                      Select All ({availableClients.length} clients)
+                    </Label>
+                  </div>
+                </div>
+
+                <ScrollArea className="h-[300px] pr-4">
+                  <div className="space-y-2">
+                    {availableClients.map((client) => (
+                      <div 
+                        key={client.id} 
+                        className="flex items-center gap-2 p-3 rounded-lg border border-border/40 hover:bg-muted/20 transition-colors"
+                      >
+                        <Checkbox
+                          id={client.id}
+                          checked={selectedClientIds.includes(client.id)}
+                          onCheckedChange={() => handleToggleClient(client.id)}
+                        />
+                        <Label 
+                          htmlFor={client.id} 
+                          className="text-sm font-medium cursor-pointer flex-1"
+                        >
+                          {client.name}
+                        </Label>
+                      </div>
+                    ))}
+                  </div>
+                </ScrollArea>
+              </>
+            )}
+          </div>
+
+          <DialogFooter className="flex gap-2">
+            <Button
+              variant="outline"
+              onClick={() => setShowPushDialog(false)}
+            >
+              Cancel
+            </Button>
+            <Button
+              variant="secondary"
+              onClick={() => handleUpdateAllScripts()}
+              disabled={availableClients.length === 0}
+            >
+              Push to All ({availableClients.length})
+            </Button>
+            <Button
+              onClick={() => handleUpdateAllScripts(selectedClientIds)}
+              disabled={selectedClientIds.length === 0}
+            >
+              Push to Selected ({selectedClientIds.length})
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 }
