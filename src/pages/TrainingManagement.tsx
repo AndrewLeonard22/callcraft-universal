@@ -418,10 +418,19 @@ const [moduleForm, setModuleForm] = useState({
   };
 
   const handleSaveSection = async () => {
-    if (!selectedModuleId) return;
+    if (!selectedModuleId) {
+      toast({ 
+        title: "Error", 
+        description: "Module ID is missing. Please refresh and try again.",
+        variant: "destructive" 
+      });
+      return;
+    }
 
     // Validate required fields
-    if (!sectionForm.title.trim()) {
+    const title = sectionForm.title.trim();
+    
+    if (!title) {
       toast({ 
         title: "Title required", 
         description: "Please enter a section title",
@@ -429,11 +438,20 @@ const [moduleForm, setModuleForm] = useState({
       });
       return;
     }
-
-    if (sectionForm.title.length > 200) {
+    
+    if (title.length > 200) {
       toast({ 
         title: "Title too long", 
         description: "Section title must be less than 200 characters",
+        variant: "destructive" 
+      });
+      return;
+    }
+    
+    if (sectionForm.content.length > 5000) {
+      toast({ 
+        title: "Content too long", 
+        description: "Section content must be less than 5000 characters",
         variant: "destructive" 
       });
       return;
@@ -494,29 +512,68 @@ const [moduleForm, setModuleForm] = useState({
   };
 
   const handleSaveBenefit = async () => {
-    if (!selectedSectionId) return;
+    if (!selectedSectionId) {
+      toast({ 
+        title: "Error", 
+        description: "Section ID is missing. Please select a section.",
+        variant: "destructive" 
+      });
+      return;
+    }
+
+    // Validate benefit text
+    const benefitText = benefitForm.benefit_text.trim();
+    
+    if (!benefitText) {
+      toast({ 
+        title: "Benefit text required", 
+        description: "Please enter the benefit text",
+        variant: "destructive" 
+      });
+      return;
+    }
+    
+    if (benefitText.length > 500) {
+      toast({ 
+        title: "Text too long", 
+        description: "Benefit text must be less than 500 characters",
+        variant: "destructive" 
+      });
+      return;
+    }
 
     try {
       const { error } = await supabase
         .from("training_benefits")
-        .insert([{ ...benefitForm, section_id: selectedSectionId }]);
+        .insert([{ 
+          benefit_text: benefitText,
+          benefit_type: benefitForm.benefit_type || 'pro',
+          section_id: selectedSectionId 
+        }]);
 
       if (error) throw error;
       toast({ title: "Benefit added successfully" });
       setBenefitDialogOpen(false);
       setBenefitForm({ benefit_text: "", benefit_type: "pro" });
       loadModules();
-    } catch (error) {
+    } catch (error: any) {
       console.error("Error saving benefit:", error);
       toast({
         title: "Error",
-        description: "Failed to save benefit",
+        description: error?.message || "Failed to save benefit",
         variant: "destructive",
       });
     }
   };
 
   const handleDeleteBenefit = async (benefitId: string) => {
+    if (!benefitId) {
+      toast({ title: "Error", description: "Invalid benefit ID", variant: "destructive" });
+      return;
+    }
+    
+    if (!confirm("Delete this benefit?")) return;
+    
     try {
       const { error } = await supabase
         .from("training_benefits")
@@ -526,40 +583,89 @@ const [moduleForm, setModuleForm] = useState({
       if (error) throw error;
       toast({ title: "Benefit deleted successfully" });
       loadModules();
-    } catch (error) {
+    } catch (error: any) {
       console.error("Error deleting benefit:", error);
       toast({
         title: "Error",
-        description: "Failed to delete benefit",
+        description: error?.message || "Failed to delete benefit",
         variant: "destructive",
       });
     }
   };
 
   const handleSaveFeature = async () => {
-    if (!selectedSectionId) return;
+    if (!selectedSectionId) {
+      toast({ 
+        title: "Error", 
+        description: "Section ID is missing. Please select a section.",
+        variant: "destructive" 
+      });
+      return;
+    }
+
+    // Validate inputs
+    const featureName = featureForm.feature_name.trim();
+    const featureValue = featureForm.feature_value.trim();
+    
+    if (!featureName || !featureValue) {
+      toast({ 
+        title: "Missing fields", 
+        description: "Please fill both feature name and value",
+        variant: "destructive" 
+      });
+      return;
+    }
+    
+    if (featureName.length > 100) {
+      toast({ 
+        title: "Name too long", 
+        description: "Feature name must be less than 100 characters",
+        variant: "destructive" 
+      });
+      return;
+    }
+    
+    if (featureValue.length > 200) {
+      toast({ 
+        title: "Value too long", 
+        description: "Feature value must be less than 200 characters",
+        variant: "destructive" 
+      });
+      return;
+    }
 
     try {
       const { error } = await supabase
         .from("training_features")
-        .insert([{ ...featureForm, section_id: selectedSectionId }]);
+        .insert([{ 
+          feature_name: featureName,
+          feature_value: featureValue,
+          section_id: selectedSectionId 
+        }]);
 
       if (error) throw error;
       toast({ title: "Feature added successfully" });
       setFeatureDialogOpen(false);
       setFeatureForm({ feature_name: "", feature_value: "" });
       loadModules();
-    } catch (error) {
+    } catch (error: any) {
       console.error("Error saving feature:", error);
       toast({
         title: "Error",
-        description: "Failed to save feature",
+        description: error?.message || "Failed to save feature",
         variant: "destructive",
       });
     }
   };
 
   const handleDeleteFeature = async (featureId: string) => {
+    if (!featureId) {
+      toast({ title: "Error", description: "Invalid feature ID", variant: "destructive" });
+      return;
+    }
+    
+    if (!confirm("Delete this feature?")) return;
+    
     try {
       const { error } = await supabase
         .from("training_features")
@@ -569,40 +675,120 @@ const [moduleForm, setModuleForm] = useState({
       if (error) throw error;
       toast({ title: "Feature deleted successfully" });
       loadModules();
-    } catch (error) {
+    } catch (error: any) {
       console.error("Error deleting feature:", error);
       toast({
         title: "Error",
-        description: "Failed to delete feature",
+        description: error?.message || "Failed to delete feature",
         variant: "destructive",
       });
     }
   };
 
   const handleSaveVideo = async () => {
-    if (!selectedSectionId) return;
+    if (!selectedSectionId) {
+      toast({ 
+        title: "Error", 
+        description: "Section ID is missing. Please select a section.",
+        variant: "destructive" 
+      });
+      return;
+    }
+
+    // Validate inputs
+    const title = videoForm.title.trim();
+    const videoUrl = videoForm.video_url.trim();
+    
+    if (!title) {
+      toast({ 
+        title: "Title required", 
+        description: "Please enter a video title",
+        variant: "destructive" 
+      });
+      return;
+    }
+    
+    if (!videoUrl) {
+      toast({ 
+        title: "URL required", 
+        description: "Please enter a video URL",
+        variant: "destructive" 
+      });
+      return;
+    }
+    
+    if (title.length > 200) {
+      toast({ 
+        title: "Title too long", 
+        description: "Video title must be less than 200 characters",
+        variant: "destructive" 
+      });
+      return;
+    }
+    
+    if (videoUrl.length > 2048) {
+      toast({ 
+        title: "URL too long", 
+        description: "Video URL is invalid",
+        variant: "destructive" 
+      });
+      return;
+    }
+    
+    // Basic URL validation
+    try {
+      new URL(videoUrl);
+    } catch {
+      toast({ 
+        title: "Invalid URL", 
+        description: "Please enter a valid video URL",
+        variant: "destructive" 
+      });
+      return;
+    }
+    
+    if (videoForm.description.length > 1000) {
+      toast({ 
+        title: "Description too long", 
+        description: "Video description must be less than 1000 characters",
+        variant: "destructive" 
+      });
+      return;
+    }
 
     try {
       const { error } = await supabase
         .from("training_videos")
-        .insert([{ ...videoForm, section_id: selectedSectionId }]);
+        .insert([{ 
+          title,
+          video_url: videoUrl,
+          description: videoForm.description.trim(),
+          section_id: selectedSectionId 
+        }]);
 
       if (error) throw error;
       toast({ title: "Video added successfully" });
       setVideoDialogOpen(false);
       setVideoForm({ title: "", video_url: "", description: "" });
       loadModules();
-    } catch (error) {
+    } catch (error: any) {
       console.error("Error saving video:", error);
       toast({
         title: "Error",
-        description: "Failed to save video",
+        description: error?.message || "Failed to save video",
         variant: "destructive",
       });
     }
   };
 
   const handleDeleteVideo = async (videoId: string) => {
+    if (!videoId) {
+      toast({ title: "Error", description: "Invalid video ID", variant: "destructive" });
+      return;
+    }
+    
+    if (!confirm("Delete this video?")) return;
+    
     try {
       const { error } = await supabase
         .from("training_videos")
@@ -612,11 +798,11 @@ const [moduleForm, setModuleForm] = useState({
       if (error) throw error;
       toast({ title: "Video deleted successfully" });
       loadModules();
-    } catch (error) {
+    } catch (error: any) {
       console.error("Error deleting video:", error);
       toast({
         title: "Error",
-        description: "Failed to delete video",
+        description: error?.message || "Failed to delete video",
         variant: "destructive",
       });
     }

@@ -68,30 +68,53 @@ export default function QuizQuestionsAdmin({ organizationId }: QuizQuestionsAdmi
   };
 
   const saveQuestion = async () => {
-    if (!organizationId) return;
+    if (!organizationId) {
+      toast({ title: "Error", description: "Organization ID is missing", variant: "destructive" });
+      return;
+    }
+    
     try {
-      if (!form.question.trim() || !form.answer.trim()) {
+      // Validate inputs
+      const question = form.question.trim();
+      const answer = form.answer.trim();
+      
+      if (!question || !answer) {
         toast({ title: "Missing fields", description: "Please fill question and answer", variant: "destructive" });
         return;
       }
+      
+      if (question.length > 500) {
+        toast({ title: "Invalid input", description: "Question must be less than 500 characters", variant: "destructive" });
+        return;
+      }
+      
+      if (answer.length > 2000) {
+        toast({ title: "Invalid input", description: "Answer must be less than 2000 characters", variant: "destructive" });
+        return;
+      }
       if (editing) {
+        if (!editing.id) {
+          throw new Error("Invalid question ID");
+        }
         const { data, error } = await (supabase as any)
           .from("training_questions")
-          .update({ question: form.question.trim(), answer: form.answer.trim() })
+          .update({ question, answer })
           .eq("id", editing.id)
           .select()
           .single();
         if (error) throw error;
         if (!data) throw new Error("Update returned no data");
-        toast({ title: "Question updated" });
+        toast({ title: "Success", description: "Question updated successfully" });
       } else {
-        const nextOrder = (questions[questions.length - 1]?.display_order ?? 0) + 1;
-        const { data, error } = await (supabase as any)
+        const nextOrder = questions.length > 0 
+          ? (questions[questions.length - 1]?.display_order ?? 0) + 1 
+          : 0;
+        const { data, error} = await (supabase as any)
           .from("training_questions")
           .insert({
             organization_id: organizationId,
-            question: form.question.trim(),
-            answer: form.answer.trim(),
+            question,
+            answer,
             display_order: nextOrder,
             module_id: null,
             section_id: null,
@@ -100,31 +123,46 @@ export default function QuizQuestionsAdmin({ organizationId }: QuizQuestionsAdmi
           .single();
         if (error) throw error;
         if (!data) throw new Error("Insert returned no data");
-        toast({ title: "Question added" });
+        toast({ title: "Success", description: "Question added successfully" });
       }
       setDialogOpen(false);
       setEditing(null);
       setForm({ question: "", answer: "" });
       await loadQuestions();
     } catch (e: any) {
-      console.error(e);
-      toast({ title: "Error", description: e.message || "Could not save question", variant: "destructive" });
+      console.error("Save question error:", e);
+      const errorMsg = e?.message || "Failed to save question. Please try again.";
+      toast({ 
+        title: "Error", 
+        description: errorMsg, 
+        variant: "destructive" 
+      });
     }
   };
 
   const deleteQuestion = async (id: string) => {
-    if (!confirm("Delete this question?")) return;
+    if (!id) {
+      toast({ title: "Error", description: "Invalid question ID", variant: "destructive" });
+      return;
+    }
+    
+    if (!confirm("Delete this quiz question? This action cannot be undone.")) return;
+    
     try {
       const { error } = await (supabase as any)
         .from("training_questions")
         .delete()
         .eq("id", id);
       if (error) throw error;
-      toast({ title: "Question deleted" });
-      loadQuestions();
-    } catch (e) {
-      console.error(e);
-      toast({ title: "Error", description: "Could not delete question", variant: "destructive" });
+      toast({ title: "Success", description: "Question deleted successfully" });
+      await loadQuestions();
+    } catch (e: any) {
+      console.error("Delete question error:", e);
+      toast({ 
+        title: "Error", 
+        description: e?.message || "Failed to delete question. Please try again.", 
+        variant: "destructive" 
+      });
     }
   };
 
