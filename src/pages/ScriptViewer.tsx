@@ -711,6 +711,24 @@ export default function ScriptViewer() {
     return 0;
   };
   
+  // Service type helper functions
+  const isPergolaService = (): boolean => {
+    if (!client?.service_type) return false;
+    const serviceType = client.service_type.toLowerCase();
+    return serviceType.includes('pergola');
+  };
+
+  const isTurfService = (): boolean => {
+    if (!client?.service_type) return false;
+    const serviceType = client.service_type.toLowerCase();
+    return serviceType.includes('turf') || serviceType.includes('artificial');
+  };
+
+  const isBackyardService = (): boolean => {
+    if (!client?.service_type) return false;
+    return client.service_type.toLowerCase().includes('backyard');
+  };
+  
   const calculateEstimate = () => {
     // Check if this is a pergola service
     const aluminumPrice = getDetailValue("price_per_sq_ft_aluminum");
@@ -1178,93 +1196,64 @@ export default function ScriptViewer() {
               )}
 
               {/* Estimate Calculator */}
-              {(getDetailValue("starting_price") !== "N/A" || getDetailValue("project_min_price") !== "N/A" || getDetailValue("price_per_sq_ft") !== "N/A" || getDetailValue("price_per_sq_ft_aluminum") !== "N/A" || getDetailValue("price_per_sq_ft_wood") !== "N/A") && (
+              {/* Pergola Calculator - Only for Pergola services */}
+              {isPergolaService() && (getDetailValue("price_per_sq_ft_aluminum") !== "N/A" || getDetailValue("price_per_sq_ft_wood") !== "N/A") && (
                 <Card className="border border-border shadow-sm">
                   <CardContent className="p-6">
-                    <h2 className="text-base font-semibold mb-4 text-foreground">Estimate Calculator</h2>
-                    
-                    {autoCalcPrice && (
-                      <div className="p-3 bg-accent/10 rounded-lg border border-border mb-4">
-                        <p className="text-xs text-muted-foreground mb-1">Auto-calculated Price Per Sq Ft</p>
-                        <p className="text-xl font-bold text-foreground">
-                          ${autoCalcPrice.toFixed(2)}/sq ft
-                        </p>
-                        <p className="text-xs text-muted-foreground mt-1">
-                          Based on minimum price and size
-                        </p>
-                      </div>
-                    )}
+                    <h2 className="text-base font-semibold mb-4 text-foreground">Pergola Estimate Calculator</h2>
                     
                     <div className="space-y-3">
                       {/* Pergola Material Selection */}
-                      {(getDetailValue("price_per_sq_ft_aluminum") !== "N/A" || getDetailValue("price_per_sq_ft_wood") !== "N/A") && (
-                        <div>
-                          <Label className="text-sm font-medium mb-2 block">Material Type</Label>
-                          <div className="grid grid-cols-2 gap-2">
-                            <button
-                              onClick={() => setPergolaMaterial("aluminum")}
-                              className={`p-3 rounded-lg border-2 transition-all ${
-                                pergolaMaterial === "aluminum"
-                                  ? "border-primary bg-primary/10 text-primary font-semibold"
-                                  : "border-border bg-muted text-muted-foreground hover:border-primary/50"
-                              }`}
-                            >
-                              <div className="text-sm">Aluminum</div>
-                              {getDetailValue("price_per_sq_ft_aluminum") !== "N/A" && (
-                                <div className="text-xs mt-1">${getDetailValue("price_per_sq_ft_aluminum")}/sq ft</div>
-                              )}
-                            </button>
-                            <button
-                              onClick={() => setPergolaMaterial("wood")}
-                              className={`p-3 rounded-lg border-2 transition-all ${
-                                pergolaMaterial === "wood"
-                                  ? "border-primary bg-primary/10 text-primary font-semibold"
-                                  : "border-border bg-muted text-muted-foreground hover:border-primary/50"
-                              }`}
-                            >
-                              <div className="text-sm">Wood</div>
-                              {getDetailValue("price_per_sq_ft_wood") !== "N/A" && (
-                                <div className="text-xs mt-1">${getDetailValue("price_per_sq_ft_wood")}/sq ft</div>
-                              )}
-                            </button>
-                          </div>
+                      <div>
+                        <Label className="text-sm font-medium mb-2 block">Material Type</Label>
+                        <div className="grid grid-cols-2 gap-2">
+                          <button
+                            onClick={() => setPergolaMaterial("aluminum")}
+                            className={`p-3 rounded-lg border-2 transition-all ${
+                              pergolaMaterial === "aluminum"
+                                ? "border-primary bg-primary/10 text-primary font-semibold"
+                                : "border-border bg-muted text-muted-foreground hover:border-primary/50"
+                            }`}
+                          >
+                            <div className="text-sm">Aluminum</div>
+                            {getDetailValue("price_per_sq_ft_aluminum") !== "N/A" && (
+                              <div className="text-xs mt-1">${getDetailValue("price_per_sq_ft_aluminum")}/sq ft</div>
+                            )}
+                          </button>
+                          <button
+                            onClick={() => setPergolaMaterial("wood")}
+                            className={`p-3 rounded-lg border-2 transition-all ${
+                              pergolaMaterial === "wood"
+                                ? "border-primary bg-primary/10 text-primary font-semibold"
+                                : "border-border bg-muted text-muted-foreground hover:border-primary/50"
+                            }`}
+                          >
+                            <div className="text-sm">Wood</div>
+                            {getDetailValue("price_per_sq_ft_wood") !== "N/A" && (
+                              <div className="text-xs mt-1">${getDetailValue("price_per_sq_ft_wood")}/sq ft</div>
+                            )}
+                          </button>
                         </div>
-                       )}
+                      </div>
                        
-                       {/* Show dimension input for Pergola, square footage for others */}
-                       {(getDetailValue("price_per_sq_ft_aluminum") !== "N/A" || getDetailValue("price_per_sq_ft_wood") !== "N/A") ? (
-                         <div>
-                           <Label htmlFor="pergola-dimensions" className="text-sm font-medium">
-                             Pergola Dimensions
-                           </Label>
-                           <Input
-                             id="pergola-dimensions"
-                             type="text"
-                             placeholder="e.g., 15 x 20"
-                             value={pergolaDimensions}
-                             onChange={(e) => setPergolaDimensions(e.target.value)}
-                             className="mt-1.5"
-                           />
-                           <p className="text-xs text-muted-foreground mt-1">
-                             Enter dimensions as length x width (e.g., 15 x 20)
-                           </p>
-                         </div>
-                       ) : (
-                         <div>
-                           <Label htmlFor="calc-sqft" className="text-sm font-medium">
-                             Customer's Desired Square Footage
-                           </Label>
-                           <Input
-                             id="calc-sqft"
-                             type="number"
-                             placeholder="e.g., 750"
-                             value={desiredSqFt}
-                             onChange={(e) => setDesiredSqFt(e.target.value)}
-                             className="mt-1.5"
-                           />
-                         </div>
-                       )}
-                      
+                      {/* Pergola Dimensions Input */}
+                      <div>
+                        <Label htmlFor="pergola-dimensions" className="text-sm font-medium">
+                          Pergola Dimensions
+                        </Label>
+                        <Input
+                          id="pergola-dimensions"
+                          type="text"
+                          placeholder="e.g., 15 x 20"
+                          value={pergolaDimensions}
+                          onChange={(e) => setPergolaDimensions(e.target.value)}
+                          className="mt-1.5"
+                        />
+                        <p className="text-xs text-muted-foreground mt-1">
+                          Enter dimensions as length x width (e.g., 15 x 20)
+                        </p>
+                      </div>
+                     
                       {estimate && (
                         <div className="space-y-3 pt-3 border-t border-border">
                           <p className="text-sm font-semibold text-foreground">Estimated Price Range</p>
@@ -1289,7 +1278,73 @@ export default function ScriptViewer() {
                             </div>
                           </div>
                            <p className="text-xs text-muted-foreground text-center">
-                             ±10% variation • {(getDetailValue("price_per_sq_ft_aluminum") !== "N/A" || getDetailValue("price_per_sq_ft_wood") !== "N/A") ? calculatePergolaSquareFootage(pergolaDimensions) : parseFloat(desiredSqFt)} sq ft × ${((getDetailValue("price_per_sq_ft_aluminum") !== "N/A" || getDetailValue("price_per_sq_ft_wood") !== "N/A") ? (estimate.mid / calculatePergolaSquareFootage(pergolaDimensions)) : (estimate.mid / parseFloat(desiredSqFt))).toFixed(2)}/sq ft
+                             ±10% variation • {calculatePergolaSquareFootage(pergolaDimensions)} sq ft × ${(estimate.mid / calculatePergolaSquareFootage(pergolaDimensions)).toFixed(2)}/sq ft
+                           </p>
+                        </div>
+                      )}
+                    </div>
+                  </CardContent>
+                </Card>
+              )}
+
+              {/* Turf Calculator - Only for Turf/Artificial Turf services */}
+              {isTurfService() && getDetailValue("price_per_sq_ft") !== "N/A" && (
+                <Card className="border border-border shadow-sm">
+                  <CardContent className="p-6">
+                    <h2 className="text-base font-semibold mb-4 text-foreground">Turf Estimate Calculator</h2>
+                    
+                    {autoCalcPrice && (
+                      <div className="p-3 bg-accent/10 rounded-lg border border-border mb-4">
+                        <p className="text-xs text-muted-foreground mb-1">Auto-calculated Price Per Sq Ft</p>
+                        <p className="text-xl font-bold text-foreground">
+                          ${autoCalcPrice.toFixed(2)}/sq ft
+                        </p>
+                        <p className="text-xs text-muted-foreground mt-1">
+                          Based on minimum price and size
+                        </p>
+                      </div>
+                    )}
+                    
+                    <div className="space-y-3">
+                      <div>
+                        <Label htmlFor="calc-sqft" className="text-sm font-medium">
+                          Customer's Desired Square Footage
+                        </Label>
+                        <Input
+                          id="calc-sqft"
+                          type="number"
+                          placeholder="e.g., 750"
+                          value={desiredSqFt}
+                          onChange={(e) => setDesiredSqFt(e.target.value)}
+                          className="mt-1.5"
+                        />
+                      </div>
+                     
+                      {estimate && (
+                        <div className="space-y-3 pt-3 border-t border-border">
+                          <p className="text-sm font-semibold text-foreground">Estimated Price Range</p>
+                          <div className="grid grid-cols-3 gap-2">
+                            <div className="p-3 bg-muted rounded-lg text-center">
+                              <p className="text-xs text-muted-foreground mb-1">Low</p>
+                              <p className="text-base font-semibold text-foreground">
+                                ${estimate.low.toLocaleString('en-US', { minimumFractionDigits: 0, maximumFractionDigits: 0 })}
+                              </p>
+                            </div>
+                            <div className="p-3 bg-primary/10 rounded-lg text-center border-2 border-primary">
+                              <p className="text-xs text-muted-foreground mb-1">Mid</p>
+                              <p className="text-base font-semibold text-primary">
+                                ${estimate.mid.toLocaleString('en-US', { minimumFractionDigits: 0, maximumFractionDigits: 0 })}
+                              </p>
+                            </div>
+                            <div className="p-3 bg-muted rounded-lg text-center">
+                              <p className="text-xs text-muted-foreground mb-1">High</p>
+                              <p className="text-base font-semibold text-foreground">
+                                ${estimate.high.toLocaleString('en-US', { minimumFractionDigits: 0, maximumFractionDigits: 0 })}
+                              </p>
+                            </div>
+                          </div>
+                           <p className="text-xs text-muted-foreground text-center">
+                             ±10% variation • {parseFloat(desiredSqFt)} sq ft × ${(estimate.mid / parseFloat(desiredSqFt)).toFixed(2)}/sq ft
                            </p>
                         </div>
                       )}
@@ -1299,7 +1354,7 @@ export default function ScriptViewer() {
               )}
 
               {/* Outdoor Living Calculator - Only for Backyard Remodel */}
-              {client?.service_type.toLowerCase().includes("backyard") && (
+              {isBackyardService() && (
                 <OutdoorLivingCalculator />
               )}
             </div>
