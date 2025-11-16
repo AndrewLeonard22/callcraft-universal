@@ -130,6 +130,50 @@ export type Database = {
           },
         ]
       }
+      design_features: {
+        Row: {
+          created_at: string | null
+          display_order: number | null
+          feature_label: string
+          feature_name: string
+          id: string
+          is_active: boolean | null
+          options: Json | null
+          organization_id: string
+          updated_at: string | null
+        }
+        Insert: {
+          created_at?: string | null
+          display_order?: number | null
+          feature_label: string
+          feature_name: string
+          id?: string
+          is_active?: boolean | null
+          options?: Json | null
+          organization_id: string
+          updated_at?: string | null
+        }
+        Update: {
+          created_at?: string | null
+          display_order?: number | null
+          feature_label?: string
+          feature_name?: string
+          id?: string
+          is_active?: boolean | null
+          options?: Json | null
+          organization_id?: string
+          updated_at?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "design_features_organization_id_fkey"
+            columns: ["organization_id"]
+            isOneToOne: false
+            referencedRelation: "organizations"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       faqs: {
         Row: {
           answer: string
