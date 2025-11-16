@@ -318,7 +318,8 @@ export default function ScriptViewer() {
       setIsEditingServiceDetails(false);
       setEditedServiceDetails({});
       
-      // Reload to ensure UI is in sync
+      // CRITICAL: Reload fresh data from DB and wait for it
+      // This ensures any script content using these fields gets the latest values
       await loadClientData();
     } catch (error: any) {
       logger.error("Error saving service details:", error);
