@@ -359,6 +359,30 @@ export default function ImageGenerator() {
               </CardContent>
             </Card>
 
+            {/* Settings Card */}
+            <Card className="mb-6">
+              <CardHeader>
+                <div className="flex items-center justify-between">
+                  <div>
+                    <CardTitle>Feature Settings</CardTitle>
+                    <CardDescription>Customize available design features</CardDescription>
+                  </div>
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    onClick={() => setShowSettings(!showSettings)}
+                  >
+                    {showSettings ? "Hide Settings" : "Show Settings"}
+                  </Button>
+                </div>
+              </CardHeader>
+              {showSettings && (
+                <CardContent>
+                  <DesignFeaturesManager />
+                </CardContent>
+              )}
+            </Card>
+
             <Card>
               <CardHeader>
                 <CardTitle>Select Features</CardTitle>
@@ -426,6 +450,25 @@ export default function ImageGenerator() {
                     );
                   })}
                   </div>
+              </CardContent>
+            </Card>
+
+            {/* AI Prompt Card */}
+            <Card>
+              <CardHeader>
+                <CardTitle>AI Design Instructions</CardTitle>
+                <CardDescription>
+                  Add specific instructions for the AI (optional)
+                </CardDescription>
+              </CardHeader>
+              <CardContent>
+                <Textarea
+                  placeholder="e.g., Make it modern with natural stone, add ambient lighting, use a neutral color palette..."
+                  value={aiPrompt}
+                  onChange={(e) => setAiPrompt(e.target.value)}
+                  rows={4}
+                  className="resize-none"
+                />
               </CardContent>
             </Card>
 
