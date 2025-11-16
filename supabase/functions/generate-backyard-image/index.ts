@@ -11,7 +11,7 @@ serve(async (req) => {
   }
 
   try {
-    const { imageBase64, features, featureOptions = {} } = await req.json();
+    const { imageBase64, features, featureOptions = {}, aiPrompt } = await req.json();
 
     if (!imageBase64) {
       return new Response(
@@ -100,14 +100,14 @@ serve(async (req) => {
       return genericLabels[id] || id;
     });
 
-    const prompt = `CRITICAL: Create a photorealistic, architecturally accurate design. Add ${featureLabels.join('; ')} to this backyard image. 
+    let prompt = `CRITICAL: Create a photorealistic, architecturally accurate design. Add ${featureLabels.join('; ')} to this outdoor space. 
 
 QUALITY REQUIREMENTS:
 - Ultra-high resolution photorealistic rendering
 - Precise architectural accuracy and realistic proportions
 - Professional construction details and proper materials
 - Accurate shadows, lighting, and reflections matching the original image
-- Seamless integration preserving the existing backyard structure
+- Seamless integration preserving the existing structure
 - All features should be well-proportioned with standard dimensions, balanced sizing that feels natural and realistic in the space
 - Maintain consistent perspective and viewing angle
 - Include proper depth, texture, and material details
@@ -119,9 +119,13 @@ TECHNICAL SPECIFICATIONS:
 - Ensure proper scale relationships between all elements
 - Add realistic weathering and material textures
 - Include accurate ground shadows and ambient occlusion
-- Maintain color harmony with existing environment
+- Maintain color harmony with existing environment`;
 
-This must look like a professional architectural visualization that could be used for client presentations.`;
+    if (aiPrompt && aiPrompt.trim()) {
+      prompt += `\n\nADDITIONAL USER REQUIREMENTS:\n${aiPrompt.trim()}`;
+    }
+
+    prompt += `\n\nThis must look like a professional architectural visualization that could be used for client presentations.`;
 
     console.log('Generating image with prompt:', prompt);
     console.log('Selected features:', features);

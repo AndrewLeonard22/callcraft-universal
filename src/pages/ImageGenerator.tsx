@@ -6,91 +6,17 @@ import { Checkbox } from "@/components/ui/checkbox";
 import { Label } from "@/components/ui/label";
 import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { Textarea } from "@/components/ui/textarea";
 import { toast } from "sonner";
 import { supabase } from "@/integrations/supabase/client";
 import { Loader2, Upload, Wand2, ChevronDown, ChevronRight, ArrowLeft, Save } from "lucide-react";
+import { DesignFeaturesManager } from "@/components/DesignFeaturesManager";
 
 interface FeatureOption {
   id: string;
   label: string;
   options?: { id: string; label: string }[];
 }
-
-const FEATURES: FeatureOption[] = [
-  { 
-    id: "pergola", 
-    label: "Pergola",
-    options: [
-      { id: "wood", label: "Wood" },
-      { id: "aluminum", label: "Aluminum" },
-      { id: "vinyl", label: "Vinyl" },
-    ]
-  },
-  { 
-    id: "pavers", 
-    label: "Pavers",
-    options: [
-      { id: "concrete", label: "Concrete" },
-      { id: "brick", label: "Brick" },
-      { id: "natural-stone", label: "Natural Stone" },
-      { id: "travertine", label: "Travertine" },
-    ]
-  },
-  { 
-    id: "outdoor-kitchen", 
-    label: "Outdoor Kitchen",
-    options: [
-      { id: "basic", label: "Basic (Grill)" },
-      { id: "standard", label: "Standard (Grill + Counter)" },
-      { id: "premium", label: "Premium (Full Kitchen)" },
-    ]
-  },
-  { 
-    id: "fire-pit", 
-    label: "Fire Pit",
-    options: [
-      { id: "round", label: "Round" },
-      { id: "square", label: "Square" },
-      { id: "linear", label: "Linear" },
-    ]
-  },
-  { 
-    id: "pool", 
-    label: "Pool",
-    options: [
-      { id: "rectangular", label: "Rectangular" },
-      { id: "freeform", label: "Freeform" },
-      { id: "lap", label: "Lap Pool" },
-    ]
-  },
-  { 
-    id: "deck", 
-    label: "Deck",
-    options: [
-      { id: "wood", label: "Wood" },
-      { id: "composite", label: "Composite" },
-      { id: "pvc", label: "PVC" },
-    ]
-  },
-  { 
-    id: "landscaping", 
-    label: "Landscaping",
-    options: [
-      { id: "tropical", label: "Tropical" },
-      { id: "desert", label: "Desert/Xeriscaping" },
-      { id: "traditional", label: "Traditional" },
-    ]
-  },
-  { 
-    id: "lighting", 
-    label: "Outdoor Lighting",
-    options: [
-      { id: "path", label: "Path Lights" },
-      { id: "ambient", label: "Ambient/String Lights" },
-      { id: "accent", label: "Accent/Uplighting" },
-    ]
-  },
-];
 
 export default function ImageGenerator() {
   const navigate = useNavigate();
@@ -106,10 +32,50 @@ export default function ImageGenerator() {
   const [clients, setClients] = useState<Array<{ id: string; name: string; business_name?: string }>>([]);
   const [selectedClientId, setSelectedClientId] = useState<string>("");
   const [isSaving, setIsSaving] = useState(false);
+  const [features, setFeatures] = useState<FeatureOption[]>([]);
+  const [loadingFeatures, setLoadingFeatures] = useState(true);
+  const [aiPrompt, setAiPrompt] = useState<string>("");
+  const [showSettings, setShowSettings] = useState(false);
 
   useEffect(() => {
     fetchClients();
+    fetchFeatures();
   }, []);
+
+  const fetchFeatures = async () => {
+    try {
+      const { data: { user } } = await supabase.auth.getUser();
+      if (!user) return;
+
+      const { data: membership } = await supabase
+        .from("organization_members")
+        .select("organization_id")
+        .eq("user_id", user.id)
+        .single();
+
+      if (!membership) return;
+
+      const { data, error } = await supabase
+        .from("design_features")
+        .select("*")
+        .eq("organization_id", membership.organization_id)
+        .eq("is_active", true)
+        .order("display_order");
+
+      if (error) throw error;
+
+      setFeatures((data || []).map(f => ({
+        id: f.feature_name,
+        label: f.feature_label,
+        options: f.options as Array<{ id: string; label: string }>,
+      })));
+    } catch (error) {
+      console.error("Error fetching features:", error);
+      toast.error("Failed to load design features");
+    } finally {
+      setLoadingFeatures(false);
+    }
+  };
 
   const fetchClients = async () => {
     try {
@@ -176,7 +142,7 @@ export default function ImageGenerator() {
         return prev.filter(id => id !== featureId);
       } else {
         // Add feature and expand if it has options
-        const feature = FEATURES.find(f => f.id === featureId);
+        const feature = features.find(f => f.id === featureId);
         if (feature?.options && feature.options.length > 0) {
           setExpandedFeatures(exp => [...exp, featureId]);
           // Set default option
@@ -401,7 +367,7 @@ export default function ImageGenerator() {
               <CardContent className="space-y-4">
                 <Label className="text-sm font-semibold mb-3 block">Features to Add</Label>
                   <div className="space-y-3">
-                  {FEATURES.map((feature) => {
+                  {features.map((feature) => {
                     const isSelected = selectedFeatures.includes(feature.id);
                     const isExpanded = expandedFeatures.includes(feature.id);
                     const hasOptions = feature.options && feature.options.length > 0;
