@@ -287,7 +287,14 @@ export default function EditScript() {
           }
         } else if (exId) {
           ops.push(
-            supabase.from("client_details").delete().eq("id", exId)
+            (async () => {
+              const { error } = await supabase
+                .from("client_details")
+                .delete()
+                .eq("id", exId)
+                .select();
+              if (error) throw error;
+            })()
           );
         }
       }
