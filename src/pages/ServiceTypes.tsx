@@ -239,15 +239,15 @@ export default function ServiceTypes() {
 
       // Create default service detail fields
       const defaultFields = [
-        { field_name: 'property_size', field_label: 'Property Size', field_type: 'text', placeholder: 'e.g., 2000 sq ft', display_order: 1 },
-        { field_name: 'service_date', field_label: 'Preferred Service Date', field_type: 'text', placeholder: 'e.g., Next week', display_order: 2 },
-        { field_name: 'budget', field_label: 'Budget Range', field_type: 'text', placeholder: 'e.g., $5,000 - $10,000', display_order: 3 },
-        { field_name: 'timeline', field_label: 'Project Timeline', field_type: 'text', placeholder: 'e.g., 2-3 weeks', display_order: 4 },
-        { field_name: 'special_requirements', field_label: 'Special Requirements', field_type: 'textarea', placeholder: 'Any specific needs or preferences', display_order: 5 },
-        { field_name: 'contact_preference', field_label: 'Contact Preference', field_type: 'text', placeholder: 'e.g., Email, Phone', display_order: 6 },
-        { field_name: 'location', field_label: 'Service Location', field_type: 'text', placeholder: 'Full address', display_order: 7 },
-        { field_name: 'service_frequency', field_label: 'Service Frequency', field_type: 'text', placeholder: 'e.g., One-time, Monthly', display_order: 8 },
-        { field_name: 'notes', field_label: 'Additional Notes', field_type: 'textarea', placeholder: 'Any other information', display_order: 9 },
+        { field_name: 'project_min_price', field_label: 'Project Minimum Price', field_type: 'text', placeholder: 'e.g., $5,000', display_order: 1 },
+        { field_name: 'project_min_size', field_label: 'Project Minimum Size', field_type: 'text', placeholder: 'e.g., 500 sq ft', display_order: 2 },
+        { field_name: 'price_per_sq_ft', field_label: 'Price Per Square Foot', field_type: 'text', placeholder: 'e.g., $10/sq ft', display_order: 3 },
+        { field_name: 'warranties', field_label: 'Warranties/Guarantees', field_type: 'textarea', placeholder: 'Warranty information', display_order: 4 },
+        { field_name: 'financing_options', field_label: 'Financing Options', field_type: 'textarea', placeholder: 'Available financing plans', display_order: 5 },
+        { field_name: 'video_of_service', field_label: 'Video of Service', field_type: 'url', placeholder: 'https://youtube.com/...', display_order: 6 },
+        { field_name: 'avg_install_time', field_label: 'Average Install Time After Booking', field_type: 'text', placeholder: 'e.g., 2-3 weeks', display_order: 7 },
+        { field_name: 'appointment_calendar', field_label: 'Appointment Calendar Link', field_type: 'url', placeholder: 'https://calendly.com/...', display_order: 8 },
+        { field_name: 'reschedule_calendar', field_label: 'Reschedule Calendar Link', field_type: 'url', placeholder: 'https://calendly.com/...', display_order: 9 },
       ];
 
       const fieldsToInsert = defaultFields.map(field => ({
