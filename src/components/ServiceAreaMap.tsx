@@ -316,12 +316,15 @@ export default function ServiceAreaMap({ city, serviceArea, address, radiusMiles
         searchMarkerRef.current = new mapboxgl.Marker({ color: markerColor })
           .setLngLat(searchCoords)
           .setPopup(
-            new mapboxgl.Popup().setHTML(
-              `<div class="p-2">
-                <p class="font-semibold">${data.features[0].place_name}</p>
-                <p class="text-sm mt-1"><strong>Driving distance:</strong> ${drivingDistanceMiles.toFixed(1)} miles (~${drivingDuration} min)</p>
-                <p class="text-sm"><strong>Straight-line:</strong> ${straightLineDistance.toFixed(1)} miles</p>
-                <p class="text-sm font-semibold mt-1 ${isWithinRadius ? 'text-green-600' : 'text-red-600'}">
+            new mapboxgl.Popup({ offset: 25 }).setHTML(
+              `<div class="p-3">
+                <p class="font-semibold text-base mb-2">${data.features[0].place_name}</p>
+                <div class="bg-blue-50 p-2 rounded mb-2">
+                  <p class="text-lg font-bold text-blue-700">🚗 ${drivingDuration} min drive</p>
+                  <p class="text-sm text-blue-600">${drivingDistanceMiles.toFixed(1)} miles driving distance</p>
+                </div>
+                <p class="text-xs text-gray-500">Straight-line: ${straightLineDistance.toFixed(1)} miles</p>
+                <p class="text-sm font-semibold mt-2 ${isWithinRadius ? 'text-green-600' : 'text-red-600'}">
                   ${isWithinRadius ? '✓ Within service area' : '✗ Outside service area'}
                 </p>
               </div>`
