@@ -302,9 +302,18 @@ export default function ServiceAreaMap({ city, serviceArea, address, radiusMiles
         const drivingDistanceMiles = directionsData.routes?.[0]?.distance 
           ? (directionsData.routes[0].distance * 0.000621371) // meters to miles
           : straightLineDistance;
-        const drivingDuration = directionsData.routes?.[0]?.duration 
+        const drivingDurationMinutes = directionsData.routes?.[0]?.duration 
           ? Math.round(directionsData.routes[0].duration / 60) // seconds to minutes
           : Math.round(straightLineDistance * 1.5); // estimate 1.5 minutes per mile
+        
+        // Format duration as hours and minutes when needed
+        const formatDuration = (minutes: number): string => {
+          if (minutes < 60) return `${minutes} min`;
+          const hours = Math.floor(minutes / 60);
+          const mins = minutes % 60;
+          return mins > 0 ? `${hours} hr ${mins} min` : `${hours} hr`;
+        };
+        const drivingDuration = formatDuration(drivingDurationMinutes);
         
         const isWithinRadius = drivingDistanceMiles <= serviceRadius;
         
@@ -317,14 +326,13 @@ export default function ServiceAreaMap({ city, serviceArea, address, radiusMiles
           .setLngLat(searchCoords)
           .setPopup(
             new mapboxgl.Popup({ offset: 25 }).setHTML(
-              `<div class="p-3">
-                <p class="font-semibold text-base mb-2">${data.features[0].place_name}</p>
-                <div class="bg-blue-50 p-2 rounded mb-2">
-                  <p class="text-lg font-bold text-blue-700">🚗 ${drivingDuration} min drive</p>
-                  <p class="text-sm text-blue-600">${drivingDistanceMiles.toFixed(1)} miles driving distance</p>
+              `<div class="p-2">
+                <p class="font-semibold text-sm mb-1.5">${data.features[0].place_name}</p>
+                <div class="bg-blue-50 p-1.5 rounded mb-1.5">
+                  <p class="text-base font-bold text-blue-700">🚗 ${drivingDuration}</p>
+                  <p class="text-xs text-blue-600">${drivingDistanceMiles.toFixed(1)} miles</p>
                 </div>
-                <p class="text-xs text-gray-500">Straight-line: ${straightLineDistance.toFixed(1)} miles</p>
-                <p class="text-sm font-semibold mt-2 ${isWithinRadius ? 'text-green-600' : 'text-red-600'}">
+                <p class="text-xs font-semibold ${isWithinRadius ? 'text-green-600' : 'text-red-600'}">
                   ${isWithinRadius ? '✓ Within service area' : '✗ Outside service area'}
                 </p>
               </div>`
@@ -344,7 +352,7 @@ export default function ServiceAreaMap({ city, serviceArea, address, radiusMiles
         
         toast.success(
           isWithinRadius 
-            ? `Address is within service area (${drivingDistanceMiles.toFixed(1)} miles driving distance, ~${drivingDuration} min)`
+            ? `Address is within service area (${drivingDistanceMiles.toFixed(1)} miles, ~${drivingDuration})`
             : `Address is outside service area (${drivingDistanceMiles.toFixed(1)} miles from center)`
         );
       } else {
