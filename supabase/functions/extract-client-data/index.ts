@@ -374,14 +374,15 @@ Return ONLY valid JSON with at least company_name and service_type. No markdown 
         });
       }
       
-      // Add service details if provided
+      // Add service details if provided - these take precedence and will overwrite old values
+      // CRITICAL: Include empty values to clear out old data when fields are intentionally left blank
       if (service_details) {
         Object.entries(service_details).forEach(([key, value]) => {
-          if (value) {
-            fieldMap[key] = String(value);
-            // Also add dot notation version
-            fieldMap[key.replace(/_/g, ".")] = String(value);
-          }
+          // Convert value to string, use empty string if null/undefined
+          const stringValue = value ? String(value) : "";
+          fieldMap[key] = stringValue;
+          // Also add dot notation version
+          fieldMap[key.replace(/_/g, ".")] = stringValue;
         });
       }
       
