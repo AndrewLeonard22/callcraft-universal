@@ -1,6 +1,6 @@
 import { useState, useEffect } from "react";
 import { useNavigate, Link, useParams } from "react-router-dom";
-import { ArrowLeft, Upload } from "lucide-react";
+import { ArrowLeft, Upload, X, Plus, Image } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
@@ -42,9 +42,13 @@ export default function EditClient() {
   const [appointmentCalendar, setAppointmentCalendar] = useState("");
   const [rescheduleCalendar, setRescheduleCalendar] = useState("");
   
-  // Logo
+  // Logo and Photos
   const [logoUrl, setLogoUrl] = useState("");
   const [uploading, setUploading] = useState(false);
+  const [ownerPhotoUrl, setOwnerPhotoUrl] = useState("");
+  const [uploadingOwnerPhoto, setUploadingOwnerPhoto] = useState(false);
+  const [workPhotos, setWorkPhotos] = useState<string[]>([]);
+  const [uploadingWorkPhoto, setUploadingWorkPhoto] = useState(false);
 
   useEffect(() => {
     if (clientId) {
@@ -134,6 +138,17 @@ export default function EditClient() {
         setRescheduleCalendar(detailsMap.get("reschedule_calendar") || "");
         setServiceRadiusMiles(detailsMap.get("service_radius_miles") || "");
         setLogoUrl(detailsMap.get("logo_url") || "");
+        setOwnerPhotoUrl(detailsMap.get("owner_photo_url") || "");
+        
+        // Parse work photos
+        const workPhotosRaw = detailsMap.get("work_photos") || "";
+        if (workPhotosRaw) {
+          try {
+            setWorkPhotos(JSON.parse(workPhotosRaw));
+          } catch {
+            setWorkPhotos(workPhotosRaw.split(",").map(url => url.trim()).filter(Boolean));
+          }
+        }
       }
     } catch (error) {
       logger.error("Error loading client data:", error);
@@ -191,6 +206,87 @@ export default function EditClient() {
     }
   };
 
+  const handleOwnerPhotoUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file || !clientId) return;
+
+    if (!file.type.startsWith('image/')) {
+      toast.error("Please upload an image file");
+      return;
+    }
+
+    if (file.size > 2 * 1024 * 1024) {
+      toast.error("Image must be less than 2MB");
+      return;
+    }
+
+    setUploadingOwnerPhoto(true);
+    try {
+      const fileExt = file.name.split('.').pop();
+      const fileName = `owner-${clientId}-${Date.now()}.${fileExt}`;
+
+      const { error: uploadError } = await supabase.storage
+        .from('client-logos')
+        .upload(fileName, file, { cacheControl: '3600', upsert: true });
+
+      if (uploadError) throw uploadError;
+
+      const { data: { publicUrl } } = supabase.storage
+        .from('client-logos')
+        .getPublicUrl(fileName);
+
+      setOwnerPhotoUrl(publicUrl);
+      toast.success("Owner photo uploaded!");
+    } catch (error) {
+      logger.error("Error uploading owner photo:", error);
+      toast.error("Failed to upload photo");
+    } finally {
+      setUploadingOwnerPhoto(false);
+    }
+  };
+
+  const handleWorkPhotoUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file || !clientId) return;
+
+    if (!file.type.startsWith('image/')) {
+      toast.error("Please upload an image file");
+      return;
+    }
+
+    if (file.size > 5 * 1024 * 1024) {
+      toast.error("Image must be less than 5MB");
+      return;
+    }
+
+    setUploadingWorkPhoto(true);
+    try {
+      const fileExt = file.name.split('.').pop();
+      const fileName = `work-${clientId}-${Date.now()}.${fileExt}`;
+
+      const { error: uploadError } = await supabase.storage
+        .from('client-logos')
+        .upload(fileName, file, { cacheControl: '3600', upsert: true });
+
+      if (uploadError) throw uploadError;
+
+      const { data: { publicUrl } } = supabase.storage
+        .from('client-logos')
+        .getPublicUrl(fileName);
+
+      setWorkPhotos(prev => [...prev, publicUrl]);
+      toast.success("Work photo added!");
+    } catch (error) {
+      logger.error("Error uploading work photo:", error);
+      toast.error("Failed to upload photo");
+    } finally {
+      setUploadingWorkPhoto(false);
+    }
+  };
+
+  const removeWorkPhoto = (index: number) => {
+    setWorkPhotos(prev => prev.filter((_, i) => i !== index));
+  };
 
   const handleSave = async () => {
     // Validate required fields
@@ -244,6 +340,8 @@ export default function EditClient() {
         "appointment_calendar",
         "reschedule_calendar",
         "service_radius_miles",
+        "owner_photo_url",
+        "work_photos",
       ];
       
       const detailsArray = [] as { client_id: string; field_name: string; field_value: string }[];
@@ -307,6 +405,24 @@ export default function EditClient() {
             field_value: String(radiusNumber),
           });
         }
+      }
+      
+      // Add owner photo URL
+      if (ownerPhotoUrl) {
+        detailsArray.push({
+          client_id: clientId as string,
+          field_name: "owner_photo_url",
+          field_value: ownerPhotoUrl,
+        });
+      }
+      
+      // Add work photos as JSON array
+      if (workPhotos.length > 0) {
+        detailsArray.push({
+          client_id: clientId as string,
+          field_name: "work_photos",
+          field_value: JSON.stringify(workPhotos),
+        });
       }
       
       // Robust per-field upsert: update/insert non-empty values, delete empties
@@ -484,6 +600,98 @@ export default function EditClient() {
                 <p className="text-xs text-muted-foreground mt-2">
                   Upload a company logo (max 2MB, JPG/PNG)
                 </p>
+              </div>
+              
+              {/* Owner Photo Upload */}
+              <div>
+                <Label>Business Owner Photo</Label>
+                <div className="flex items-center gap-4 mt-2">
+                  {ownerPhotoUrl && (
+                    <div className="h-20 w-20 rounded-full overflow-hidden bg-muted border border-border">
+                      <img 
+                        src={ownerPhotoUrl} 
+                        alt="Owner photo"
+                        className="h-full w-full object-cover"
+                      />
+                    </div>
+                  )}
+                  <Label htmlFor="owner-photo-upload" className="cursor-pointer">
+                    <div className="flex items-center gap-2 px-4 py-2 border border-input rounded-lg hover:bg-accent transition-colors">
+                      <Upload className="h-4 w-4" />
+                      <span className="text-sm font-medium">
+                        {uploadingOwnerPhoto ? "Uploading..." : ownerPhotoUrl ? "Change Photo" : "Upload Photo"}
+                      </span>
+                    </div>
+                    <input
+                      id="owner-photo-upload"
+                      type="file"
+                      accept="image/*"
+                      onChange={handleOwnerPhotoUpload}
+                      className="hidden"
+                      disabled={uploadingOwnerPhoto}
+                    />
+                  </Label>
+                  {ownerPhotoUrl && (
+                    <Button
+                      type="button"
+                      variant="ghost"
+                      size="sm"
+                      onClick={() => setOwnerPhotoUrl("")}
+                      className="text-destructive hover:text-destructive"
+                    >
+                      <X className="h-4 w-4" />
+                    </Button>
+                  )}
+                </div>
+                <p className="text-xs text-muted-foreground mt-2">
+                  Upload a photo of the business owner (max 2MB, JPG/PNG)
+                </p>
+              </div>
+              
+              {/* Work Photos Upload */}
+              <div>
+                <Label>Photos of Work</Label>
+                <p className="text-xs text-muted-foreground mb-3">
+                  Upload sample photos of completed projects (max 5MB each)
+                </p>
+                <div className="grid grid-cols-3 sm:grid-cols-4 gap-3">
+                  {workPhotos.map((photo, index) => (
+                    <div key={index} className="relative aspect-square rounded-lg overflow-hidden bg-muted border border-border group">
+                      <img 
+                        src={photo} 
+                        alt={`Work photo ${index + 1}`}
+                        className="h-full w-full object-cover"
+                      />
+                      <button
+                        type="button"
+                        onClick={() => removeWorkPhoto(index)}
+                        className="absolute top-1 right-1 p-1 bg-destructive text-destructive-foreground rounded-full opacity-0 group-hover:opacity-100 transition-opacity"
+                      >
+                        <X className="h-3 w-3" />
+                      </button>
+                    </div>
+                  ))}
+                  <Label htmlFor="work-photo-upload" className="cursor-pointer">
+                    <div className="aspect-square rounded-lg border-2 border-dashed border-input hover:border-primary/50 flex flex-col items-center justify-center gap-2 transition-colors">
+                      {uploadingWorkPhoto ? (
+                        <span className="text-xs text-muted-foreground">Uploading...</span>
+                      ) : (
+                        <>
+                          <Plus className="h-6 w-6 text-muted-foreground" />
+                          <span className="text-xs text-muted-foreground">Add Photo</span>
+                        </>
+                      )}
+                    </div>
+                    <input
+                      id="work-photo-upload"
+                      type="file"
+                      accept="image/*"
+                      onChange={handleWorkPhotoUpload}
+                      className="hidden"
+                      disabled={uploadingWorkPhoto}
+                    />
+                  </Label>
+                </div>
               </div>
             </CardContent>
           </Card>
