@@ -7,6 +7,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
 import { logger } from "@/utils/logger";
 import { getClientLogo, resolveStoragePublicUrl } from "@/utils/imageHelpers";
+import { CompanyProfileModal } from "@/components/CompanyProfileModal";
 import {
   AlertDialog,
   AlertDialogAction,
@@ -28,6 +29,11 @@ import {
 } from "@/components/ui/dialog";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
+
+interface ClientDetail {
+  field_name: string;
+  field_value: string;
+}
 
 interface Script {
   id: string;
@@ -69,6 +75,8 @@ export default function ClientScripts() {
   const [selectedImage, setSelectedImage] = useState<GeneratedImage | null>(null);
   const [leadEmail, setLeadEmail] = useState("");
   const [leadName, setLeadName] = useState("");
+  const [clientDetails, setClientDetails] = useState<ClientDetail[]>([]);
+  const [showCompanyProfile, setShowCompanyProfile] = useState(false);
 
   // Optimized: Combined data loading with useCallback
   const loadData = useCallback(async () => {
@@ -96,7 +104,7 @@ export default function ClientScripts() {
       // Parallel API calls for better performance
       const [
         { data: clientData, error: clientError },
-        { data: logoData },
+        { data: allDetailsData },
         { data: scriptsData, error: scriptsError },
         { data: tmplData },
         { data: typesData },
@@ -105,10 +113,8 @@ export default function ClientScripts() {
         supabase.from("clients").select("*").eq("id", clientId).single(),
         supabase
           .from("client_details")
-          .select("field_value")
-          .eq("client_id", clientId)
-          .eq("field_name", "logo_url")
-          .maybeSingle(),
+          .select("field_name, field_value")
+          .eq("client_id", clientId),
         supabase
           .from("scripts")
           .select("id, service_name, version, created_at, is_template, image_url, service_type_id")
@@ -127,6 +133,9 @@ export default function ClientScripts() {
       if (clientError) throw clientError;
       if (scriptsError) throw scriptsError;
       
+      // Store all client details for the profile modal
+      setClientDetails(allDetailsData || []);
+      
       // Update last_accessed_at timestamp for tracking
       supabase
         .from("clients")
@@ -134,9 +143,12 @@ export default function ClientScripts() {
         .eq("id", clientId)
         .then(); // Fire and forget - don't block UI
       
+      // Find logo URL from details
+      const logoUrl = allDetailsData?.find(d => d.field_name === "logo_url")?.field_value;
+      
       setClient({
         ...clientData,
-        logo_url: logoData?.field_value || undefined
+        logo_url: logoUrl || undefined
       });
 
       // Create Maps for O(1) lookups
@@ -311,7 +323,11 @@ export default function ClientScripts() {
 
         <div className="mb-6 sm:mb-8 flex flex-col sm:flex-row items-start justify-between gap-4">
           <div className="flex items-start gap-3 sm:gap-4 w-full sm:w-auto">
-            <div className="h-14 w-14 sm:h-16 sm:w-16 rounded-lg overflow-hidden bg-muted flex-shrink-0 border border-border shadow-sm">
+            <div 
+              className="h-14 w-14 sm:h-16 sm:w-16 rounded-lg overflow-hidden bg-muted flex-shrink-0 border border-border shadow-sm cursor-pointer hover:ring-2 hover:ring-primary/50 transition-all"
+              onClick={() => setShowCompanyProfile(true)}
+              title="Click to view company profile"
+            >
               <img 
                 src={getClientLogo(client.service_type, client.logo_url)} 
                 alt={`${client.name} logo`}
@@ -319,7 +335,13 @@ export default function ClientScripts() {
               />
             </div>
             <div className="min-w-0 flex-1">
-              <h1 className="text-2xl sm:text-3xl font-bold mb-1 break-words">{client.name}</h1>
+              <h1 
+                className="text-2xl sm:text-3xl font-bold mb-1 break-words cursor-pointer hover:text-primary transition-colors"
+                onClick={() => setShowCompanyProfile(true)}
+                title="Click to view company profile"
+              >
+                {client.name}
+              </h1>
               <p className="text-sm sm:text-base text-muted-foreground">
                 {client.service_type} {client.city && `• ${client.city}`}
               </p>
@@ -552,6 +574,15 @@ export default function ClientScripts() {
           </DialogContent>
         </Dialog>
       </div>
+      
+      {/* Company Profile Modal */}
+      <CompanyProfileModal
+        open={showCompanyProfile}
+        onOpenChange={setShowCompanyProfile}
+        client={client}
+        details={clientDetails}
+        logoUrl={client.logo_url || getClientLogo(client.service_type)}
+      />
     </div>
   );
 }
