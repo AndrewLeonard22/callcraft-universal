@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useEffect, useCallback } from "react";
 import { useNavigate } from "react-router-dom";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Badge } from "@/components/ui/badge";
@@ -298,49 +298,59 @@ export function CompanyProfileModal({
         </DialogContent>
       </Dialog>
 
-      {/* Full-screen image viewer */}
-      {selectedImageIndex !== null && workPhotos[selectedImageIndex] && (
-        <div 
-          className="fixed inset-0 z-[100] bg-black/90 flex items-center justify-center p-4"
-          onClick={() => setSelectedImageIndex(null)}
+      {/* Full-screen image viewer - using Dialog for better accessibility */}
+      <Dialog open={selectedImageIndex !== null} onOpenChange={(open) => !open && setSelectedImageIndex(null)}>
+        <DialogContent 
+          className="max-w-[95vw] max-h-[95vh] w-auto h-auto p-0 bg-black/95 border-none overflow-hidden"
+          onPointerDownOutside={() => setSelectedImageIndex(null)}
+          onEscapeKeyDown={() => setSelectedImageIndex(null)}
         >
-          <button
-            onClick={() => setSelectedImageIndex(null)}
-            className="absolute top-4 right-4 text-white/80 hover:text-white p-2"
-          >
-            <X className="h-8 w-8" />
-          </button>
-          <img 
-            src={workPhotos[selectedImageIndex]} 
-            alt={`Work sample ${selectedImageIndex + 1}`}
-            className="max-w-full max-h-full object-contain rounded-lg"
-            onClick={(e) => e.stopPropagation()}
-          />
-          {/* Navigation arrows */}
-          {workPhotos.length > 1 && (
-            <>
-              <button
-                onClick={(e) => {
-                  e.stopPropagation();
-                  setSelectedImageIndex((prev) => (prev === 0 ? workPhotos.length - 1 : (prev || 0) - 1));
-                }}
-                className="absolute left-4 text-white/80 hover:text-white p-2 text-4xl"
-              >
-                ‹
-              </button>
-              <button
-                onClick={(e) => {
-                  e.stopPropagation();
-                  setSelectedImageIndex((prev) => ((prev || 0) + 1) % workPhotos.length);
-                }}
-                className="absolute right-16 text-white/80 hover:text-white p-2 text-4xl"
-              >
-                ›
-              </button>
-            </>
-          )}
-        </div>
-      )}
+          <div className="relative flex items-center justify-center w-full h-full min-h-[50vh]">
+            <button
+              onClick={() => setSelectedImageIndex(null)}
+              className="absolute top-2 right-2 z-10 text-white/80 hover:text-white p-2 bg-black/50 rounded-full transition-colors"
+              aria-label="Close image viewer"
+            >
+              <X className="h-6 w-6" />
+            </button>
+            
+            {selectedImageIndex !== null && workPhotos[selectedImageIndex] && (
+              <img 
+                src={workPhotos[selectedImageIndex]} 
+                alt={`Work sample ${selectedImageIndex + 1}`}
+                className="max-w-full max-h-[85vh] object-contain"
+              />
+            )}
+            
+            {/* Navigation arrows */}
+            {workPhotos.length > 1 && (
+              <>
+                <button
+                  onClick={() => setSelectedImageIndex((prev) => (prev === 0 ? workPhotos.length - 1 : (prev ?? 0) - 1))}
+                  className="absolute left-2 top-1/2 -translate-y-1/2 text-white/80 hover:text-white p-3 bg-black/50 rounded-full transition-colors"
+                  aria-label="Previous image"
+                >
+                  <span className="text-2xl">‹</span>
+                </button>
+                <button
+                  onClick={() => setSelectedImageIndex((prev) => ((prev ?? 0) + 1) % workPhotos.length)}
+                  className="absolute right-2 top-1/2 -translate-y-1/2 text-white/80 hover:text-white p-3 bg-black/50 rounded-full transition-colors"
+                  aria-label="Next image"
+                >
+                  <span className="text-2xl">›</span>
+                </button>
+              </>
+            )}
+            
+            {/* Image counter */}
+            {workPhotos.length > 1 && selectedImageIndex !== null && (
+              <div className="absolute bottom-4 left-1/2 -translate-x-1/2 text-white/80 text-sm bg-black/50 px-3 py-1 rounded-full">
+                {selectedImageIndex + 1} / {workPhotos.length}
+              </div>
+            )}
+          </div>
+        </DialogContent>
+      </Dialog>
     </>
   );
 }
