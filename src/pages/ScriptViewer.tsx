@@ -15,6 +15,7 @@ import OutdoorLivingCalculator from "@/components/OutdoorLivingCalculator";
 import { RichTextEditor } from "@/components/RichTextEditor";
 import { FormattedScript } from "@/components/FormattedScript";
 import { ScriptActions } from "@/components/ScriptActions";
+import { CompanyProfileModal } from "@/components/CompanyProfileModal";
 import { getClientLogo, safeUrl } from "@/utils/clientHelpers";
 import { logger } from "@/utils/logger";
 
@@ -105,6 +106,7 @@ export default function ScriptViewer() {
   const [isEditingServiceDetails, setIsEditingServiceDetails] = useState(false);
   const [editedServiceDetails, setEditedServiceDetails] = useState<Record<string, string>>({});
   const [savingStates, setSavingStates] = useState<Record<string, boolean>>({});
+  const [showCompanyProfile, setShowCompanyProfile] = useState(false);
   const saveManager = useRef(new DebouncedSaveManager());
   const responsesRef = useRef<Record<string, QualificationResponse>>({});
   
@@ -843,7 +845,11 @@ export default function ScriptViewer() {
                 />
               </div>
               <div>
-                <h1 className="text-3xl font-semibold mb-2 text-foreground">
+                <h1 
+                  className="text-3xl font-semibold mb-2 text-foreground cursor-pointer hover:text-primary transition-colors"
+                  onClick={() => setShowCompanyProfile(true)}
+                  title="Click to view company profile"
+                >
                   {client.name}
                 </h1>
                 <p className="text-base text-muted-foreground capitalize">
@@ -1620,6 +1626,15 @@ export default function ScriptViewer() {
           </>
         )}
       </div>
+      
+      {/* Company Profile Modal */}
+      <CompanyProfileModal
+        open={showCompanyProfile}
+        onOpenChange={setShowCompanyProfile}
+        client={client}
+        details={details}
+        logoUrl={getDetailValue("logo_url") !== "N/A" ? getDetailValue("logo_url") : getClientLogo(client.service_type)}
+      />
     </div>
   );
 }
