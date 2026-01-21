@@ -1,8 +1,10 @@
 import { useState } from "react";
+import { useNavigate } from "react-router-dom";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Badge } from "@/components/ui/badge";
 import { Separator } from "@/components/ui/separator";
 import { ScrollArea } from "@/components/ui/scroll-area";
+import { Button } from "@/components/ui/button";
 import { 
   User, 
   MapPin, 
@@ -16,13 +18,15 @@ import {
   Info, 
   FileText,
   Image,
-  X
+  X,
+  Pencil
 } from "lucide-react";
 
 interface CompanyProfileModalProps {
   open: boolean;
   onOpenChange: (open: boolean) => void;
   client: {
+    id?: string;
     name: string;
     service_type: string;
     city?: string;
@@ -38,6 +42,7 @@ export function CompanyProfileModal({
   details, 
   logoUrl 
 }: CompanyProfileModalProps) {
+  const navigate = useNavigate();
   const [selectedImageIndex, setSelectedImageIndex] = useState<number | null>(null);
   
   const getDetailValue = (fieldName: string): string => {
@@ -136,12 +141,26 @@ export function CompanyProfileModal({
                 <DialogTitle className="text-xl font-semibold text-foreground">
                   {businessName}
                 </DialogTitle>
-                <div className="flex items-center gap-2 mt-1">
+              <div className="flex items-center gap-2 mt-1">
                   <Badge variant="secondary" className="capitalize">
                     {client.service_type}
                   </Badge>
                   {client.city && (
                     <span className="text-sm text-muted-foreground">{client.city}</span>
+                  )}
+                  {client.id && (
+                    <Button
+                      variant="ghost"
+                      size="sm"
+                      className="ml-auto h-7 text-xs"
+                      onClick={() => {
+                        onOpenChange(false);
+                        navigate(`/edit/${client.id}`);
+                      }}
+                    >
+                      <Pencil className="h-3 w-3 mr-1" />
+                      Edit
+                    </Button>
                   )}
                 </div>
               </div>
