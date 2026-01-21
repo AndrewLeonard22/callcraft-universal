@@ -158,6 +158,43 @@ export default function EditClient() {
     }
   };
 
+  const saveClientDetailField = async (fieldName: string, fieldValue: string) => {
+    if (!clientId) return;
+
+    const trimmed = (fieldValue || "").trim();
+
+    // Find existing row (no unique constraint on client_details, so do manual upsert)
+    const { data: existing, error: existingError } = await supabase
+      .from("client_details")
+      .select("id")
+      .eq("client_id", clientId)
+      .eq("field_name", fieldName)
+      .maybeSingle();
+
+    if (existingError) throw existingError;
+
+    if (!trimmed) {
+      if (existing?.id) {
+        const { error } = await supabase.from("client_details").delete().eq("id", existing.id);
+        if (error) throw error;
+      }
+      return;
+    }
+
+    if (existing?.id) {
+      const { error } = await supabase
+        .from("client_details")
+        .update({ field_value: trimmed })
+        .eq("id", existing.id);
+      if (error) throw error;
+    } else {
+      const { error } = await supabase
+        .from("client_details")
+        .insert({ client_id: clientId, field_name: fieldName, field_value: trimmed });
+      if (error) throw error;
+    }
+  };
+
   const handleLogoUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
     if (!file || !clientId) return;
@@ -236,12 +273,15 @@ export default function EditClient() {
         .getPublicUrl(fileName);
 
       setOwnerPhotoUrl(publicUrl);
+      await saveClientDetailField("owner_photo_url", publicUrl);
       toast.success("Owner photo uploaded!");
     } catch (error) {
       logger.error("Error uploading owner photo:", error);
       toast.error("Failed to upload photo");
     } finally {
       setUploadingOwnerPhoto(false);
+      // allow re-uploading the same file
+      e.target.value = "";
     }
   };
 
