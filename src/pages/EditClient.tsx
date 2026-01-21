@@ -831,6 +831,19 @@ export default function EditClient() {
                         className="min-h-[100px] resize-none"
                       />
                     </div>
+                    <div>
+                      <Label htmlFor="other-key-info">Things to Know</Label>
+                      <Textarea
+                        id="other-key-info"
+                        placeholder="Important notes about this client (e.g., 'Does NOT build decks')"
+                        value={otherKeyInfo}
+                        onChange={(e) => setOtherKeyInfo(e.target.value)}
+                        className="min-h-[100px] resize-none"
+                      />
+                      <p className="text-xs text-muted-foreground mt-1">
+                        Key information call agents should know about this client
+                      </p>
+                    </div>
                   </div>
                 </TabsContent>
                 
