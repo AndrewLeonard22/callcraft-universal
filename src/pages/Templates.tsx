@@ -3,7 +3,6 @@ import { useNavigate } from "react-router-dom";
 import { Plus, Trash2, FileText, Edit2, MessageSquare, HelpCircle, ClipboardCheck, GripVertical, Copy, RefreshCw } from "lucide-react";
 import { DndContext, closestCenter, KeyboardSensor, PointerSensor, useSensor, useSensors, DragEndEvent } from '@dnd-kit/core';
 import { arrayMove, SortableContext, sortableKeyboardCoordinates, verticalListSortingStrategy } from '@dnd-kit/sortable';
-import { CSS } from '@dnd-kit/utilities';
 import { SortableItem } from "@/components/SortableItem";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -36,175 +35,11 @@ import { ScrollArea } from "@/components/ui/scroll-area";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
-import HtmlPreviewFrame from "@/components/HtmlPreviewFrame";
+import { FormattedContent } from "@/components/FormattedContent";
+import { TemplateEditor } from "@/components/TemplateEditor";
+import { TemplateList } from "@/components/TemplateList";
 
-const FormattedContent = ({ content }: { content: string }) => {
-  // If content contains HTML tags, render it as HTML
-  if (content.includes('<p>') || content.includes('<span') || content.includes('<strong>') || content.includes('<mark>')) {
-    return (
-      <HtmlPreviewFrame html={content} />
-    );
-  }
-  
-  // Otherwise, use the marker-based formatting (backward compatibility)
-  const lines = content.split('\n');
-  
-  const formatLine = (text: string) => {
-    const parts: (string | JSX.Element)[] = [];
-    let remaining = text;
-    let key = 0;
-    
-    while (remaining.length > 0) {
-      // Check for color markers
-      const colorMatch = remaining.match(/\{(red|blue|green|yellow|purple|orange):([^}]+)\}/);
-      if (colorMatch && colorMatch.index !== undefined) {
-        if (colorMatch.index > 0) {
-          parts.push(remaining.substring(0, colorMatch.index));
-        }
-        const colorMap: Record<string, string> = {
-          red: 'rgb(220, 38, 38)',
-          blue: 'rgb(37, 99, 235)',
-          green: 'rgb(22, 163, 74)',
-          yellow: 'rgb(202, 138, 4)',
-          purple: 'rgb(168, 85, 247)',
-          orange: 'rgb(249, 115, 22)',
-        };
-        parts.push(
-          <span key={`color-${key++}`} style={{ color: colorMap[colorMatch[1]] }}>
-            {colorMatch[2]}
-          </span>
-        );
-        remaining = remaining.substring(colorMatch.index + colorMatch[0].length);
-        continue;
-      }
-
-      // Check for font size markers
-      const sizeMatch = remaining.match(/\{(small|large):([^}]+)\}/);
-      if (sizeMatch && sizeMatch.index !== undefined) {
-        if (sizeMatch.index > 0) {
-          parts.push(remaining.substring(0, sizeMatch.index));
-        }
-        const sizeClass = sizeMatch[1] === 'small' ? 'text-xs' : 'text-lg';
-        parts.push(
-          <span key={`size-${key++}`} className={sizeClass}>
-            {sizeMatch[2]}
-          </span>
-        );
-        remaining = remaining.substring(sizeMatch.index + sizeMatch[0].length);
-        continue;
-      }
-      
-      const bracketMatch = remaining.match(/\[([^\]]+)\]/);
-      if (bracketMatch && bracketMatch.index !== undefined) {
-        if (bracketMatch.index > 0) {
-          parts.push(remaining.substring(0, bracketMatch.index));
-        }
-        parts.push(
-          <span key={`bracket-${key++}`} className="bg-primary/5 text-primary font-medium px-1.5 py-0.5 rounded">
-            {bracketMatch[1]}
-          </span>
-        );
-        remaining = remaining.substring(bracketMatch.index + bracketMatch[0].length);
-        continue;
-      }
-      
-      const quoteMatch = remaining.match(/"([^"]+)"/);
-      if (quoteMatch && quoteMatch.index !== undefined) {
-        if (quoteMatch.index > 0) {
-          parts.push(remaining.substring(0, quoteMatch.index));
-        }
-        parts.push(
-          <span key={`quote-${key++}`} className="bg-accent/5 text-accent font-medium px-1 rounded">
-            {quoteMatch[1]}
-          </span>
-        );
-        remaining = remaining.substring(quoteMatch.index + quoteMatch[0].length);
-        continue;
-      }
-      
-      const boldMatch = remaining.match(/\*\*([^*]+)\*\*/);
-      if (boldMatch && boldMatch.index !== undefined) {
-        if (boldMatch.index > 0) {
-          parts.push(remaining.substring(0, boldMatch.index));
-        }
-        parts.push(
-          <strong key={`bold-${key++}`} className="font-bold text-foreground">
-            {boldMatch[1]}
-          </strong>
-        );
-        remaining = remaining.substring(boldMatch.index + boldMatch[0].length);
-        continue;
-      }
-      
-      const italicMatch = remaining.match(/\*([^*]+)\*/);
-      if (italicMatch && italicMatch.index !== undefined) {
-        if (italicMatch.index > 0) {
-          parts.push(remaining.substring(0, italicMatch.index));
-        }
-        parts.push(
-          <strong key={`semi-${key++}`} className="font-semibold">
-            {italicMatch[1]}
-          </strong>
-        );
-        remaining = remaining.substring(italicMatch.index + italicMatch[0].length);
-        continue;
-      }
-      
-      parts.push(remaining);
-      break;
-    }
-    
-    return parts.length > 0 ? parts : text;
-  };
-  
-  return (
-    <>
-      {lines.map((line, index) => {
-        if (line.match(/^\d+\.\s+[A-Z]/)) {
-          return (
-            <h3 key={index} className="text-sm font-bold mt-2 mb-1 first:mt-0 text-foreground">
-              {line}
-            </h3>
-          );
-        }
-        
-        if (line.match(/^[A-Z\s]+:$/) || line.match(/^[*#]+\s*[A-Z][^a-z]*$/)) {
-          return (
-            <h3 key={index} className="text-sm font-bold mt-2 mb-1 first:mt-0 text-foreground">
-              {line.replace(/^[*#]+\s*/, '').replace(/:$/, '')}
-            </h3>
-          );
-        }
-        
-        if (line.match(/^(Stage|Phase|Step)\s+\d+/i)) {
-          return (
-            <h4 key={index} className="text-sm font-semibold mt-2 mb-1 text-foreground">
-              {line}
-            </h4>
-          );
-        }
-        
-        if (line.match(/^\*\*[^*]+\*\*/) || (line.endsWith(':') && line.length < 60 && !line.includes('.'))) {
-          return (
-            <h5 key={index} className="font-semibold text-sm mt-2 mb-1 text-foreground">
-              {line.replace(/^\*\*/, '').replace(/\*\*$/, '').replace(/:$/, '')}
-            </h5>
-          );
-        }
-        
-        if (!line.trim()) {
-          return <div key={index} className="h-1" />;
-        }
-        
-        return (
-          <p key={index} className="text-sm leading-relaxed whitespace-pre-wrap text-foreground/80">
-            {formatLine(line)}
-          </p>
-        );
-      })}
-    </>
-  );
-};
+// FormattedContent extracted to src/components/FormattedContent.tsx
 
 interface Template {
   id: string;
@@ -1115,242 +950,44 @@ export default function Templates() {
               </Button>
             </div>
 
-        {showCreateForm && (
-          <Card className="mb-6 border-primary/20 shadow-sm">
-            <CardHeader className="border-b border-border/60 bg-gradient-to-r from-primary/5 to-transparent">
-              <CardTitle className="text-lg">{editingTemplate ? "Edit Template" : "Create New Template"}</CardTitle>
-              <CardDescription>
-                {editingTemplate 
-                  ? "Update this template to change all scripts that use it"
-                  : "Create a reusable script template that can be customized for different clients"}
-              </CardDescription>
-            </CardHeader>
-            <CardContent className="space-y-4">
-              <div>
-                <Label htmlFor="service-name">Template Name</Label>
-                <Input
-                  id="service-name"
-                  placeholder="e.g., Turf Installation V1"
-                  value={serviceName}
-                  onChange={(e) => setServiceName(e.target.value)}
-                />
-              </div>
-              <div>
-                <Label htmlFor="service-type-select">Assign to Service Type</Label>
-                <Select 
-                  value={selectedTemplateServiceTypeId} 
-                  onValueChange={setSelectedTemplateServiceTypeId}
-                >
-                  <SelectTrigger id="service-type-select">
-                    <SelectValue placeholder="Select a service type" />
-                  </SelectTrigger>
-                  <SelectContent>
-                    {serviceTypes.map((type) => (
-                      <SelectItem key={type.id} value={type.id}>
-                        {type.name}
-                      </SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
-                <p className="text-xs text-muted-foreground mt-1">
-                  This template will only appear when creating scripts for this service type
-                </p>
-              </div>
-              <div>
-                <RichTextEditor
-                  label="Script Content"
-                  placeholder="Enter your template script here..."
-                  value={scriptContent}
-                  onChange={setScriptContent}
-                  minHeight="300px"
-                />
-              </div>
-              <div>
-                <Label htmlFor="template-image">Template Image (optional)</Label>
-                <input
-                  id="template-image"
-                  type="file"
-                  accept="image/*"
-                  onChange={(e) => setTemplateImageFile(e.target.files?.[0] || null)}
-                  className="mt-2 block w-full text-sm text-muted-foreground file:mr-4 file:py-2 file:px-4 file:rounded-md file:border file:border-border file:bg-background file:text-foreground hover:file:bg-muted"
-                />
-                <p className="text-xs text-muted-foreground mt-1">Used as the preview image when scripts are created from this template.</p>
-              </div>
-              <div className="flex gap-3">
-                <Button onClick={handleCreate} disabled={saving}>
-                  {saving ? (editingTemplate ? "Updating..." : "Creating...") : (editingTemplate ? "Update Template" : "Create Template")}
-                </Button>
-                <Button variant="outline" onClick={() => {
+            {showCreateForm && (
+              <TemplateEditor
+                editingTemplate={editingTemplate}
+                serviceName={serviceName}
+                setServiceName={setServiceName}
+                scriptContent={scriptContent}
+                setScriptContent={setScriptContent}
+                selectedTemplateServiceTypeId={selectedTemplateServiceTypeId}
+                setSelectedTemplateServiceTypeId={setSelectedTemplateServiceTypeId}
+                serviceTypes={serviceTypes}
+                setTemplateImageFile={setTemplateImageFile}
+                handleCreate={handleCreate}
+                saving={saving}
+                onCancel={() => {
                   setShowCreateForm(false);
                   setEditingTemplate(null);
                   setServiceName("");
                   setScriptContent("");
                   setTemplateImageFile(null);
                   setSelectedTemplateServiceTypeId("");
-                }}>
-                  Cancel
-                </Button>
-              </div>
-            </CardContent>
-          </Card>
-        )}
+                }}
+              />
+            )}
 
-        {loading ? (
-          <div className="space-y-4">
-            {[1, 2, 3].map((i) => (
-              <Card key={i} className="animate-pulse">
-                <CardHeader>
-                  <div className="h-5 bg-muted rounded w-1/3 mb-2" />
-                  <div className="h-3 bg-muted rounded w-1/2" />
-                </CardHeader>
-              </Card>
-            ))}
-          </div>
-        ) : templates.length === 0 ? (
-          <Card className="border-dashed">
-            <CardContent className="flex flex-col items-center justify-center py-16">
-              <div className="h-16 w-16 rounded-full bg-primary/10 flex items-center justify-center mb-4">
-                <FileText className="h-8 w-8 text-primary" />
-              </div>
-              <h3 className="text-xl font-semibold mb-2">No templates yet</h3>
-              <p className="text-sm text-muted-foreground mb-6 text-center max-w-sm">
-                Create your first template to reuse scripts across clients
-              </p>
-              <Button onClick={() => setShowCreateForm(true)} size="lg">
-                <Plus className="mr-2 h-4 w-4" />
-                Create Template
-              </Button>
-            </CardContent>
-          </Card>
-        ) : (
-          <div className="space-y-8">
-            {/* Group templates by service type */}
-            {(() => {
-              const grouped = templates.reduce((acc, template) => {
-                const serviceTypeId = template.service_type_id || 'uncategorized';
-                if (!acc[serviceTypeId]) {
-                  acc[serviceTypeId] = [];
-                }
-                acc[serviceTypeId].push(template);
-                return acc;
-              }, {} as Record<string, Template[]>);
-
-              return Object.entries(grouped).map(([serviceTypeId, serviceTemplates]) => {
-                const serviceType = serviceTypes.find(st => st.id === serviceTypeId);
-                const serviceName = serviceType?.name || 'Uncategorized';
-
-                return (
-                  <div key={serviceTypeId} className="space-y-4">
-                    <div className="flex items-center gap-3 pb-3 border-b border-border/60">
-                      {serviceType?.icon_url && (
-                        <div className="h-6 w-6 rounded-md bg-primary/10 flex items-center justify-center flex-shrink-0">
-                          <img src={serviceType.icon_url} alt="" className="h-4 w-4 object-contain" />
-                        </div>
-                      )}
-                      <div className="flex items-baseline gap-2">
-                        <h3 className="text-lg font-semibold text-foreground">
-                          {serviceName}
-                        </h3>
-                        <span className="text-xs text-muted-foreground font-medium">
-                          {serviceTemplates.length} {serviceTemplates.length === 1 ? 'template' : 'templates'}
-                        </span>
-                      </div>
-                    </div>
-                    <DndContext sensors={sensors} collisionDetection={closestCenter} onDragEnd={handleDragEndTemplates}>
-                      <SortableContext items={serviceTemplates.map(t => t.id)} strategy={verticalListSortingStrategy}>
-                        <div className="space-y-2">
-                          {serviceTemplates.map((template) => (
-                            <SortableItem key={template.id} id={template.id}>
-                              <Card className="group transition-all duration-200 hover:shadow-sm hover:border-primary/20">
-                                <CardHeader className="py-3 px-4">
-                                  <div className="flex items-center justify-between gap-4">
-                                    <div className="flex items-center gap-3 flex-1 min-w-0">
-                                      <GripVertical className="h-4 w-4 text-muted-foreground/50 flex-shrink-0" />
-                                      <div className="h-8 w-8 rounded-md bg-gradient-to-br from-primary/10 to-primary/5 flex items-center justify-center flex-shrink-0">
-                                        {template.image_url ? (
-                                          <img src={template.image_url} alt="" className="h-full w-full object-cover rounded-md" onError={(e) => { (e.currentTarget as HTMLImageElement).src = '/placeholder.svg'; }} />
-                                        ) : (
-                                          <FileText className="h-4 w-4 text-primary/70" />
-                                        )}
-                                      </div>
-                                      <CardTitle className="text-sm font-medium leading-tight truncate">
-                                        {template.service_name}
-                                      </CardTitle>
-                                    </div>
-                                    <div className="flex gap-1 flex-shrink-0">
-                                      <Button
-                                        variant="ghost"
-                                        size="sm"
-                                        onClick={() => handleOpenPushDialog(template)}
-                                        disabled={updatingScripts === template.id || !template.service_type_id}
-                                        className="h-7 px-2 hover:bg-primary/10 hover:text-primary"
-                                        title="Push template to scripts"
-                                      >
-                                        <RefreshCw className={`h-3 w-3 ${updatingScripts === template.id ? 'animate-spin' : ''}`} />
-                                      </Button>
-                                      <Button
-                                        variant="ghost"
-                                        size="sm"
-                                        onClick={() => handleDuplicate(template)}
-                                        className="h-7 px-2 hover:bg-primary/10 hover:text-primary"
-                                        title="Duplicate"
-                                      >
-                                        <Copy className="h-3 w-3" />
-                                      </Button>
-                                      <Button
-                                        variant="ghost"
-                                        size="sm"
-                                        onClick={() => handleEdit(template)}
-                                        className="h-7 px-2 hover:bg-primary/10 hover:text-primary"
-                                        title="Edit"
-                                      >
-                                        <Edit2 className="h-3 w-3" />
-                                      </Button>
-                                      <AlertDialog>
-                                        <AlertDialogTrigger asChild>
-                                          <Button 
-                                            variant="ghost" 
-                                            size="sm" 
-                                            className="h-7 px-2 text-destructive hover:text-destructive hover:bg-destructive/10"
-                                            title="Delete"
-                                          >
-                                            <Trash2 className="h-3 w-3" />
-                                          </Button>
-                                        </AlertDialogTrigger>
-                                        <AlertDialogContent>
-                                          <AlertDialogHeader>
-                                            <AlertDialogTitle>Delete Template?</AlertDialogTitle>
-                                            <AlertDialogDescription>
-                                              This will permanently delete the "{template.service_name}" template. This action cannot be undone.
-                                            </AlertDialogDescription>
-                                          </AlertDialogHeader>
-                                          <AlertDialogFooter>
-                                            <AlertDialogCancel>Cancel</AlertDialogCancel>
-                                            <AlertDialogAction
-                                              onClick={() => handleDelete(template.id)}
-                                              className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
-                                            >
-                                              Delete
-                                            </AlertDialogAction>
-                                          </AlertDialogFooter>
-                                        </AlertDialogContent>
-                                      </AlertDialog>
-                                    </div>
-                                  </div>
-                                </CardHeader>
-                              </Card>
-                            </SortableItem>
-                          ))}
-                        </div>
-                      </SortableContext>
-                     </DndContext>
-                  </div>
-                );
-              });
-            })()}
-          </div>
-        )}
-      </TabsContent>
+            <TemplateList
+              templates={templates}
+              serviceTypes={serviceTypes}
+              loading={loading}
+              sensors={sensors}
+              handleDragEndTemplates={handleDragEndTemplates}
+              handleOpenPushDialog={handleOpenPushDialog}
+              handleDuplicate={handleDuplicate}
+              handleEdit={handleEdit}
+              handleDelete={handleDelete}
+              updatingScripts={updatingScripts}
+              onShowCreateForm={() => setShowCreateForm(true)}
+            />
+          </TabsContent>
 
           <TabsContent value="objections" className="space-y-6">
             <div className="flex justify-end">
