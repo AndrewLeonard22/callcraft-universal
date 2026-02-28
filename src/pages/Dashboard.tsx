@@ -449,20 +449,20 @@ export default function Dashboard() {
 
   return (
     <div className="min-h-screen bg-background">
-      {/* Premium Header */}
-      <div className="border-b border-border/50 bg-card/30 backdrop-blur-xl sticky top-0 z-50">
-        <div className="container mx-auto px-4 sm:px-6 py-4 sm:py-6 max-w-7xl">
+      {/* Clean SaaS Header */}
+      <div className="border-b border-border bg-card sticky top-0 z-50">
+        <div className="container mx-auto px-4 sm:px-6 py-4 max-w-7xl">
           <div className="flex items-center justify-between gap-2">
-            <div className="flex items-center gap-2 sm:gap-4 min-w-0">
+            <div className="flex items-center gap-3 sm:gap-4 min-w-0">
               <img 
                 src={profile?.company_logo_url || agentIqLogo} 
                 alt="Agent IQ" 
-                className="h-12 sm:h-16 w-auto flex-shrink-0"
+                className="h-10 sm:h-12 w-auto flex-shrink-0"
               />
-              <div className="h-6 sm:h-8 w-px bg-border/50 hidden sm:block" />
+              <div className="h-6 w-px bg-border hidden sm:block" />
               <div className="min-w-0">
-                <h1 className="text-lg sm:text-2xl font-semibold tracking-tight truncate">Companies</h1>
-                <p className="text-xs sm:text-sm text-muted-foreground hidden sm:block">
+                <h1 className="text-xl sm:text-2xl font-semibold truncate">Companies</h1>
+                <p className="text-xs text-muted-foreground hidden sm:block">
                   {clients.length} {clients.length === 1 ? 'company' : 'companies'} total
                 </p>
               </div>
@@ -470,30 +470,30 @@ export default function Dashboard() {
             
             <div className="flex items-center gap-2 flex-shrink-0">
               {/* Desktop Navigation */}
-              <div className="hidden lg:flex items-center gap-1.5 bg-muted/30 rounded-lg p-1">
+              <div className="hidden lg:flex items-center gap-1">
                 <Link to="/training">
-                  <Button variant="ghost" size="sm" className="gap-2 h-8 px-3 text-xs font-medium hover:bg-background hover:shadow-sm transition-all">
-                    <GraduationCap className="h-3.5 w-3.5" />
+                  <Button variant="ghost" size="sm" className="gap-2 h-9 px-3 text-sm">
+                    <GraduationCap className="h-4 w-4" />
                     Training
                   </Button>
                 </Link>
                 <Link to="/image-generator">
-                  <Button variant="ghost" size="sm" className="gap-2 h-8 px-3 text-xs font-medium hover:bg-background hover:shadow-sm transition-all">
-                    <Wand2 className="h-3.5 w-3.5" />
+                  <Button variant="ghost" size="sm" className="gap-2 h-9 px-3 text-sm">
+                    <Wand2 className="h-4 w-4" />
                     Generator
                   </Button>
                 </Link>
                 
                 <DropdownMenu>
                   <DropdownMenuTrigger asChild>
-                    <Button variant="ghost" size="sm" className="gap-1.5 h-8 px-3 text-xs font-medium hover:bg-background hover:shadow-sm transition-all">
-                      <Settings className="h-3.5 w-3.5" />
+                    <Button variant="ghost" size="sm" className="gap-1.5 h-9 px-3 text-sm">
+                      <Settings className="h-4 w-4" />
                       Manage
                       <ChevronDown className="h-3 w-3 opacity-60" />
                     </Button>
                   </DropdownMenuTrigger>
-                  <DropdownMenuContent align="end" className="w-48 shadow-lg">
-                    <DropdownMenuLabel className="text-xs font-semibold text-muted-foreground">Management</DropdownMenuLabel>
+                  <DropdownMenuContent align="end" className="w-48">
+                    <DropdownMenuLabel className="text-xs font-medium text-muted-foreground uppercase tracking-wide">Management</DropdownMenuLabel>
                     <DropdownMenuSeparator />
                     <DropdownMenuItem asChild>
                       <Link to="/call-agents" className="flex items-center cursor-pointer">
@@ -524,17 +524,17 @@ export default function Dashboard() {
                 </DropdownMenu>
               </div>
               
-              <div className="h-6 w-px bg-border/50 hidden lg:block" />
+              <div className="h-6 w-px bg-border hidden lg:block" />
               
               {/* Mobile Menu */}
               <DropdownMenu>
                 <DropdownMenuTrigger asChild className="lg:hidden">
-                  <Button variant="outline" size="icon" className="h-9 w-9 shadow-sm border-border/60 hover:bg-muted/50">
+                  <Button variant="outline" size="icon" className="h-9 w-9">
                     <Settings className="h-4 w-4" />
                   </Button>
                 </DropdownMenuTrigger>
-                <DropdownMenuContent align="end" className="w-52 shadow-lg">
-                  <DropdownMenuLabel className="text-xs font-semibold text-muted-foreground">Navigation</DropdownMenuLabel>
+                <DropdownMenuContent align="end" className="w-52">
+                  <DropdownMenuLabel className="text-xs font-medium text-muted-foreground uppercase tracking-wide">Navigation</DropdownMenuLabel>
                   <DropdownMenuSeparator />
                   <DropdownMenuItem asChild>
                     <Link to="/training" className="flex items-center cursor-pointer">
@@ -577,7 +577,7 @@ export default function Dashboard() {
               </DropdownMenu>
               
               <Link to="/create">
-                <Button size="sm" className="gap-2 h-9 px-4 shadow-sm hover:shadow-md transition-all font-medium">
+                <Button size="sm" className="gap-2 h-9 px-4">
                   <Plus className="h-4 w-4" />
                   <span className="hidden sm:inline">New Company</span>
                 </Button>
@@ -586,8 +586,8 @@ export default function Dashboard() {
               {/* User Menu */}
               <DropdownMenu>
                 <DropdownMenuTrigger asChild>
-                  <Button variant="ghost" size="icon" className="relative h-9 w-9 rounded-full hover:bg-muted/50 transition-colors">
-                    <Avatar className="h-9 w-9 ring-2 ring-border/50 ring-offset-1 ring-offset-background transition-all hover:ring-primary/30">
+                  <Button variant="ghost" size="icon" className="relative h-9 w-9 rounded-full">
+                    <Avatar className="h-9 w-9 ring-2 ring-border ring-offset-1 ring-offset-background">
                       <AvatarImage src={profile?.avatar_url} alt={profile?.display_name || "User"} />
                       <AvatarFallback className="bg-primary/10 text-primary text-xs font-semibold">
                         {getUserInitials()}
@@ -595,7 +595,7 @@ export default function Dashboard() {
                     </Avatar>
                   </Button>
                 </DropdownMenuTrigger>
-                <DropdownMenuContent className="w-56 shadow-lg" align="end" forceMount>
+                <DropdownMenuContent className="w-56" align="end" forceMount>
                   <DropdownMenuLabel className="font-normal">
                     <div className="flex flex-col space-y-1">
                       <p className="text-sm font-semibold leading-none truncate">{profile?.display_name || "User"}</p>
@@ -1089,7 +1089,7 @@ export default function Dashboard() {
             <AlertDialogCancel>Cancel</AlertDialogCancel>
             <AlertDialogAction
               onClick={handleDeleteClient}
-              className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
+              className="bg-destructive text-white hover:bg-destructive/90"
             >
               Delete Company
             </AlertDialogAction>
