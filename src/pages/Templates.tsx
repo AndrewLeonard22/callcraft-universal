@@ -900,10 +900,10 @@ export default function Templates() {
   return (
     <div className="min-h-screen bg-background">
       <div className="container mx-auto px-6 py-8 max-w-5xl">
-        <div className="flex items-center justify-between mb-8">
+        <div className="flex items-center justify-between border-b border-border pb-4 mb-6">
           <div>
-            <h1 className="text-3xl font-bold mb-1">Templates</h1>
-            <p className="text-sm text-muted-foreground">
+            <h1 className="text-2xl font-semibold">Templates</h1>
+            <p className="text-sm text-muted-foreground mt-1">
               Manage reusable scripts, objection handling, and FAQs
             </p>
           </div>

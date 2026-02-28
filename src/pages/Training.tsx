@@ -574,24 +574,21 @@ export default function Training() {
   const currentQuestion = questions[currentQuestionIndex];
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-background via-background to-muted/20">
+    <div className="min-h-screen bg-background">
       {/* Header */}
-      <div className="border-b bg-card/50 backdrop-blur-xl sticky top-0 z-50">
-        <div className="container mx-auto px-4 sm:px-6 py-3 max-w-7xl">
+      <div className="border-b border-border bg-card sticky top-0 z-50">
+        <div className="container mx-auto px-4 sm:px-6 py-4 max-w-7xl">
           <div className="flex items-center justify-between">
             <div className="flex items-center gap-3">
-              <img src={agentIqLogo} alt="Agent IQ" className="h-12 sm:h-14 w-auto" />
-              <div className="h-6 w-px bg-border/50" />
-              <div className="flex items-center gap-2">
-                <div className="p-1.5 bg-primary/10 rounded-lg">
-                  <GraduationCap className="h-4 w-4 text-primary" />
-                </div>
-                <h1 className="text-lg font-bold">Training Center</h1>
+              <img src={agentIqLogo} alt="Agent IQ" className="h-10 sm:h-12 w-auto" />
+              <div className="h-6 w-px bg-border" />
+              <div>
+                <h1 className="text-xl font-semibold">Training Center</h1>
               </div>
             </div>
             <div className="flex items-center gap-2">
               <Link to="/training-management">
-                <Button variant="default" size="sm">Manage Content</Button>
+                <Button size="sm">Manage Content</Button>
               </Link>
               <Link to="/">
                 <Button variant="outline" size="sm">Dashboard</Button>
