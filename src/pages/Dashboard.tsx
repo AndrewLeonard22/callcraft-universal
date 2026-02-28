@@ -1,4 +1,5 @@
 import { useEffect, useState, useMemo, useCallback } from "react";
+import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { Link, useNavigate } from "react-router-dom";
 import { Plus, FileText, Calendar, Search, Settings, Trash2, LogOut, User as UserIcon, Users, Wand2, Archive, ArchiveRestore, GraduationCap, Building2, List, Grid3x3, ArrowUpDown, Phone, ChevronDown } from "lucide-react";
 import { Button } from "@/components/ui/button";
@@ -83,8 +84,7 @@ interface CallAgent {
 
 export default function Dashboard() {
   const navigate = useNavigate();
-  const [clients, setClients] = useState<ClientWithScripts[]>([]);
-  const [loading, setLoading] = useState(true);
+  const queryClient = useQueryClient();
   const [searchQuery, setSearchQuery] = useState("");
   const debouncedSearch = useDebounce(searchQuery, 300);
   const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
@@ -97,6 +97,7 @@ export default function Dashboard() {
   const [selectedAgent, setSelectedAgent] = useState<string>('all');
   const [callAgents, setCallAgents] = useState<CallAgent[]>([]);
   const [logoSettingsOpen, setLogoSettingsOpen] = useState(false);
+  const [organizationId, setOrganizationId] = useState<string | null>(null);
   const { toast } = useToast();
 
   // Optimized: Use useCallback to prevent re-creating function on every render
@@ -121,182 +122,179 @@ export default function Dashboard() {
     loadUser();
   }, [loadUser]);
 
-  // Optimized: Memoize loadClients to prevent unnecessary recreations
-  const loadClients = useCallback(async (isBackgroundRefresh = false) => {
-    try {
-      // Only show full loading state on initial load, not background refreshes
-      if (!isBackgroundRefresh) {
-        setLoading(true);
+  // Fetch clients data using React Query for caching
+  const fetchClients = useCallback(async (): Promise<{ clients: ClientWithScripts[]; agents: CallAgent[] }> => {
+    const { data: { user } } = await supabase.auth.getUser();
+    if (!user) throw new Error("User not authenticated");
+
+    const { data: orgMember } = await supabase
+      .from('organization_members')
+      .select('organization_id')
+      .eq('user_id', user.id)
+      .maybeSingle();
+
+    if (!orgMember?.organization_id) {
+      return { clients: [], agents: [] };
+    }
+
+    const userOrganizationId = orgMember.organization_id;
+    setOrganizationId(userOrganizationId);
+
+    // Batch parallel API calls for better performance
+    const [
+      { data: clientsData, error: clientsError },
+      { data: scriptsData, error: scriptsError },
+      { data: serviceTypesData, error: serviceTypesError },
+      { data: generatedImagesData, error: generatedImagesError },
+      { data: logosData },
+      { data: businessNamesData },
+      { data: callAgentsData },
+    ] = await Promise.all([
+      supabase
+        .from("clients")
+        .select("*")
+        .eq("organization_id", userOrganizationId)
+        .neq("id", "00000000-0000-0000-0000-000000000001")
+        .order("last_accessed_at", { ascending: false, nullsFirst: false }),
+      supabase
+        .from("scripts")
+        .select("id, service_name, created_at, client_id, service_type_id, image_url")
+        .eq("is_template", false)
+        .order("created_at", { ascending: false }),
+      supabase.from("service_types").select("*"),
+      supabase
+        .from("generated_images")
+        .select("id, client_id, image_url, features, feature_size, created_at")
+        .order("created_at", { ascending: false }),
+      supabase
+        .from("client_details")
+        .select("client_id, field_value")
+        .eq("field_name", "logo_url"),
+      supabase
+        .from("client_details")
+        .select("client_id, field_name, field_value")
+        .in("field_name", ["business_name", "owners_name"]),
+      supabase
+        .from("call_agents" as any)
+        .select("id, name")
+        .eq("organization_id", userOrganizationId),
+    ]);
+
+    if (clientsError) throw clientsError;
+    if (scriptsError) throw scriptsError;
+    if (serviceTypesError) throw serviceTypesError;
+    if (generatedImagesError) throw generatedImagesError;
+
+    // Create optimized Maps for O(1) lookups
+    const serviceTypesMap = new Map(
+      (serviceTypesData || []).map(st => [st.id, st])
+    );
+
+    const logosMap = new Map(
+      (logosData || []).map(l => [l.client_id, l.field_value])
+    );
+
+    const callAgentsMap = new Map(
+      ((callAgentsData as any) || []).map((a: any) => [a.id, a.name])
+    );
+
+    const businessNamesMap = new Map<string, string>();
+    const ownersNamesMap = new Map<string, string>();
+    
+    (businessNamesData || []).forEach(detail => {
+      if (detail.field_name === "business_name") {
+        businessNamesMap.set(detail.client_id, detail.field_value);
+      } else if (detail.field_name === "owners_name") {
+        ownersNamesMap.set(detail.client_id, detail.field_value);
       }
-      
-      // Get user's organization first
-      const { data: { user } } = await supabase.auth.getUser();
-      if (!user) {
-        if (!isBackgroundRefresh) {
-          toast({ title: "Error", description: "User not authenticated", variant: "destructive" });
-        }
-        return;
+    });
+
+    // Group scripts and images by client_id for O(1) lookup instead of filtering
+    const scriptsByClient = new Map<string, ScriptWithType[]>();
+    (scriptsData || []).forEach(s => {
+      if (!scriptsByClient.has(s.client_id)) {
+        scriptsByClient.set(s.client_id, []);
       }
+      scriptsByClient.get(s.client_id)!.push({
+        id: s.id,
+        service_name: s.service_name,
+        created_at: s.created_at,
+        service_type_id: s.service_type_id,
+        service_type: s.service_type_id ? serviceTypesMap.get(s.service_type_id) : undefined,
+        image_url: s.image_url,
+      });
+    });
 
-      const { data: orgMember } = await supabase
-        .from('organization_members')
-        .select('organization_id')
-        .eq('user_id', user.id)
-        .maybeSingle();
-
-      if (!orgMember?.organization_id) {
-        setLoading(false);
-        return;
+    const imagesByClient = new Map<string, GeneratedImage[]>();
+    (generatedImagesData || []).forEach(img => {
+      if (!imagesByClient.has(img.client_id!)) {
+        imagesByClient.set(img.client_id!, []);
       }
-
-      const userOrganizationId = orgMember.organization_id;
-
-      // Batch parallel API calls for better performance
-      const [
-        { data: clientsData, error: clientsError },
-        { data: scriptsData, error: scriptsError },
-        { data: serviceTypesData, error: serviceTypesError },
-        { data: generatedImagesData, error: generatedImagesError },
-        { data: logosData },
-        { data: businessNamesData },
-        { data: callAgentsData },
-      ] = await Promise.all([
-        supabase
-          .from("clients")
-          .select("*")
-          .eq("organization_id", userOrganizationId)
-          .neq("id", "00000000-0000-0000-0000-000000000001")
-          .order("last_accessed_at", { ascending: false, nullsFirst: false }),
-        supabase
-          .from("scripts")
-          .select("id, service_name, created_at, client_id, service_type_id, image_url")
-          .eq("is_template", false)
-          .order("created_at", { ascending: false }),
-        supabase.from("service_types").select("*"),
-        supabase
-          .from("generated_images")
-          .select("id, client_id, image_url, features, feature_size, created_at")
-          .order("created_at", { ascending: false }),
-        supabase
-          .from("client_details")
-          .select("client_id, field_value")
-          .eq("field_name", "logo_url"),
-        supabase
-          .from("client_details")
-          .select("client_id, field_name, field_value")
-          .in("field_name", ["business_name", "owners_name"]),
-        supabase
-          .from("call_agents" as any)
-          .select("id, name")
-          .eq("organization_id", userOrganizationId),
-      ]);
-
-      if (clientsError) throw clientsError;
-      if (scriptsError) throw scriptsError;
-      if (serviceTypesError) throw serviceTypesError;
-      if (generatedImagesError) throw generatedImagesError;
-
-      // Create optimized Maps for O(1) lookups
-      const serviceTypesMap = new Map(
-        (serviceTypesData || []).map(st => [st.id, st])
-      );
-
-      const logosMap = new Map(
-        (logosData || []).map(l => [l.client_id, l.field_value])
-      );
-
-      const callAgentsMap = new Map(
-        ((callAgentsData as any) || []).map((a: any) => [a.id, a.name])
-      );
-
-      // Set call agents for filtering
-      setCallAgents((callAgentsData as any) || []);
-
-      const businessNamesMap = new Map<string, string>();
-      const ownersNamesMap = new Map<string, string>();
-      
-      (businessNamesData || []).forEach(detail => {
-        if (detail.field_name === "business_name") {
-          businessNamesMap.set(detail.client_id, detail.field_value);
-        } else if (detail.field_name === "owners_name") {
-          ownersNamesMap.set(detail.client_id, detail.field_value);
-        }
+      imagesByClient.get(img.client_id!)!.push({
+        id: img.id,
+        image_url: img.image_url,
+        features: img.features,
+        feature_size: img.feature_size,
+        created_at: img.created_at,
       });
+    });
 
-      // Group scripts and images by client_id for O(1) lookup instead of filtering
-      const scriptsByClient = new Map<string, ScriptWithType[]>();
-      (scriptsData || []).forEach(s => {
-        if (!scriptsByClient.has(s.client_id)) {
-          scriptsByClient.set(s.client_id, []);
-        }
-        scriptsByClient.get(s.client_id)!.push({
-          id: s.id,
-          service_name: s.service_name,
-          created_at: s.created_at,
-          service_type_id: s.service_type_id,
-          service_type: s.service_type_id ? serviceTypesMap.get(s.service_type_id) : undefined,
-          image_url: s.image_url,
-        });
-      });
+    const clientsWithScripts: ClientWithScripts[] = (clientsData || [])
+      .map((client: any) => ({
+        id: client.id,
+        name: client.name,
+        service_type: client.service_type,
+        city: client.city,
+        logo_url: logosMap.get(client.id),
+        business_name: businessNamesMap.get(client.id),
+        owners_name: ownersNamesMap.get(client.id),
+        created_at: client.created_at,
+        organization_id: client.organization_id,
+        archived: client.archived || false,
+        last_accessed_at: client.last_accessed_at,
+        call_agent_id: client.call_agent_id,
+        call_agent_name: client.call_agent_id ? callAgentsMap.get(client.call_agent_id) as string | undefined : undefined,
+        scripts: scriptsByClient.get(client.id) || [],
+        generated_images: imagesByClient.get(client.id) || [],
+      }));
 
-      const imagesByClient = new Map<string, GeneratedImage[]>();
-      (generatedImagesData || []).forEach(img => {
-        if (!imagesByClient.has(img.client_id!)) {
-          imagesByClient.set(img.client_id!, []);
-        }
-        imagesByClient.get(img.client_id!)!.push({
-          id: img.id,
-          image_url: img.image_url,
-          features: img.features,
-          feature_size: img.feature_size,
-          created_at: img.created_at,
-        });
-      });
+    return { clients: clientsWithScripts, agents: (callAgentsData as any) || [] };
+  }, []);
 
-      const clientsWithScripts: ClientWithScripts[] = (clientsData || [])
-        .map((client: any) => ({
-          id: client.id,
-          name: client.name,
-          service_type: client.service_type,
-          city: client.city,
-          logo_url: logosMap.get(client.id),
-          business_name: businessNamesMap.get(client.id),
-          owners_name: ownersNamesMap.get(client.id),
-          created_at: client.created_at,
-          organization_id: client.organization_id,
-          archived: client.archived || false,
-          last_accessed_at: client.last_accessed_at,
-          call_agent_id: client.call_agent_id,
-          call_agent_name: client.call_agent_id ? callAgentsMap.get(client.call_agent_id) as string | undefined : undefined,
-          scripts: scriptsByClient.get(client.id) || [],
-          generated_images: imagesByClient.get(client.id) || [],
-        }));
-
-      setClients(clientsWithScripts);
-    } catch (error) {
-      logger.error("Error loading clients:", error);
-      // Don't clear clients on error - keep showing existing data
-      if (!isBackgroundRefresh) {
+  const { data: clientsData, isLoading: loading } = useQuery({
+    queryKey: ['clients', organizationId],
+    queryFn: fetchClients,
+    meta: {
+      onError: (error: any) => {
+        logger.error("Error loading clients:", error);
         toast({
           title: "Error loading data",
           description: "There was a problem loading companies. Please refresh the page.",
           variant: "destructive",
         });
-      }
-    } finally {
-      setLoading(false);
+      },
+    },
+  });
+
+  const clients = clientsData?.clients || [];
+  
+  // Update call agents when data changes
+  useEffect(() => {
+    if (clientsData?.agents) {
+      setCallAgents(clientsData.agents);
     }
-  }, [toast]);
+  }, [clientsData]);
+
+  const invalidateClients = useCallback(() => {
+    queryClient.invalidateQueries({ queryKey: ['clients'] });
+  }, [queryClient]);
 
   useEffect(() => {
-    loadClients();
-
     // Optimized: Debounced real-time updates to prevent excessive reloads
     let reloadTimeout: NodeJS.Timeout;
     const debouncedReload = () => {
       clearTimeout(reloadTimeout);
-      // Use background refresh for real-time updates to avoid flickering
-      reloadTimeout = setTimeout(() => loadClients(true), 500);
+      reloadTimeout = setTimeout(() => invalidateClients(), 500);
     };
 
     const clientsChannel = supabase
@@ -320,7 +318,7 @@ export default function Dashboard() {
       supabase.removeChannel(scriptsChannel);
       supabase.removeChannel(clientDetailsChannel);
     };
-  }, [loadClients]);
+  }, [invalidateClients]);
 
   const openDeleteDialog = (clientId: string, clientName: string) => {
     setClientToDelete({ id: clientId, name: clientName });
@@ -345,7 +343,7 @@ export default function Dashboard() {
 
       setDeleteDialogOpen(false);
       setClientToDelete(null);
-      loadClients();
+      invalidateClients();
     } catch (error) {
       logger.error("Error deleting client:", error);
       toast({
@@ -421,7 +419,7 @@ export default function Dashboard() {
           : "Company moved to Archived.",
       });
 
-      loadClients();
+      invalidateClients();
     } catch (error) {
       logger.error("Error archiving/unarchiving client:", error);
       toast({
@@ -430,7 +428,7 @@ export default function Dashboard() {
         variant: "destructive",
       });
     }
-  }, [toast, loadClients]);
+  }, [toast, invalidateClients]);
 
   const handleLogout = useCallback(async () => {
     await supabase.auth.signOut();

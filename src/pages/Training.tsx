@@ -1,4 +1,4 @@
-import { useEffect, useState, useCallback, useMemo } from "react";
+import { useEffect, useState, useCallback, useMemo, lazy, Suspense } from "react";
 import { GraduationCap, DollarSign, Phone, BookOpen, Lightbulb, Package, Shield, TrendingUp, Award, CheckCircle2, XCircle, AlertCircle, Video, ExternalLink, Brain, ArrowRight, RotateCcw, Check, X, Plus, Trash2, Edit, Trophy, Disc3, HelpCircle } from "lucide-react";
 
 // Module Types matching TrainingManagement
@@ -619,7 +619,7 @@ export default function Training() {
             </TabsTrigger>
           </TabsList>
 
-          <TabsContent value="modules" className="mt-0">
+          <TabsContent value="modules" className="mt-0" forceMount={activeTab === "modules" ? true : undefined}>
             {loading ? (
               <div className="text-center py-20">
                 <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-primary mx-auto mb-4"></div>
@@ -983,7 +983,8 @@ export default function Training() {
             )}
           </TabsContent>
 
-          <TabsContent value="flashcards" className="mt-0">
+          {activeTab === "flashcards" && (
+          <TabsContent value="flashcards" className="mt-0" forceMount>
             <div className="mb-6">
               <div>
                 <h3 className="text-2xl font-bold mb-1">Quiz Mode</h3>
@@ -1298,8 +1299,10 @@ export default function Training() {
               </div>
             )}
           </TabsContent>
+          )}
 
-          <TabsContent value="wheel" className="mt-0">
+          {activeTab === "wheel" && (
+          <TabsContent value="wheel" className="mt-0" forceMount>
             <div className="mb-6 text-center">
               <h3 className="text-2xl font-bold mb-1">Spin the Wheel</h3>
               <p className="text-sm text-muted-foreground">
@@ -1318,6 +1321,7 @@ export default function Training() {
               }}
             />
           </TabsContent>
+          )}
 
           <AlertDialog open={deleteDialogOpen} onOpenChange={setDeleteDialogOpen}>
             <AlertDialogContent>

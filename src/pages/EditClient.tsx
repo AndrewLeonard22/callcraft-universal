@@ -57,22 +57,22 @@ export default function EditClient() {
       // Set up real-time subscriptions
       const clientChannel = supabase
         .channel('edit-client-changes')
-        .on('postgres_changes', { event: 'UPDATE', schema: 'public', table: 'clients' }, (payload) => {
-          if ((payload.new as any).id === clientId) {
-            loadClientData();
-          }
-        })
+        .on('postgres_changes', {
+          event: 'UPDATE',
+          schema: 'public',
+          table: 'clients',
+          filter: `id=eq.${clientId}`
+        }, () => loadClientData())
         .subscribe();
 
       const detailsChannel = supabase
         .channel('edit-client-details-changes')
-        .on('postgres_changes', { event: '*', schema: 'public', table: 'client_details' }, (payload) => {
-          const newData = payload.new as any;
-          const oldData = payload.old as any;
-          if (newData?.client_id === clientId || oldData?.client_id === clientId) {
-            loadClientData();
-          }
-        })
+        .on('postgres_changes', {
+          event: '*',
+          schema: 'public',
+          table: 'client_details',
+          filter: `client_id=eq.${clientId}`
+        }, () => loadClientData())
         .subscribe();
 
       return () => {
