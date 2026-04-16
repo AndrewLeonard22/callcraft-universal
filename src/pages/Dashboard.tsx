@@ -291,7 +291,7 @@ export default function Dashboard() {
 
   useEffect(() => {
     // Optimized: Debounced real-time updates to prevent excessive reloads
-    let reloadTimeout: NodeJS.Timeout;
+    let reloadTimeout: ReturnType<typeof setTimeout>;
     const debouncedReload = () => {
       clearTimeout(reloadTimeout);
       reloadTimeout = setTimeout(() => invalidateClients(), 500);
