@@ -186,7 +186,7 @@ export default function ClientScripts() {
     loadData();
 
     // Debounced real-time updates
-    let reloadTimeout: NodeJS.Timeout;
+    let reloadTimeout: ReturnType<typeof setTimeout>;
     const debouncedReload = (payload: any) => {
       const shouldReload = 
         (payload.new && (payload.new as any).client_id === clientId) ||
