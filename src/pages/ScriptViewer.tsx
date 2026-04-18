@@ -14,6 +14,7 @@ import { Checkbox } from "@/components/ui/checkbox";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
 import { ZipChecker } from "@/components/ZipChecker";
+import ServiceAreaMap from "@/components/ServiceAreaMap";
 import { RichTextEditor } from "@/components/RichTextEditor";
 import { FormattedScript } from "@/components/FormattedScript";
 import { ScriptActions } from "@/components/ScriptActions";
@@ -751,6 +752,17 @@ export default function ScriptViewer() {
                     <span className="text-[13px] text-foreground">{getDetailValue("service_radius_miles")} miles</span>
                   </div>
                 )}
+
+                {/* Full service area map */}
+                <div>
+                  <div className="text-[10px] font-semibold uppercase tracking-widest text-muted-foreground mb-2">Map</div>
+                  <ServiceAreaMap
+                    city={client.city ?? undefined}
+                    serviceArea={client.service_type}
+                    address={getDetailValue("address") || undefined}
+                    radiusMiles={Number(getDetailValue("service_radius_miles")) || undefined}
+                  />
+                </div>
               </div>
             )}
 
