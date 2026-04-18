@@ -28,7 +28,7 @@ function HtmlPreviewFrame({ html, className }: HtmlPreviewFrameProps) {
 
     // Write a minimal HTML document; do NOT inject app styles
     doc.open();
-    doc.write(`<!doctype html><html><head><meta charset="utf-8"/><meta name="viewport" content="width=device-width, initial-scale=1"/><style>html,body{margin:0;padding:0;overflow-x:hidden;} img{max-width:100%;height:auto;display:block;} ol,ul{list-style:none;margin:0;padding:0;}</style></head><body style="margin:0;">
+    doc.write(`<!doctype html><html><head><meta charset="utf-8"/><meta name="viewport" content="width=device-width, initial-scale=1"/><style>html,body{margin:0;padding:0;overflow-x:hidden;font-family:system-ui,-apple-system,sans-serif;font-size:15px;line-height:1.7;color:#0f172a;} img{max-width:100%;height:auto;display:block;} ol,ul{list-style:none;margin:0;padding:0;} p{margin:0 0 1em;} mark{background:transparent;border-left:2px solid #6366f1;padding:1px 0 1px 8px;margin-left:-10px;background-color:rgba(99,102,241,0.06);border-radius:0 3px 3px 0;color:inherit;}</style></head><body style="margin:0;">
       <div id="content">${html}</div>
       <script>
         let lastHeight = 0;

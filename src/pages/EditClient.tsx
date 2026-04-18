@@ -1,6 +1,6 @@
 import { useState, useEffect } from "react";
 import { useNavigate, Link, useParams } from "react-router-dom";
-import { ArrowLeft, Upload, X, Plus, Image } from "lucide-react";
+import { ArrowLeft, Upload, X, Plus, Trash2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
@@ -10,7 +10,14 @@ import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import ServiceAreaMap from "@/components/ServiceAreaMap";
+import { TagInput, HARD_NO_OPTIONS, SERVICES_ADVERTISED_OPTIONS } from "@/components/TagInput";
 import { logger } from "@/utils/logger";
+
+interface AdditionalContact {
+  name: string;
+  role: string;
+  phone: string;
+}
 
 export default function EditClient() {
   const { clientId } = useParams();
@@ -42,6 +49,15 @@ export default function EditClient() {
   const [appointmentCalendar, setAppointmentCalendar] = useState("");
   const [rescheduleCalendar, setRescheduleCalendar] = useState("");
   
+  // New qualification fields (stored on clients table)
+  const [hardNos, setHardNos] = useState<string[]>([]);
+  const [servicesAdvertised, setServicesAdvertised] = useState<string[]>([]);
+  const [excludedZips, setExcludedZips] = useState<string[]>([]);
+  const [thingsToKnow, setThingsToKnow] = useState("");
+  const [additionalContacts, setAdditionalContacts] = useState<AdditionalContact[]>([]);
+  const [financingOffered, setFinancingOffered] = useState("");
+  const [avgInstallTime, setAvgInstallTime] = useState("");
+
   // Logo and Photos
   const [logoUrl, setLogoUrl] = useState("");
   const [uploading, setUploading] = useState(false);
@@ -117,6 +133,16 @@ export default function EditClient() {
       setClientName(clientResult.data.name || "");
       setServiceType(clientResult.data.service_type || "");
       setCity(clientResult.data.city || "");
+
+      // New columns on clients table
+      setHardNos(clientResult.data.hard_nos || []);
+      setServicesAdvertised(clientResult.data.services_advertised || []);
+      setExcludedZips(clientResult.data.excluded_zips || []);
+      setThingsToKnow(clientResult.data.things_to_know || "");
+      setFinancingOffered(clientResult.data.financing_offered || "");
+      setAvgInstallTime(clientResult.data.avg_install_time || "");
+      const contacts = clientResult.data.additional_contacts;
+      setAdditionalContacts(Array.isArray(contacts) ? (contacts as AdditionalContact[]) : []);
       
       if (detailsResult.data) {
         const detailsMap = new Map(
@@ -354,6 +380,13 @@ export default function EditClient() {
           name: clientName.trim(),
           service_type: serviceType.trim(),
           city: city.trim(),
+          hard_nos: hardNos,
+          services_advertised: servicesAdvertised,
+          excluded_zips: excludedZips,
+          things_to_know: thingsToKnow.trim() || null,
+          financing_offered: financingOffered.trim() || null,
+          avg_install_time: avgInstallTime.trim() || null,
+          additional_contacts: additionalContacts.filter(c => c.name.trim()),
           updated_at: new Date().toISOString(),
         })
         .eq("id", clientId)
@@ -573,6 +606,130 @@ export default function EditClient() {
         </div>
 
         <div className="space-y-6">
+          {/* Quick Fill — qualification fields prominent at the top */}
+          <Card className="border-indigo-200 bg-indigo-50/30">
+            <CardHeader>
+              <CardTitle className="text-indigo-900">Quick Fill</CardTitle>
+              <CardDescription>
+                Critical qualification data — setters see this during every call
+              </CardDescription>
+            </CardHeader>
+            <CardContent className="space-y-5">
+              <div>
+                <Label className="text-[13px] font-semibold text-red-700 uppercase tracking-wide">Hard NOs</Label>
+                <p className="text-xs text-muted-foreground mb-1.5">Project types this client will never accept — shown as red pills on every call</p>
+                <TagInput
+                  value={hardNos}
+                  onChange={setHardNos}
+                  options={HARD_NO_OPTIONS}
+                  placeholder="Add hard NO..."
+                />
+              </div>
+              <div>
+                <Label className="text-[13px] font-semibold">Services Advertised</Label>
+                <p className="text-xs text-muted-foreground mb-1.5">What this client sells — shown in the Info tab during calls</p>
+                <TagInput
+                  value={servicesAdvertised}
+                  onChange={setServicesAdvertised}
+                  options={SERVICES_ADVERTISED_OPTIONS}
+                  placeholder="Add service..."
+                />
+              </div>
+              <div>
+                <Label className="text-[13px] font-semibold">Excluded Zip Codes</Label>
+                <p className="text-xs text-muted-foreground mb-1.5">Zips the setter should never book into — instant red flag in ZipChecker</p>
+                <TagInput
+                  value={excludedZips}
+                  onChange={setExcludedZips}
+                  options={[]}
+                  placeholder="Type zip and press Enter..."
+                />
+              </div>
+              <div>
+                <Label className="text-[13px] font-semibold">Things to Know</Label>
+                <p className="text-xs text-muted-foreground mb-1.5">Bullets shown at the top of the left panel — one item per line</p>
+                <Textarea
+                  value={thingsToKnow}
+                  onChange={(e) => setThingsToKnow(e.target.value)}
+                  placeholder={"- Does NOT work with HOAs\n- Minimum $8k project\n- Books out 6 weeks"}
+                  className="min-h-[96px] resize-none font-mono text-sm"
+                />
+              </div>
+              <div>
+                <Label className="text-[13px] font-semibold">Financing Offered</Label>
+                <Input
+                  value={financingOffered}
+                  onChange={(e) => setFinancingOffered(e.target.value)}
+                  placeholder="e.g., 0% for 18 months via Hearth"
+                />
+              </div>
+              <div>
+                <Label className="text-[13px] font-semibold">Avg Install Time</Label>
+                <Input
+                  value={avgInstallTime}
+                  onChange={(e) => setAvgInstallTime(e.target.value)}
+                  placeholder="e.g., 3–5 days"
+                />
+              </div>
+              <div>
+                <div className="flex items-center justify-between mb-2">
+                  <div>
+                    <Label className="text-[13px] font-semibold">Additional Contacts</Label>
+                    <p className="text-xs text-muted-foreground">Extra numbers setters may need during a call</p>
+                  </div>
+                  <Button
+                    type="button"
+                    variant="outline"
+                    size="sm"
+                    className="h-7 text-xs"
+                    onClick={() => setAdditionalContacts(prev => [...prev, { name: "", role: "", phone: "" }])}
+                  >
+                    <Plus className="h-3 w-3 mr-1" /> Add Contact
+                  </Button>
+                </div>
+                {additionalContacts.length === 0 && (
+                  <p className="text-xs text-muted-foreground italic">No additional contacts yet.</p>
+                )}
+                <div className="space-y-2">
+                  {additionalContacts.map((contact, i) => (
+                    <div key={i} className="flex gap-2 items-start">
+                      <div className="grid grid-cols-3 gap-2 flex-1">
+                        <Input
+                          placeholder="Name"
+                          value={contact.name}
+                          onChange={(e) => setAdditionalContacts(prev => prev.map((c, idx) => idx === i ? { ...c, name: e.target.value } : c))}
+                          className="h-8 text-sm"
+                        />
+                        <Input
+                          placeholder="Role"
+                          value={contact.role}
+                          onChange={(e) => setAdditionalContacts(prev => prev.map((c, idx) => idx === i ? { ...c, role: e.target.value } : c))}
+                          className="h-8 text-sm"
+                        />
+                        <Input
+                          placeholder="Phone"
+                          type="tel"
+                          value={contact.phone}
+                          onChange={(e) => setAdditionalContacts(prev => prev.map((c, idx) => idx === i ? { ...c, phone: e.target.value } : c))}
+                          className="h-8 text-sm"
+                        />
+                      </div>
+                      <Button
+                        type="button"
+                        variant="ghost"
+                        size="sm"
+                        className="h-8 w-8 p-0 text-muted-foreground hover:text-destructive shrink-0"
+                        onClick={() => setAdditionalContacts(prev => prev.filter((_, idx) => idx !== i))}
+                      >
+                        <Trash2 className="h-3.5 w-3.5" />
+                      </Button>
+                    </div>
+                  ))}
+                </div>
+              </div>
+            </CardContent>
+          </Card>
+
           <Card>
             <CardHeader>
               <CardTitle>Basic Information</CardTitle>
@@ -887,6 +1044,26 @@ export default function EditClient() {
                         placeholder="https://crm.example.com/account"
                         value={crmAccountLink}
                         onChange={(e) => setCrmAccountLink(e.target.value)}
+                      />
+                    </div>
+                    <div>
+                      <Label htmlFor="appointment-calendar">Appointment Calendar</Label>
+                      <Input
+                        id="appointment-calendar"
+                        type="url"
+                        placeholder="https://calendly.com/..."
+                        value={appointmentCalendar}
+                        onChange={(e) => setAppointmentCalendar(e.target.value)}
+                      />
+                    </div>
+                    <div>
+                      <Label htmlFor="reschedule-calendar">Reschedule Calendar</Label>
+                      <Input
+                        id="reschedule-calendar"
+                        type="url"
+                        placeholder="https://calendly.com/reschedule/..."
+                        value={rescheduleCalendar}
+                        onChange={(e) => setRescheduleCalendar(e.target.value)}
                       />
                     </div>
                   </div>

@@ -79,38 +79,59 @@ export type Database = {
       clients: {
         Row: {
           archived: boolean
+          avg_install_time: string | null
           call_agent_id: string | null
           city: string | null
           created_at: string | null
+          additional_contacts: Array<{ name: string; role: string; phone: string }>
+          excluded_zips: string[]
+          financing_offered: string | null
+          hard_nos: string[]
           id: string
           last_accessed_at: string | null
           name: string
           organization_id: string
           service_type: string
+          services_advertised: string[]
+          things_to_know: string | null
           updated_at: string | null
         }
         Insert: {
           archived?: boolean
+          avg_install_time?: string | null
           call_agent_id?: string | null
           city?: string | null
           created_at?: string | null
+          additional_contacts?: Array<{ name: string; role: string; phone: string }>
+          excluded_zips?: string[]
+          financing_offered?: string | null
+          hard_nos?: string[]
           id?: string
           last_accessed_at?: string | null
           name: string
           organization_id: string
           service_type: string
+          services_advertised?: string[]
+          things_to_know?: string | null
           updated_at?: string | null
         }
         Update: {
           archived?: boolean
+          avg_install_time?: string | null
           call_agent_id?: string | null
           city?: string | null
           created_at?: string | null
+          additional_contacts?: Array<{ name: string; role: string; phone: string }>
+          excluded_zips?: string[]
+          financing_offered?: string | null
+          hard_nos?: string[]
           id?: string
           last_accessed_at?: string | null
           name?: string
           organization_id?: string
           service_type?: string
+          services_advertised?: string[]
+          things_to_know?: string | null
           updated_at?: string | null
         }
         Relationships: [
