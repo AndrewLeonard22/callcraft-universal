@@ -426,23 +426,20 @@ export function AreaMapTab({
   const [tokenLoading, setTokenLoading] = useState(true);
   const [appts, setAppts] = useState<TodayAppt[]>(propAppts ?? []);
   const [apptsLoading, setApptsLoading] = useState(false);
+  const [apptsError, setApptsError] = useState<string | null>(null);
 
   // Fetch appointments from Airtable via edge function
   useEffect(() => {
     if (propAppts) { setAppts(propAppts); return; }
     if (!businessName) return;
     setApptsLoading(true);
-    supabase.functions.invoke("get-airtable-appointments", {
-      body: null,
-      // Pass as query param via headers workaround — use direct fetch instead
-    }).catch(() => {});
-    // Use fetch directly so we can pass query params
+    setApptsError(null);
     (async () => {
       try {
         const { data: sessionData } = await supabase.auth.getSession();
         const accessToken = sessionData?.session?.access_token ?? "";
-        const supabaseUrl = (supabase as any).supabaseUrl as string;
-        const supabaseKey = (supabase as any).supabaseKey as string;
+        const supabaseUrl = import.meta.env.VITE_SUPABASE_URL as string;
+        const supabaseKey = import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY as string;
         const res = await fetch(
           `${supabaseUrl}/functions/v1/get-airtable-appointments?businessName=${encodeURIComponent(businessName)}`,
           {
@@ -453,7 +450,11 @@ export function AreaMapTab({
           }
         );
         const data = await res.json();
-        if (data.error) { logger.error("Airtable fetch error:", data.error); return; }
+        if (data.error) {
+          logger.error("Airtable fetch error:", data.error);
+          setApptsError(data.error);
+          return;
+        }
 
         // Geocode appointments using clientCity (best available)
         const mapboxToken = await getMapboxToken();
@@ -484,7 +485,9 @@ export function AreaMapTab({
         );
         setAppts(geocodedAppts);
       } catch (e) {
+        const msg = e instanceof Error ? e.message : String(e);
         logger.error("Failed to load Airtable appointments:", e);
+        setApptsError(msg);
       } finally {
         setApptsLoading(false);
       }
@@ -565,8 +568,15 @@ export function AreaMapTab({
           {/* Today's appts */}
           <div className="p-3">
             <div className="text-[9px] font-semibold uppercase tracking-[0.08em] text-muted-foreground">Today's Appts</div>
-            <div className="text-[20px] font-bold text-foreground leading-tight mt-0.5">{todayAppts.length}</div>
-            {flaggedCount > 0 && (
+            <div className="text-[20px] font-bold text-foreground leading-tight mt-0.5">
+              {apptsLoading ? <Loader2 className="h-4 w-4 animate-spin inline" /> : todayAppts.length}
+            </div>
+            {apptsError && (
+              <div className="text-[9px] text-red-500 break-all leading-tight mt-0.5" title={apptsError}>
+                Error: {apptsError.slice(0, 60)}
+              </div>
+            )}
+            {!apptsError && flaggedCount > 0 && (
               <div className="text-[10px] text-amber-600">{flaggedCount} flagged</div>
             )}
           </div>

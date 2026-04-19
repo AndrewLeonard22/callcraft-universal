@@ -424,7 +424,7 @@ export default function ScriptViewer() {
       <div className="flex flex-1 min-h-0">
 
         {/* ── LEFT SIDEBAR ─────────────────────────────────────────────── */}
-        <aside className="w-72 shrink-0 border-r border-border overflow-y-auto bg-background">
+        {centerTab !== "area" && <aside className="w-72 shrink-0 border-r border-border overflow-y-auto bg-background">
 
           {/* Quick links */}
           {quickLinks.length > 0 && (
@@ -576,7 +576,7 @@ export default function ScriptViewer() {
               </Link>
             )}
           </div>
-        </aside>
+        </aside>}
 
         {/* ── CENTER — Script + Tabs ────────────────────────────────────── */}
         <main className="flex-1 flex flex-col overflow-hidden border-r border-border">
