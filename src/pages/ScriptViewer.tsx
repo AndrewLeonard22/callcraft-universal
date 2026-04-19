@@ -277,11 +277,11 @@ export default function ScriptViewer() {
       <div className="h-screen flex flex-col bg-background">
         <div className="h-14 border-b border-border shrink-0" />
         <div className="flex flex-1 min-h-0">
-          <div className="w-52 border-r border-border animate-pulse bg-muted/20 shrink-0" />
+          <div className="w-72 border-r border-border animate-pulse bg-muted/20 shrink-0" />
           <div className="flex-1 p-10 space-y-3">
             {[100, 90, 95, 80, 85].map((w, i) => <div key={i} className="h-4 bg-muted rounded" style={{ width: `${w}%` }} />)}
           </div>
-          <div className="w-60 border-l border-border animate-pulse bg-muted/20 shrink-0" />
+          <div className="w-80 border-l border-border animate-pulse bg-muted/20 shrink-0" />
         </div>
       </div>
     );
@@ -415,7 +415,7 @@ export default function ScriptViewer() {
       <div className="flex flex-1 min-h-0">
 
         {/* ── LEFT SIDEBAR ─────────────────────────────────────────────── */}
-        <aside className="w-52 shrink-0 border-r border-border overflow-y-auto bg-background">
+        <aside className="w-72 shrink-0 border-r border-border overflow-y-auto bg-background">
 
           {/* Quick links */}
           {quickLinks.length > 0 && (
@@ -699,7 +699,7 @@ export default function ScriptViewer() {
         </main>
 
         {/* ── RIGHT — Project Estimate ──────────────────────────────────── */}
-        <aside className="w-60 shrink-0 border-l border-border overflow-hidden flex flex-col bg-background">
+        <aside className="w-80 shrink-0 border-l border-border overflow-hidden flex flex-col bg-background">
           <ProjectEstimatePanel
             clientMinPrice={minPriceNum}
             clientServices={client.services_advertised?.length ? client.services_advertised : undefined}
