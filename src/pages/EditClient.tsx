@@ -151,7 +151,7 @@ export default function EditClient() {
       setFinancingOffered(clientResult.data.financing_offered || "");
       setAvgInstallTime(clientResult.data.avg_install_time || "");
       const contacts = clientResult.data.additional_contacts;
-      setAdditionalContacts(Array.isArray(contacts) ? (contacts as AdditionalContact[]) : []);
+      setAdditionalContacts(Array.isArray(contacts) ? (contacts as unknown as AdditionalContact[]) : []);
 
       // Area map fields (from Pass 1 migration)
       const rawExcluded = (clientResult.data as any).excluded_areas;
@@ -407,11 +407,11 @@ export default function EditClient() {
           things_to_know: thingsToKnow.trim() || null,
           financing_offered: financingOffered.trim() || null,
           avg_install_time: avgInstallTime.trim() || null,
-          additional_contacts: additionalContacts.filter(c => c.name.trim()),
+          additional_contacts: additionalContacts.filter(c => c.name.trim()) as any,
           hq_address: areaSettings.hqAddress || null,
           hq_lat: areaSettings.hqLat ?? null,
           hq_lng: areaSettings.hqLng ?? null,
-          excluded_areas: areaSettings.excludedAreas,
+          excluded_areas: areaSettings.excludedAreas as any,
           updated_at: new Date().toISOString(),
         })
         .eq("id", clientId)
