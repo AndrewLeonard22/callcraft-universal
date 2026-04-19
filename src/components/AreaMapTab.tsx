@@ -216,6 +216,7 @@ interface MapCanvasProps {
   excludedAreas: ExcludedArea[];
   liveLead?: LiveLead | null;
   todayAppts?: TodayAppt[];
+  selectedDay?: string | null;
   layers: LayerToggles;
   onLeadClick?: () => void;
   onApptClick?: (appt: TodayAppt) => void;
@@ -258,11 +259,12 @@ interface LayerToggles {
 
 function MapCanvas({
   token, hqLat, hqLng, serviceRadiusMiles, excludedAreas,
-  liveLead, todayAppts = [], layers, onLeadClick, onApptClick,
+  liveLead, todayAppts = [], selectedDay, layers, onLeadClick, onApptClick,
 }: MapCanvasProps) {
   const containerRef = useRef<HTMLDivElement>(null);
   const mapRef = useRef<any>(null);
   const pulseRef = useRef<ReturnType<typeof setInterval> | null>(null);
+  const apptMarkersRef = useRef<{ el: HTMLElement; appt: TodayAppt }[]>([]);
 
   useEffect(() => {
     if (!containerRef.current) return;
@@ -351,7 +353,8 @@ function MapCanvas({
           .setHTML(`<span style="font-size:11px;font-weight:600">HQ</span>`)
           .addTo(map);
 
-        // ── Today's appointment markers ────────────────────────────
+        // ── Appointment markers ────────────────────────────────────
+        apptMarkersRef.current = [];
         todayAppts.forEach(appt => {
           if (appt.lng == null || appt.lat == null) return;
           const el = document.createElement("div");
@@ -361,11 +364,12 @@ function MapCanvas({
             color:white;font-size:12px;font-weight:700;
             display:flex;align-items:center;justify-content:center;
             border:2px solid white;box-shadow:0 1px 4px rgba(0,0,0,.25);
-            cursor:pointer;
+            cursor:pointer;transition:opacity .2s,transform .2s;
           `;
           el.textContent = String(appt.number);
           el.addEventListener("click", () => onApptClick?.(appt));
           new mapboxgl.Marker({ element: el }).setLngLat([appt.lng!, appt.lat!]).addTo(map);
+          apptMarkersRef.current.push({ el, appt });
         });
 
         // ── Live lead marker (pulsing) ─────────────────────────────
@@ -411,6 +415,15 @@ function MapCanvas({
     safeSet("excluded-areas-fill", "visibility", vis(layers.excludedAreas));
     safeSet("excluded-areas-line", "visibility", vis(layers.excludedAreas));
   }, [layers]);
+
+  // Dim markers that don't belong to the selected day
+  useEffect(() => {
+    apptMarkersRef.current.forEach(({ el, appt }) => {
+      const dim = !!selectedDay && appt.dateStr !== selectedDay;
+      el.style.opacity = dim ? "0.25" : "1";
+      el.style.transform = dim ? "scale(0.75)" : "scale(1)";
+    });
+  }, [selectedDay]);
 
   return <div ref={containerRef} className="h-full w-full" />;
 }
@@ -496,6 +509,19 @@ export function AreaMapTab({
 
   const todayAppts = appts;
 
+  // Day filter — null = show all
+  const [selectedDay, setSelectedDay] = useState<string | null>(null);
+
+  // Unique days sorted chronologically
+  const days = Array.from(
+    new Map(
+      appts
+        .filter(a => a.dateStr && a.appointmentDate)
+        .sort((a, b) => (a.appointmentDate! < b.appointmentDate! ? -1 : 1))
+        .map(a => [a.dateStr!, a.appointmentDate!])
+    ).entries()
+  ).map(([dateStr]) => dateStr);
+
   const [layers, setLayers] = useState<LayerToggles>({
     serviceBoundary: true,
     excludedAreas: true,
@@ -565,9 +591,9 @@ export function AreaMapTab({
           </div>
         </div>
         <div className="grid grid-cols-2 border-b border-border divide-x divide-border">
-          {/* Today's appts */}
+          {/* Upcoming appts */}
           <div className="p-3">
-            <div className="text-[9px] font-semibold uppercase tracking-[0.08em] text-muted-foreground">Today's Appts</div>
+            <div className="text-[9px] font-semibold uppercase tracking-[0.08em] text-muted-foreground">Upcoming</div>
             <div className="text-[20px] font-bold text-foreground leading-tight mt-0.5">
               {apptsLoading ? <Loader2 className="h-4 w-4 animate-spin inline" /> : todayAppts.length}
             </div>
@@ -610,7 +636,7 @@ export function AreaMapTab({
               {([
                 ["serviceBoundary", "Service boundary"],
                 ["excludedAreas",   `Excluded areas${excludedAreas.length > 0 ? ` ${excludedAreas.length}` : ""}`],
-                ["todayAppts",      `Today's appointments${todayAppts.length > 0 ? ` ${todayAppts.length}` : ""}`],
+                ["todayAppts",      `Appointments${todayAppts.length > 0 ? ` ${todayAppts.length}` : ""}`],
                 ["currentLead",     "Current lead"],
               ] as [keyof LayerToggles, string][]).map(([key, label]) => (
                 <div key={key} className="flex items-center justify-between">
@@ -659,9 +685,49 @@ export function AreaMapTab({
               <div className="text-[10px] font-semibold uppercase tracking-[0.08em] text-muted-foreground mb-2">
                 Upcoming Appts {apptsLoading && <Loader2 className="inline h-3 w-3 animate-spin ml-1" />}
               </div>
+
+              {/* Day filter pills */}
+              {days.length > 1 && (
+                <div className="flex flex-wrap gap-1 mb-2.5">
+                  <button
+                    type="button"
+                    onClick={() => setSelectedDay(null)}
+                    className={`px-2 py-0.5 rounded-full text-[10px] font-semibold border transition-colors ${
+                      !selectedDay
+                        ? "bg-foreground text-background border-foreground"
+                        : "bg-background text-muted-foreground border-border hover:border-foreground hover:text-foreground"
+                    }`}
+                  >
+                    All
+                  </button>
+                  {days.map(day => (
+                    <button
+                      key={day}
+                      type="button"
+                      onClick={() => setSelectedDay(prev => prev === day ? null : day)}
+                      className={`px-2 py-0.5 rounded-full text-[10px] font-semibold border transition-colors ${
+                        selectedDay === day
+                          ? "bg-blue-500 text-white border-blue-500"
+                          : "bg-background text-muted-foreground border-border hover:border-blue-400 hover:text-blue-600"
+                      }`}
+                    >
+                      {day}
+                    </button>
+                  ))}
+                </div>
+              )}
+
               <div className="space-y-2">
-                {todayAppts.map(appt => (
-                  <div key={appt.id} className="flex items-start gap-2">
+                {todayAppts
+                  .filter(a => !selectedDay || a.dateStr === selectedDay)
+                  .map(appt => (
+                  <div
+                    key={appt.id}
+                    className={`flex items-start gap-2 cursor-pointer rounded-md px-1 py-0.5 -mx-1 transition-colors hover:bg-muted/60 ${
+                      selectedDay && appt.dateStr !== selectedDay ? "opacity-40" : ""
+                    }`}
+                    onClick={() => setSelectedAppt(appt)}
+                  >
                     <div className={`h-5 w-5 rounded-full flex items-center justify-center text-[10px] font-bold text-white shrink-0 mt-0.5 ${
                       appt.flagged ? "bg-amber-500" : "bg-blue-500"
                     }`}>
@@ -740,6 +806,7 @@ export function AreaMapTab({
             excludedAreas={excludedAreas}
             liveLead={layers.currentLead ? liveLead : null}
             todayAppts={layers.todayAppts ? todayAppts : []}
+            selectedDay={selectedDay}
             layers={layers}
             onLeadClick={() => setLeadPopupOpen(true)}
             onApptClick={setSelectedAppt}
