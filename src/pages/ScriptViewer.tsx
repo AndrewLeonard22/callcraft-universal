@@ -303,6 +303,7 @@ export default function ScriptViewer() {
   const workPhotos = getWorkPhotos();
   const bullets = thingsToKnowBullets();
   const logoUrl = getDetailValue("logo_url");
+  const ownerPhotoUrl = getDetailValue("owner_photo_url");
   const hardNos = client.hard_nos ?? [];
   const businessName = getDetailValue("business_name") || client.name;
   const ownersName = getDetailValue("owners_name");
@@ -328,8 +329,8 @@ export default function ScriptViewer() {
     { key: "website",              label: "Website",           icon: Globe },
   ].filter(({ key }) => !!getDetailValue(key));
 
-  const contacts: Array<{ name: string; role: string; phone?: string }> = [];
-  if (ownersName) contacts.push({ name: ownersName, role: "Owner · Primary" });
+  const contacts: Array<{ name: string; role: string; phone?: string; photo?: string }> = [];
+  if (ownersName) contacts.push({ name: ownersName, role: "Owner · Primary", photo: ownerPhotoUrl || undefined });
   if (client.additional_contacts?.length) {
     contacts.push(...client.additional_contacts.map(c => ({ name: c.name, role: c.role, phone: c.phone || undefined })));
   } else if (salesRepName) {
@@ -443,9 +444,13 @@ export default function ScriptViewer() {
               <div className="space-y-3">
                 {contacts.map((c, i) => (
                   <div key={i} className="flex items-start gap-2.5">
-                    <div className={`h-7 w-7 rounded-full flex items-center justify-center text-[10px] font-bold shrink-0 ${avatarColor(c.name)}`}>
-                      {getInitials(c.name)}
-                    </div>
+                    {c.photo ? (
+                      <img src={c.photo} alt={c.name} className="h-8 w-8 rounded-full object-cover shrink-0 border border-border" />
+                    ) : (
+                      <div className={`h-8 w-8 rounded-full flex items-center justify-center text-[11px] font-bold shrink-0 ${avatarColor(c.name)}`}>
+                        {getInitials(c.name)}
+                      </div>
+                    )}
                     <div>
                       <div className="text-[12px] font-semibold text-foreground leading-tight">{c.name}</div>
                       <div className="text-[11px] text-muted-foreground leading-tight">{c.role}{c.phone && ` · ${c.phone}`}</div>
@@ -527,25 +532,42 @@ export default function ScriptViewer() {
           )}
 
           {/* Recent Work */}
-          {workPhotos.length > 0 && (
-            <div className="px-3 pt-4 pb-4">
-              <div className="text-[10px] font-semibold uppercase tracking-[0.1em] text-muted-foreground mb-2">Recent Work</div>
-              <div className="grid grid-cols-2 gap-1.5">
-                {workPhotos.slice(0, 6).map((photo, i) => (
-                  <button
-                    key={i}
-                    onClick={() => setSelectedImageIndex(i)}
-                    className="aspect-video rounded overflow-hidden bg-muted hover:opacity-80 transition-opacity"
-                  >
-                    <img src={photo} alt="" className="h-full w-full object-cover" loading="lazy" />
-                  </button>
-                ))}
-              </div>
-              <Link to={`/edit/${client.id}`} className="mt-2 block text-[11px] text-muted-foreground hover:text-foreground transition-colors text-center">
-                Edit client ↗
+          <div className="px-3 pt-4 pb-4">
+            <div className="text-[10px] font-semibold uppercase tracking-[0.1em] text-muted-foreground mb-2">Recent Work</div>
+            {workPhotos.length > 0 ? (
+              <>
+                <div className="grid grid-cols-2 gap-1.5">
+                  {workPhotos.slice(0, 5).map((photo, i) => (
+                    <button
+                      key={i}
+                      onClick={() => setSelectedImageIndex(i)}
+                      className="aspect-video rounded overflow-hidden bg-muted hover:opacity-80 transition-opacity relative"
+                    >
+                      <img src={photo} alt="" className="h-full w-full object-cover" loading="lazy" />
+                    </button>
+                  ))}
+                  {workPhotos.length > 5 && (
+                    <button
+                      onClick={() => setSelectedImageIndex(5)}
+                      className="aspect-video rounded overflow-hidden bg-muted hover:opacity-80 transition-opacity relative"
+                    >
+                      <img src={workPhotos[5]} alt="" className="h-full w-full object-cover" loading="lazy" />
+                      <div className="absolute inset-0 bg-black/50 flex items-center justify-center">
+                        <span className="text-white text-[14px] font-semibold">+{workPhotos.length - 5}</span>
+                      </div>
+                    </button>
+                  )}
+                </div>
+                <Link to={`/edit/${client.id}`} className="mt-2 block text-[11px] text-muted-foreground hover:text-foreground transition-colors text-center">
+                  Edit client ↗
+                </Link>
+              </>
+            ) : (
+              <Link to={`/edit/${client.id}`} className="flex items-center justify-center gap-1.5 rounded-md border border-dashed border-border py-4 text-[11px] text-muted-foreground hover:text-foreground hover:border-foreground/30 transition-colors">
+                + Add work photos
               </Link>
-            </div>
-          )}
+            )}
+          </div>
         </aside>
 
         {/* ── CENTER — Script + Tabs ────────────────────────────────────── */}
