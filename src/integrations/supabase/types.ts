@@ -78,15 +78,19 @@ export type Database = {
       }
       clients: {
         Row: {
+          additional_contacts: Json
           archived: boolean
           avg_install_time: string | null
           call_agent_id: string | null
           city: string | null
           created_at: string | null
-          additional_contacts: Array<{ name: string; role: string; phone: string }>
+          excluded_areas: Json
           excluded_zips: string[]
           financing_offered: string | null
           hard_nos: string[]
+          hq_address: string | null
+          hq_lat: number | null
+          hq_lng: number | null
           id: string
           last_accessed_at: string | null
           name: string
@@ -97,15 +101,19 @@ export type Database = {
           updated_at: string | null
         }
         Insert: {
+          additional_contacts?: Json
           archived?: boolean
           avg_install_time?: string | null
           call_agent_id?: string | null
           city?: string | null
           created_at?: string | null
-          additional_contacts?: Array<{ name: string; role: string; phone: string }>
+          excluded_areas?: Json
           excluded_zips?: string[]
           financing_offered?: string | null
           hard_nos?: string[]
+          hq_address?: string | null
+          hq_lat?: number | null
+          hq_lng?: number | null
           id?: string
           last_accessed_at?: string | null
           name: string
@@ -116,15 +124,19 @@ export type Database = {
           updated_at?: string | null
         }
         Update: {
+          additional_contacts?: Json
           archived?: boolean
           avg_install_time?: string | null
           call_agent_id?: string | null
           city?: string | null
           created_at?: string | null
-          additional_contacts?: Array<{ name: string; role: string; phone: string }>
+          excluded_areas?: Json
           excluded_zips?: string[]
           financing_offered?: string | null
           hard_nos?: string[]
+          hq_address?: string | null
+          hq_lat?: number | null
+          hq_lng?: number | null
           id?: string
           last_accessed_at?: string | null
           name?: string
