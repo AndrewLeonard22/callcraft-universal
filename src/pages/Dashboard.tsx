@@ -477,13 +477,6 @@ export default function Dashboard() {
                     Training
                   </Button>
                 </Link>
-                <Link to="/image-generator">
-                  <Button variant="ghost" size="sm" className="gap-2 h-9 px-3 text-sm">
-                    <Wand2 className="h-4 w-4" />
-                    Generator
-                  </Button>
-                </Link>
-                
                 <DropdownMenu>
                   <DropdownMenuTrigger asChild>
                     <Button variant="ghost" size="sm" className="gap-1.5 h-9 px-3 text-sm">
@@ -540,12 +533,6 @@ export default function Dashboard() {
                     <Link to="/training" className="flex items-center cursor-pointer">
                       <GraduationCap className="mr-2 h-4 w-4" />
                       <span>Training</span>
-                    </Link>
-                  </DropdownMenuItem>
-                  <DropdownMenuItem asChild>
-                    <Link to="/image-generator" className="flex items-center cursor-pointer">
-                      <Wand2 className="mr-2 h-4 w-4" />
-                      <span>Image Generator</span>
                     </Link>
                   </DropdownMenuItem>
                   <DropdownMenuSeparator />

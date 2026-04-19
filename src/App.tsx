@@ -20,7 +20,6 @@ const ScriptViewer = lazy(() => import("./pages/ScriptViewer"));
 const Templates = lazy(() => import("./pages/Templates"));
 const ServiceTypes = lazy(() => import("./pages/ServiceTypes"));
 const TeamManagement = lazy(() => import("./pages/TeamManagement"));
-const ImageGenerator = lazy(() => import("./pages/ImageGenerator"));
 const Training = lazy(() => import("./pages/Training"));
 const TrainingManagement = lazy(() => import("./pages/TrainingManagement"));
 const CallAgents = lazy(() => import("./pages/CallAgents"));
@@ -65,7 +64,6 @@ const App = () => (
             <Route path="/templates" element={<ProtectedRoute><Templates /></ProtectedRoute>} />
             <Route path="/service-types" element={<ProtectedRoute><ServiceTypes /></ProtectedRoute>} />
             <Route path="/team" element={<ProtectedRoute><TeamManagement /></ProtectedRoute>} />
-            <Route path="/image-generator" element={<ProtectedRoute><ImageGenerator /></ProtectedRoute>} />
             <Route path="/training" element={<ProtectedRoute><Training /></ProtectedRoute>} />
             <Route path="/training-management" element={<ProtectedRoute><TrainingManagement /></ProtectedRoute>} />
             <Route path="/call-agents" element={<ProtectedRoute><CallAgents /></ProtectedRoute>} />

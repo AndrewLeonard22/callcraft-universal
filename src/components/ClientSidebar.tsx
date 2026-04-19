@@ -87,12 +87,6 @@ export function ClientSidebar() {
             </Button>
           </Link>
           
-          <Link to="/image-generator">
-            <Button variant="outline" className="w-full" size="sm">
-              <Wand2 className="mr-2 h-4 w-4" />
-              Image Generator
-            </Button>
-          </Link>
         </div>
       </div>
 
