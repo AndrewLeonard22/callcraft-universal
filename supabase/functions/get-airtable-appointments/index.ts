@@ -29,18 +29,39 @@ serve(async (req) => {
     if (!businessName) throw new Error("businessName query param required");
 
     // ── 1. Find the Airtable Client record ID matching businessName ──────
-    const clientFilter = encodeURIComponent(`{Client Name}="${businessName}"`);
-    const clientData = await airtableFetch(
+    // Use SEARCH for case-insensitive fuzzy match; handles trailing spaces
+    // and slight naming differences (e.g. "Backyard Paradiso Colorado LLC ")
+    const nameLower = businessName.trim().toLowerCase();
+    const allClientsData = await airtableFetch(
       token,
-      `${AIRTABLE_BASE}/${AIRTABLE_CLIENTS_TABLE}?filterByFormula=${clientFilter}&maxRecords=5`
+      `${AIRTABLE_BASE}/${AIRTABLE_CLIENTS_TABLE}?maxRecords=100&fields%5B%5D=Client+Name&fields%5B%5D=City`
     );
-    const clientRecord = clientData.records?.[0];
+
+    // Score each client record: exact trim match > contains match
+    const scored = (allClientsData.records ?? []).map((r: any) => {
+      const name: string = (r.fields["Client Name"] ?? "").trim();
+      const nameLow = name.toLowerCase();
+      let score = 0;
+      if (nameLow === nameLower) score = 3;
+      else if (nameLow.includes(nameLower) || nameLower.includes(nameLow)) score = 2;
+      else {
+        // word-level: check if most words overlap
+        const wordsA = nameLower.split(/\W+/).filter(Boolean);
+        const wordsB = nameLow.split(/\W+/).filter(Boolean);
+        const overlap = wordsA.filter(w => wordsB.includes(w)).length;
+        if (overlap >= 2) score = 1;
+      }
+      return { ...r, score };
+    }).filter((r: any) => r.score > 0)
+      .sort((a: any, b: any) => b.score - a.score);
+
+    const clientRecord = scored[0];
     const clientCity: string = clientRecord?.fields?.["City"] ?? "";
 
     // Collect all matching client record IDs
-    const clientRecordIds: string[] = (clientData.records ?? []).map((r: any) => r.id);
+    const clientRecordIds: string[] = scored.map((r: any) => r.id);
     if (clientRecordIds.length === 0) {
-      return new Response(JSON.stringify({ appointments: [], clientCity }), {
+      return new Response(JSON.stringify({ appointments: [], clientCity, debug: `No match for: ${businessName}` }), {
         headers: { ...corsHeaders, "Content-Type": "application/json" },
       });
     }
