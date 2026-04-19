@@ -9,8 +9,8 @@ import { Label } from "@/components/ui/label";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import ServiceAreaMap from "@/components/ServiceAreaMap";
 import { TagInput, HARD_NO_OPTIONS, SERVICES_ADVERTISED_OPTIONS } from "@/components/TagInput";
+import { AreaSettingsEditor, type AreaSettings } from "@/components/ExcludedAreaEditor";
 import { logger } from "@/utils/logger";
 
 interface AdditionalContact {
@@ -57,6 +57,15 @@ export default function EditClient() {
   const [additionalContacts, setAdditionalContacts] = useState<AdditionalContact[]>([]);
   const [financingOffered, setFinancingOffered] = useState("");
   const [avgInstallTime, setAvgInstallTime] = useState("");
+
+  // Area map settings (hq_lat/hq_lng/hq_address/excluded_areas on clients table)
+  const [areaSettings, setAreaSettings] = useState<AreaSettings>({
+    hqAddress: "",
+    hqLat: null,
+    hqLng: null,
+    serviceRadiusMiles: "",
+    excludedAreas: [],
+  });
 
   // Logo and Photos
   const [logoUrl, setLogoUrl] = useState("");
@@ -143,6 +152,16 @@ export default function EditClient() {
       setAvgInstallTime(clientResult.data.avg_install_time || "");
       const contacts = clientResult.data.additional_contacts;
       setAdditionalContacts(Array.isArray(contacts) ? (contacts as AdditionalContact[]) : []);
+
+      // Area map fields (from Pass 1 migration)
+      const rawExcluded = clientResult.data.excluded_areas;
+      setAreaSettings({
+        hqAddress: (clientResult.data as any).hq_address || "",
+        hqLat: (clientResult.data as any).hq_lat ?? null,
+        hqLng: (clientResult.data as any).hq_lng ?? null,
+        serviceRadiusMiles: "",  // filled from detailsMap below
+        excludedAreas: Array.isArray(rawExcluded) ? rawExcluded : [],
+      });
       
       if (detailsResult.data) {
         const detailsMap = new Map(
@@ -162,7 +181,9 @@ export default function EditClient() {
         setCrmAccountLink(detailsMap.get("crm_account_link") || "");
         setAppointmentCalendar(detailsMap.get("appointment_calendar") || "");
         setRescheduleCalendar(detailsMap.get("reschedule_calendar") || "");
-        setServiceRadiusMiles(detailsMap.get("service_radius_miles") || "");
+        const radiusVal = detailsMap.get("service_radius_miles") || "";
+        setServiceRadiusMiles(radiusVal);
+        setAreaSettings(prev => ({ ...prev, serviceRadiusMiles: radiusVal }));
         setLogoUrl(detailsMap.get("logo_url") || "");
         setOwnerPhotoUrl(detailsMap.get("owner_photo_url") || "");
         
@@ -387,6 +408,10 @@ export default function EditClient() {
           financing_offered: financingOffered.trim() || null,
           avg_install_time: avgInstallTime.trim() || null,
           additional_contacts: additionalContacts.filter(c => c.name.trim()),
+          hq_address: areaSettings.hqAddress || null,
+          hq_lat: areaSettings.hqLat ?? null,
+          hq_lng: areaSettings.hqLng ?? null,
+          excluded_areas: areaSettings.excludedAreas,
           updated_at: new Date().toISOString(),
         })
         .eq("id", clientId)
@@ -469,8 +494,9 @@ export default function EditClient() {
         });
       }
       
-      if (serviceRadiusMiles) {
-        const radiusNumber = parseFloat(serviceRadiusMiles);
+      const radiusSave = areaSettings.serviceRadiusMiles || serviceRadiusMiles;
+      if (radiusSave) {
+        const radiusNumber = parseFloat(radiusSave);
         if (!isNaN(radiusNumber)) {
           detailsArray.push({
             client_id: clientId as string,
@@ -895,13 +921,19 @@ export default function EditClient() {
 
           <Card>
             <CardHeader>
-              <CardTitle>Service Area Map</CardTitle>
+              <CardTitle>Service Area</CardTitle>
               <CardDescription>
-                View and validate addresses within the service area
+                Set HQ location, service radius, and excluded areas shown during calls
               </CardDescription>
             </CardHeader>
             <CardContent>
-              <ServiceAreaMap city={city} serviceArea={serviceType} address={address} radiusMiles={parseFloat(serviceRadiusMiles) || undefined} />
+              <AreaSettingsEditor
+                value={areaSettings}
+                onChange={v => {
+                  setAreaSettings(v);
+                  setServiceRadiusMiles(v.serviceRadiusMiles);
+                }}
+              />
             </CardContent>
           </Card>
 
