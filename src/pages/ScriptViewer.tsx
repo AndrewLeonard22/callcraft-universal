@@ -17,6 +17,7 @@ import { RichTextEditor } from "@/components/RichTextEditor";
 import { FormattedScript } from "@/components/FormattedScript";
 import { ScriptActions } from "@/components/ScriptActions";
 import { ProjectEstimatePanel } from "@/components/ProjectEstimatePanel";
+import { AreaMapTab } from "@/components/AreaMapTab";
 import { getClientLogo, safeUrl } from "@/utils/clientHelpers";
 import { logger } from "@/utils/logger";
 
@@ -26,6 +27,9 @@ interface ClientData {
   things_to_know: string | null; financing_offered: string | null;
   avg_install_time: string | null;
   additional_contacts: Array<{ name: string; role: string; phone: string }>;
+  // Area map fields (Pass 1 migration)
+  hq_lat?: number | null; hq_lng?: number | null; hq_address?: string | null;
+  excluded_areas?: import("@/utils/areaLookup").ExcludedArea[];
 }
 interface ClientDetail { field_name: string; field_value: string; }
 interface Script { script_content: string; version: number; service_type_id?: string; service_name?: string; }
@@ -65,7 +69,7 @@ const AVATAR_COLORS = [
 ];
 const avatarColor = (name: string) => AVATAR_COLORS[name.charCodeAt(0) % AVATAR_COLORS.length];
 
-type CenterTab = "script" | "objections" | "faq" | "qualification";
+type CenterTab = "script" | "objections" | "faq" | "qualification" | "area";
 
 export default function ScriptViewer() {
   const { scriptId } = useParams();
@@ -129,6 +133,9 @@ export default function ScriptViewer() {
         excluded_zips: raw.excluded_zips ?? [], things_to_know: raw.things_to_know ?? null,
         financing_offered: raw.financing_offered ?? null, avg_install_time: raw.avg_install_time ?? null,
         additional_contacts: raw.additional_contacts ?? [],
+        hq_lat: raw.hq_lat ?? null, hq_lng: raw.hq_lng ?? null,
+        hq_address: raw.hq_address ?? null,
+        excluded_areas: Array.isArray(raw.excluded_areas) ? raw.excluded_areas : [],
       });
       setDetails(detailsResult.data || []);
       setFaqs(faqResult.data || []);
@@ -350,11 +357,12 @@ export default function ScriptViewer() {
     ? client.services_advertised
     : getDetailValue("services_offered") ? getDetailValue("services_offered").split(/[,\n]/).map(s => s.trim()).filter(Boolean) : [];
 
-  const centerTabs: { id: CenterTab; label: string }[] = [
+  const centerTabs: { id: CenterTab; label: string; icon?: string }[] = [
     { id: "script",         label: "Script" },
     { id: "objections",     label: `Objections${objectionTemplates.length > 0 ? ` (${objectionTemplates.length})` : ""}` },
     { id: "faq",            label: `FAQ${faqs.length > 0 ? ` (${faqs.length})` : ""}` },
     { id: "qualification",  label: "Qualification" },
+    { id: "area",           label: "Area" },
   ];
 
   return (
@@ -589,7 +597,20 @@ export default function ScriptViewer() {
             ))}
           </div>
 
-          {/* Tab content */}
+          {/* Tab content — Area tab gets full-height flex treatment; others scroll */}
+          {centerTab === "area" ? (
+            <div className="flex-1 min-h-0">
+              <AreaMapTab
+                hqLat={client.hq_lat}
+                hqLng={client.hq_lng}
+                hqAddress={client.hq_address ?? undefined}
+                serviceRadiusMiles={Number(getDetailValue("service_radius_miles")) || 30}
+                excludedAreas={client.excluded_areas ?? []}
+                excludedZips={client.excluded_zips}
+                clientCity={client.city ?? undefined}
+              />
+            </div>
+          ) : (
           <div className="flex-1 overflow-y-auto">
 
             {/* SCRIPT */}
@@ -718,16 +739,19 @@ export default function ScriptViewer() {
               </div>
             )}
           </div>
+          )}
         </main>
 
-        {/* ── RIGHT — Project Estimate ──────────────────────────────────── */}
-        <aside className="w-80 shrink-0 border-l border-border overflow-hidden flex flex-col bg-background">
-          <ProjectEstimatePanel
-            clientMinPrice={minPriceNum}
-            clientServices={client.services_advertised?.length ? client.services_advertised : undefined}
-            salesRepName={salesRepName || undefined}
-          />
-        </aside>
+        {/* ── RIGHT — Project Estimate (hidden on Area tab) ────────────── */}
+        {centerTab !== "area" && (
+          <aside className="w-80 shrink-0 border-l border-border overflow-hidden flex flex-col bg-background">
+            <ProjectEstimatePanel
+              clientMinPrice={minPriceNum}
+              clientServices={client.services_advertised?.length ? client.services_advertised : undefined}
+              salesRepName={salesRepName || undefined}
+            />
+          </aside>
+        )}
       </div>
 
       {/* ── Lightbox ─────────────────────────────────────────────────────── */}
