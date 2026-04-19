@@ -33,10 +33,17 @@ export interface TodayAppt {
   city: string;
   serviceLabel: string;
   time: string;          // "10:00 AM"
+  dateStr?: string;      // "Apr 22"
+  isToday?: boolean;
+  setter?: string;
+  projectNotes?: string;
+  ghlLink?: string;
+  showStatus?: string;
+  appointmentDate?: string;
   flagged?: boolean;
   flagNote?: string;
-  lng: number;
-  lat: number;
+  lng?: number;
+  lat?: number;
 }
 
 interface AreaMapTabProps {
@@ -48,10 +55,11 @@ interface AreaMapTabProps {
   excludedAreas?: ExcludedArea[];
   excludedZips?: string[];   // legacy fallback
   clientCity?: string;
+  businessName?: string;     // used to fetch Airtable appointments
 
   // Live data (optional — caller provides if wired to Airtable/realtime)
   liveLead?: LiveLead | null;
-  todayAppts?: TodayAppt[];
+  todayAppts?: TodayAppt[];  // if provided, skips Airtable fetch
 }
 
 // ── Token helper ──────────────────────────────────────────────────────────
@@ -345,6 +353,7 @@ function MapCanvas({
 
         // ── Today's appointment markers ────────────────────────────
         todayAppts.forEach(appt => {
+          if (appt.lng == null || appt.lat == null) return;
           const el = document.createElement("div");
           el.style.cssText = `
             width:28px;height:28px;border-radius:50%;
@@ -356,7 +365,7 @@ function MapCanvas({
           `;
           el.textContent = String(appt.number);
           el.addEventListener("click", () => onApptClick?.(appt));
-          new mapboxgl.Marker({ element: el }).setLngLat([appt.lng, appt.lat]).addTo(map);
+          new mapboxgl.Marker({ element: el }).setLngLat([appt.lng!, appt.lat!]).addTo(map);
         });
 
         // ── Live lead marker (pulsing) ─────────────────────────────
@@ -411,10 +420,79 @@ function MapCanvas({
 export function AreaMapTab({
   hqLat, hqLng, hqAddress, serviceRadiusMiles = 30,
   excludedAreas = [], excludedZips = [], clientCity,
-  liveLead, todayAppts = [],
+  businessName, liveLead, todayAppts: propAppts,
 }: AreaMapTabProps) {
   const [token, setToken] = useState<string | null>(null);
   const [tokenLoading, setTokenLoading] = useState(true);
+  const [appts, setAppts] = useState<TodayAppt[]>(propAppts ?? []);
+  const [apptsLoading, setApptsLoading] = useState(false);
+
+  // Fetch appointments from Airtable via edge function
+  useEffect(() => {
+    if (propAppts) { setAppts(propAppts); return; }
+    if (!businessName) return;
+    setApptsLoading(true);
+    supabase.functions.invoke("get-airtable-appointments", {
+      body: null,
+      // Pass as query param via headers workaround — use direct fetch instead
+    }).catch(() => {});
+    // Use fetch directly so we can pass query params
+    (async () => {
+      try {
+        const { data: sessionData } = await supabase.auth.getSession();
+        const accessToken = sessionData?.session?.access_token ?? "";
+        const supabaseUrl = (supabase as any).supabaseUrl as string;
+        const supabaseKey = (supabase as any).supabaseKey as string;
+        const res = await fetch(
+          `${supabaseUrl}/functions/v1/get-airtable-appointments?businessName=${encodeURIComponent(businessName)}`,
+          {
+            headers: {
+              Authorization: `Bearer ${accessToken || supabaseKey}`,
+              apikey: supabaseKey,
+            },
+          }
+        );
+        const data = await res.json();
+        if (data.error) { logger.error("Airtable fetch error:", data.error); return; }
+
+        // Geocode appointments using clientCity (best available)
+        const mapboxToken = await getMapboxToken();
+        const geocodedAppts: TodayAppt[] = await Promise.all(
+          (data.appointments ?? []).map(async (a: any, i: number) => {
+            let lat: number | undefined;
+            let lng: number | undefined;
+            const cityToGeocode = a.city || clientCity;
+            if (mapboxToken && cityToGeocode) {
+              try {
+                const geoRes = await fetch(
+                  `https://api.mapbox.com/geocoding/v5/mapbox.places/${encodeURIComponent(cityToGeocode)}.json?access_token=${mapboxToken}&limit=1&types=place`
+                );
+                const geoData = await geoRes.json();
+                const feat = geoData.features?.[0];
+                if (feat) { [lng, lat] = feat.center as [number, number]; }
+              } catch { /* skip */ }
+            }
+            return {
+              ...a,
+              number: i + 1,
+              lat,
+              lng,
+              flagged: a.showStatus === "Flagged" || (a.projectNotes ?? "").toLowerCase().includes("flag"),
+              flagNote: a.showStatus === "Flagged" ? a.showStatus : undefined,
+            } as TodayAppt;
+          })
+        );
+        setAppts(geocodedAppts);
+      } catch (e) {
+        logger.error("Failed to load Airtable appointments:", e);
+      } finally {
+        setApptsLoading(false);
+      }
+    })();
+  }, [businessName, propAppts, clientCity]);
+
+  const todayAppts = appts;
+
   const [layers, setLayers] = useState<LayerToggles>({
     serviceBoundary: true,
     excludedAreas: true,
@@ -565,10 +643,12 @@ export function AreaMapTab({
             </div>
           )}
 
-          {/* Today's appointments list */}
-          {todayAppts.length > 0 && (
+          {/* Upcoming appointments list */}
+          {(todayAppts.length > 0 || apptsLoading) && (
             <div>
-              <div className="text-[10px] font-semibold uppercase tracking-[0.08em] text-muted-foreground mb-2">Today's Appts</div>
+              <div className="text-[10px] font-semibold uppercase tracking-[0.08em] text-muted-foreground mb-2">
+                Upcoming Appts {apptsLoading && <Loader2 className="inline h-3 w-3 animate-spin ml-1" />}
+              </div>
               <div className="space-y-2">
                 {todayAppts.map(appt => (
                   <div key={appt.id} className="flex items-start gap-2">
@@ -577,13 +657,21 @@ export function AreaMapTab({
                     }`}>
                       {appt.number}
                     </div>
-                    <div className="min-w-0">
+                    <div className="min-w-0 flex-1">
                       <div className="text-[12px] font-medium text-foreground truncate">{appt.name}</div>
                       <div className={`text-[11px] leading-tight truncate ${appt.flagged ? "text-amber-600" : "text-muted-foreground"}`}>
-                        {appt.city} · {appt.serviceLabel}
-                        {appt.flagged && appt.flagNote ? ` — ${appt.flagNote}` : ""}
+                        {appt.serviceLabel}
                       </div>
-                      <div className="text-[10px] text-muted-foreground">{appt.time}</div>
+                      <div className="text-[10px] text-muted-foreground">
+                        {appt.dateStr ?? ""} {appt.time}
+                        {appt.setter ? ` · ${appt.setter}` : ""}
+                      </div>
+                      {appt.ghlLink && (
+                        <a href={appt.ghlLink} target="_blank" rel="noopener noreferrer"
+                          className="text-[10px] text-primary hover:underline" onClick={e => e.stopPropagation()}>
+                          GHL ↗
+                        </a>
+                      )}
                     </div>
                   </div>
                 ))}

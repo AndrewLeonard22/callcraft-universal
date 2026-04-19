@@ -608,6 +608,7 @@ export default function ScriptViewer() {
                 excludedAreas={client.excluded_areas ?? []}
                 excludedZips={client.excluded_zips}
                 clientCity={client.city ?? undefined}
+                businessName={businessName}
               />
             </div>
           ) : (
