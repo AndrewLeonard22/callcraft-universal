@@ -78,39 +78,72 @@ export type Database = {
       }
       clients: {
         Row: {
+          additional_contacts: Json
           archived: boolean
+          avg_install_time: string | null
           call_agent_id: string | null
           city: string | null
           created_at: string | null
+          excluded_areas: Json
+          excluded_zips: string[]
+          financing_offered: string | null
+          hard_nos: string[]
+          hq_address: string | null
+          hq_lat: number | null
+          hq_lng: number | null
           id: string
           last_accessed_at: string | null
           name: string
           organization_id: string
           service_type: string
+          services_advertised: string[]
+          things_to_know: string | null
           updated_at: string | null
         }
         Insert: {
+          additional_contacts?: Json
           archived?: boolean
+          avg_install_time?: string | null
           call_agent_id?: string | null
           city?: string | null
           created_at?: string | null
+          excluded_areas?: Json
+          excluded_zips?: string[]
+          financing_offered?: string | null
+          hard_nos?: string[]
+          hq_address?: string | null
+          hq_lat?: number | null
+          hq_lng?: number | null
           id?: string
           last_accessed_at?: string | null
           name: string
           organization_id: string
           service_type: string
+          services_advertised?: string[]
+          things_to_know?: string | null
           updated_at?: string | null
         }
         Update: {
+          additional_contacts?: Json
           archived?: boolean
+          avg_install_time?: string | null
           call_agent_id?: string | null
           city?: string | null
           created_at?: string | null
+          excluded_areas?: Json
+          excluded_zips?: string[]
+          financing_offered?: string | null
+          hard_nos?: string[]
+          hq_address?: string | null
+          hq_lat?: number | null
+          hq_lng?: number | null
           id?: string
           last_accessed_at?: string | null
           name?: string
           organization_id?: string
           service_type?: string
+          services_advertised?: string[]
+          things_to_know?: string | null
           updated_at?: string | null
         }
         Relationships: [
