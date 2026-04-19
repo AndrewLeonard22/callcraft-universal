@@ -154,7 +154,7 @@ export default function EditClient() {
       setAdditionalContacts(Array.isArray(contacts) ? (contacts as AdditionalContact[]) : []);
 
       // Area map fields (from Pass 1 migration)
-      const rawExcluded = clientResult.data.excluded_areas;
+      const rawExcluded = (clientResult.data as any).excluded_areas;
       setAreaSettings({
         hqAddress: (clientResult.data as any).hq_address || "",
         hqLat: (clientResult.data as any).hq_lat ?? null,
