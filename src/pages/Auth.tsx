@@ -1,5 +1,5 @@
 import { useState, useEffect } from "react";
-import { useNavigate, useSearchParams } from "react-router-dom";
+import { useNavigate, useSearchParams, Link } from "react-router-dom";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -10,6 +10,35 @@ import { useToast } from "@/hooks/use-toast";
 import { Loader2 } from "lucide-react";
 import { z } from "zod";
 import logo from "@/assets/agent-iq-logo.png";
+
+function ForgotPasswordLink() {
+  const { toast } = useToast();
+  const [sending, setSending] = useState(false);
+
+  const handleForgot = async () => {
+    const email = (document.getElementById("login-email") as HTMLInputElement)?.value?.trim();
+    if (!email) {
+      toast({ title: "Enter your email first", description: "Type your email above, then click this link.", variant: "destructive" });
+      return;
+    }
+    setSending(true);
+    const { error } = await supabase.auth.resetPasswordForEmail(email, {
+      redirectTo: `${window.location.origin}/reset-password`,
+    });
+    setSending(false);
+    if (error) {
+      toast({ title: "Error", description: error.message, variant: "destructive" });
+    } else {
+      toast({ title: "Check your email", description: "We sent a password reset link to " + email });
+    }
+  };
+
+  return (
+    <button type="button" onClick={handleForgot} disabled={sending} className="w-full text-center text-sm text-muted-foreground hover:text-primary transition-colors mt-2">
+      {sending ? "Sending…" : "Forgot your password?"}
+    </button>
+  );
+}
 
 const loginSchema = z.object({
   email: z.string().trim().email({ message: "Invalid email address" }),
@@ -405,6 +434,7 @@ export default function Auth() {
                       "Login"
                     )}
                   </Button>
+                  <ForgotPasswordLink />
                 </form>
               </CardContent>
             </Card>

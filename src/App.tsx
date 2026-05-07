@@ -8,6 +8,7 @@ import { Loader2 } from "lucide-react";
 import ProtectedRoute from "./components/ProtectedRoute";
 import { ChunkLoadErrorBoundary } from "./components/ChunkLoadErrorBoundary";
 import Auth from "./pages/Auth";
+const ResetPassword = lazy(() => import("./pages/ResetPassword"));
 
 // Lazy load pages for better initial bundle size
 const Dashboard = lazy(() => import("./pages/Dashboard"));
@@ -54,6 +55,7 @@ const App = () => (
           <Suspense fallback={<PageLoader />}>
             <Routes>
             <Route path="/auth" element={<Auth />} />
+            <Route path="/reset-password" element={<ResetPassword />} />
             <Route path="/" element={<ProtectedRoute><Dashboard /></ProtectedRoute>} />
             <Route path="/create" element={<ProtectedRoute><CreateClient /></ProtectedRoute>} />
             <Route path="/edit/:clientId" element={<ProtectedRoute><EditClient /></ProtectedRoute>} />
