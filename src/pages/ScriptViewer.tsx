@@ -98,6 +98,7 @@ export default function ScriptViewer() {
   const [objectionTemplates, setObjectionTemplates] = useState<ObjectionTemplate[]>([]);
   const [faqs, setFaqs] = useState<FAQ[]>([]);
 
+
   const saveManager = useRef(new DebouncedSaveManager());
   const responsesRef = useRef<Record<string, QualificationResponse>>({});
 
@@ -284,7 +285,7 @@ export default function ScriptViewer() {
       <div className="h-screen flex flex-col bg-background">
         <div className="h-14 border-b border-border shrink-0" />
         <div className="flex flex-1 min-h-0">
-          <div className="w-72 border-r border-border animate-pulse bg-muted/20 shrink-0" />
+          <div className="w-[420px] border-r border-border animate-pulse bg-muted/20 shrink-0" />
           <div className="flex-1 p-10 space-y-3">
             {[100, 90, 95, 80, 85].map((w, i) => <div key={i} className="h-4 bg-muted rounded" style={{ width: `${w}%` }} />)}
           </div>
@@ -329,6 +330,92 @@ export default function ScriptViewer() {
     ? `MIN $${minPriceNum >= 1000 ? `${Math.round(minPriceNum / 1000)}K` : minPriceNum}`
     : null;
 
+  const TIMELINE_OPTIONS = [
+    { label: "< 30 days", key: "under_30_days" },
+    { label: "1–3 months", key: "1-3 months" },
+    { label: "3–6 months", key: "3-6 months" },
+    { label: "6+ months", key: "6+ months" },
+  ];
+  const TIMELINE_ORDER = TIMELINE_OPTIONS.map(o => o.key);
+  const timelineDqThreshold = getDetailValue("timeline_dq_threshold");
+  const timelineThresholdIdx = timelineDqThreshold ? TIMELINE_ORDER.indexOf(timelineDqThreshold) : -1;
+  const isTimelineDQ = (key: string) => timelineThresholdIdx >= 0 && TIMELINE_ORDER.indexOf(key) > timelineThresholdIdx;
+  const showTimelineWidget = timelineThresholdIdx >= 0;
+
+  // ── Inline DQ widget injection ────────────────────────────────────────────
+  const isHtmlScript = (c: string) =>
+    c.includes('<p>') || c.includes('<span') || c.includes('<strong>') || c.includes('<mark>');
+
+  const injectAfterParagraph = (html: string, triggers: RegExp[], widget: string): string => {
+    const parts = html.split('</p>');
+    const idx = parts.findIndex(p => triggers.some(t => t.test(p)));
+    if (idx === -1) return html;
+    return parts.slice(0, idx + 1).join('</p>') + '</p>' + widget + parts.slice(idx + 1).join('</p>');
+  };
+
+  const DQ_SCRIPT = `<script>
+function selectDQChip(widget,key,btn,isDQ){
+  var c=document.getElementById('dq-'+widget+'-chips');
+  if(!c)return;
+  c.querySelectorAll('button').forEach(function(b){
+    var dq=b.getAttribute('data-dq')==='true';
+    b.style.background=dq?'#fef2f2':'white';b.style.color=dq?'#b91c1c':'#111827';b.style.borderColor=dq?'#fca5a5':'#d1d5db';
+  });
+  btn.style.background=isDQ?'#dc2626':'#111827';btn.style.color='white';btn.style.borderColor=isDQ?'#dc2626':'#111827';
+  var a=document.getElementById('dq-'+widget+'-alert');if(a)a.style.display=isDQ?'flex':'none';
+  try{parent.postMessage({type:'DQ_SELECT',widget:widget,key:key,isDQ:isDQ},'*');}catch(e){}
+}
+<\/script>`;
+
+  const buildTimelineWidgetHtml = (): string => {
+    const chips = TIMELINE_OPTIONS.map(opt => {
+      const isDQ = isTimelineDQ(opt.key);
+      const baseStyle = `padding:6px 14px;border-radius:6px;font-size:12px;font-weight:500;cursor:pointer;border:1px solid;transition:all 0.15s;font-family:system-ui,-apple-system,sans-serif;`;
+      const colorStyle = isDQ
+        ? 'background:#fef2f2;border-color:#fca5a5;color:#b91c1c;'
+        : 'background:white;border-color:#d1d5db;color:#111827;';
+      return `<button onclick="selectDQChip('timeline','${opt.key}',this,${isDQ})" data-dq="${isDQ}" style="${baseStyle}${colorStyle}">${opt.label}${isDQ ? ' → DQ' : ''}</button>`;
+    }).join('');
+    return `<div style="margin:20px 0;padding:14px 16px;background:#fffbeb;border:1px solid #fcd34d;border-left:3px solid #f59e0b;border-radius:8px;font-family:system-ui,-apple-system,sans-serif;">
+      <div style="font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:0.12em;color:#b45309;margin-bottom:10px;">⊘ Required · Timeline</div>
+      <div style="font-size:13px;font-weight:500;margin-bottom:12px;color:#111827;">"When do you want this finished by?"</div>
+      <div id="dq-timeline-chips" style="display:flex;flex-wrap:wrap;gap:8px;">${chips}</div>
+      <div id="dq-timeline-alert" style="display:none;margin-top:10px;padding:8px 12px;background:#fef2f2;border:1px solid #fca5a5;border-radius:6px;color:#b91c1c;font-size:12px;font-weight:600;align-items:center;gap:6px;">
+        <span>✕</span><span>Hard disqualifier — timeline exceeds client maximum</span>
+      </div>
+    </div>`;
+  };
+
+  const processedScriptContent = (() => {
+    let content = script.script_content;
+
+    // Replace min-price placeholders with the client's actual value
+    if (minPriceNum && minPriceNum > 0) {
+      const formatted = `$${minPriceNum.toLocaleString("en-US")}`;
+      content = content
+        .replace(/\[project_min_price\]/gi, formatted)
+        .replace(/\{\{project_min_price\}\}/gi, formatted)
+        .replace(/\{project_min_price\}/gi, formatted)
+        .replace(/\[project minimum\]/gi, formatted)
+        .replace(/\[PROJECT MINIMUM\]/gi, formatted)
+        .replace(/\[min price\]/gi, formatted)
+        .replace(/\[minimum\]/gi, formatted);
+    }
+
+    if (!isHtmlScript(content)) return content;
+    let injected = false;
+    if (showTimelineWidget) {
+      const before = content;
+      content = injectAfterParagraph(content,
+        [/finished by/i, /when do you want/i, /timeline/i, /when are you hoping/i, /how soon/i],
+        buildTimelineWidgetHtml()
+      );
+      if (content !== before) injected = true;
+    }
+    if (injected) content = content + DQ_SCRIPT;
+    return content;
+  })();
+
   const quickLinks = [
     { key: "appointment_calendar", label: "Book Appointment", icon: Calendar },
     { key: "reschedule_calendar",  label: "Reschedule",       icon: RotateCcw },
@@ -371,7 +458,7 @@ export default function ScriptViewer() {
       {/* ── Top bar ──────────────────────────────────────────────────────── */}
       <header className="shrink-0 h-14 border-b border-border bg-background z-40 flex items-center gap-3 px-4">
         <button
-          onClick={() => navigate(`/client/${client.id}`)}
+          onClick={() => navigate("/")}
           className="p-1.5 rounded-md text-muted-foreground hover:text-foreground hover:bg-muted transition-colors shrink-0"
         >
           <ArrowLeft className="h-4 w-4" />
@@ -424,22 +511,37 @@ export default function ScriptViewer() {
       <div className="flex flex-1 min-h-0">
 
         {/* ── LEFT SIDEBAR ─────────────────────────────────────────────── */}
-        {centerTab !== "area" && <aside className="w-72 shrink-0 border-r border-border overflow-y-auto bg-background">
+        {centerTab !== "area" && <aside className="w-[500px] shrink-0 border-r border-border overflow-y-auto bg-background">
 
-          {/* Quick links */}
-          {quickLinks.length > 0 && (
+          {/* Book Appointment — primary CTA button */}
+          {quickLinks.some(l => l.key === "appointment_calendar") && (
+            <div className="px-4 pt-4 pb-3 border-b border-border">
+              <a
+                href={safeUrl(getDetailValue("appointment_calendar"))}
+                target="_blank"
+                rel="noopener noreferrer"
+                className="flex items-center justify-center gap-2 w-full h-11 rounded-lg bg-foreground text-background text-[15px] font-semibold hover:bg-foreground/90 transition-colors shadow-sm"
+              >
+                <Calendar className="h-4.5 w-4.5" />
+                Book Appointment
+              </a>
+            </div>
+          )}
+
+          {/* Other quick links */}
+          {quickLinks.filter(l => l.key !== "appointment_calendar").length > 0 && (
             <div className="py-1 border-b border-border">
-              {quickLinks.map(({ key, label, icon: Icon }) => (
+              {quickLinks.filter(l => l.key !== "appointment_calendar").map(({ key, label, icon: Icon }) => (
                 <a
                   key={key}
                   href={safeUrl(getDetailValue(key))}
                   target="_blank"
                   rel="noopener noreferrer"
-                  className="flex items-center gap-2.5 h-9 px-3 text-[13px] text-foreground hover:bg-muted/50 transition-colors group"
+                  className="flex items-center gap-3 h-10 px-4 text-sm text-foreground hover:bg-muted/50 transition-colors group"
                 >
                   <Icon className="h-4 w-4 text-muted-foreground shrink-0" />
                   <span className="flex-1">{label}</span>
-                  <ExternalLink className="h-3 w-3 text-muted-foreground opacity-0 group-hover:opacity-100 transition-opacity" />
+                  <ExternalLink className="h-3.5 w-3.5 text-muted-foreground opacity-0 group-hover:opacity-100 transition-opacity" />
                 </a>
               ))}
             </div>
@@ -447,21 +549,21 @@ export default function ScriptViewer() {
 
           {/* Contacts */}
           {contacts.length > 0 && (
-            <div className="px-3 pt-4 pb-3 border-b border-border/60">
-              <div className="text-[10px] font-semibold uppercase tracking-[0.1em] text-muted-foreground mb-3">Contacts</div>
+            <div className="px-4 pt-4 pb-4 border-b border-border/60">
+              <div className="text-[11px] font-semibold uppercase tracking-[0.1em] text-muted-foreground mb-3">Contacts</div>
               <div className="space-y-3">
                 {contacts.map((c, i) => (
-                  <div key={i} className="flex items-start gap-2.5">
+                  <div key={i} className="flex items-start gap-3">
                     {c.photo ? (
-                      <img src={c.photo} alt={c.name} className="h-8 w-8 rounded-full object-cover shrink-0 border border-border" />
+                      <img src={c.photo} alt={c.name} className="h-10 w-10 rounded-full object-cover shrink-0 border border-border" />
                     ) : (
-                      <div className={`h-8 w-8 rounded-full flex items-center justify-center text-[11px] font-bold shrink-0 ${avatarColor(c.name)}`}>
+                      <div className={`h-10 w-10 rounded-full flex items-center justify-center text-[13px] font-bold shrink-0 ${avatarColor(c.name)}`}>
                         {getInitials(c.name)}
                       </div>
                     )}
                     <div>
-                      <div className="text-[12px] font-semibold text-foreground leading-tight">{c.name}</div>
-                      <div className="text-[11px] text-muted-foreground leading-tight">{c.role}{c.phone && ` · ${c.phone}`}</div>
+                      <div className="text-sm font-semibold text-foreground leading-tight">{c.name}</div>
+                      <div className="text-[13px] text-muted-foreground leading-tight mt-0.5">{c.role}{c.phone && ` · ${c.phone}`}</div>
                     </div>
                   </div>
                 ))}
@@ -471,13 +573,13 @@ export default function ScriptViewer() {
 
           {/* Project Parameters */}
           {projectRows.length > 0 && (
-            <div className="px-3 pt-4 pb-3 border-b border-border/60">
-              <div className="text-[10px] font-semibold uppercase tracking-[0.1em] text-muted-foreground mb-3">Project Parameters</div>
-              <div className="space-y-3">
+            <div className="px-4 pt-4 pb-4 border-b border-border/60">
+              <div className="text-[11px] font-semibold uppercase tracking-[0.1em] text-muted-foreground mb-3">Project Parameters</div>
+              <div className="grid grid-cols-2 gap-x-4 gap-y-3">
                 {projectRows.map(({ label, value }) => (
                   <div key={label}>
-                    <div className="text-[10px] text-muted-foreground leading-none mb-0.5">{label}</div>
-                    <div className="text-[13px] font-medium text-foreground">{value}</div>
+                    <div className="text-[11px] text-muted-foreground leading-none mb-1">{label}</div>
+                    <div className="text-sm font-semibold text-foreground">{value}</div>
                   </div>
                 ))}
               </div>
@@ -486,11 +588,11 @@ export default function ScriptViewer() {
 
           {/* Services Offered */}
           {services.length > 0 && (
-            <div className="px-3 pt-4 pb-3 border-b border-border/60">
-              <div className="text-[10px] font-semibold uppercase tracking-[0.1em] text-muted-foreground mb-2">Services Offered</div>
-              <div className="flex flex-wrap gap-1">
+            <div className="px-4 pt-4 pb-4 border-b border-border/60">
+              <div className="text-[11px] font-semibold uppercase tracking-[0.1em] text-muted-foreground mb-2">Services Offered</div>
+              <div className="flex flex-wrap gap-1.5">
                 {services.map(s => (
-                  <span key={s} className="px-2 py-0.5 bg-muted text-foreground text-[11px] rounded border border-border">
+                  <span key={s} className="px-2.5 py-1 bg-muted text-foreground text-[13px] rounded-md border border-border">
                     {client.services_advertised?.length ? serviceLabel(s) : s}
                   </span>
                 ))}
@@ -500,12 +602,12 @@ export default function ScriptViewer() {
 
           {/* Things to Know */}
           {bullets.length > 0 && (
-            <div className="px-3 pt-4 pb-3 border-b border-border/60">
-              <div className="text-[10px] font-semibold uppercase tracking-[0.1em] text-muted-foreground mb-2">Things to Know</div>
-              <ul className="space-y-1.5">
+            <div className="px-4 pt-4 pb-4 border-b border-border/60">
+              <div className="text-[11px] font-semibold uppercase tracking-[0.1em] text-muted-foreground mb-2">Things to Know</div>
+              <ul className="space-y-2">
                 {bullets.map((b, i) => (
-                  <li key={i} className="flex items-start gap-1.5 text-[12px] text-foreground leading-snug">
-                    <span className="mt-[5px] h-1 w-1 rounded-full bg-muted-foreground/50 shrink-0" />
+                  <li key={i} className="flex items-start gap-2 text-sm text-foreground leading-snug">
+                    <span className="mt-[6px] h-1.5 w-1.5 rounded-full bg-muted-foreground/50 shrink-0" />
                     {b}
                   </li>
                 ))}
@@ -514,19 +616,19 @@ export default function ScriptViewer() {
           )}
 
           {/* Area Check */}
-          {(getDetailValue("address") || client.excluded_zips?.length > 0) && (
-            <div className="px-3 pt-4 pb-3 border-b border-border/60">
-              <div className="text-[10px] font-semibold uppercase tracking-[0.1em] text-muted-foreground mb-2">Service Area</div>
+          {(getDetailValue("address") || client.excluded_zips?.length > 0 || client.hq_lat) && (
+            <div className="px-4 pt-4 pb-4 border-b border-border/60">
+              <div className="text-[11px] font-semibold uppercase tracking-[0.1em] text-muted-foreground mb-2">Service Area</div>
               {getDetailValue("address") && (
                 <div className="flex items-start gap-1.5 mb-2">
-                  <MapPin className="h-3 w-3 text-muted-foreground mt-0.5 shrink-0" />
-                  <span className="text-[12px] text-foreground">{getDetailValue("address")}</span>
+                  <MapPin className="h-3.5 w-3.5 text-muted-foreground mt-0.5 shrink-0" />
+                  <span className="text-sm text-foreground">{getDetailValue("address")}</span>
                 </div>
               )}
               {client.excluded_zips?.length > 0 && (
                 <div className="mb-2 flex flex-wrap gap-1">
                   {client.excluded_zips.map(z => (
-                    <span key={z} className="px-1.5 py-0.5 bg-red-50 border border-red-200 text-red-700 text-[10px] font-medium rounded">{z}</span>
+                    <span key={z} className="px-2 py-0.5 bg-red-50 border border-red-200 text-red-700 text-xs font-medium rounded">{z}</span>
                   ))}
                 </div>
               )}
@@ -535,21 +637,23 @@ export default function ScriptViewer() {
                 clientCity={client.city ?? undefined}
                 clientAddress={getDetailValue("address") || undefined}
                 serviceRadiusMiles={Number(getDetailValue("service_radius_miles")) || 30}
+                hqLat={client.hq_lat ?? undefined}
+                hqLng={client.hq_lng ?? undefined}
               />
             </div>
           )}
 
           {/* Recent Work */}
-          <div className="px-3 pt-4 pb-4">
-            <div className="text-[10px] font-semibold uppercase tracking-[0.1em] text-muted-foreground mb-2">Recent Work</div>
+          <div className="px-4 pt-4 pb-4">
+            <div className="text-[11px] font-semibold uppercase tracking-[0.1em] text-muted-foreground mb-2">Recent Work</div>
             {workPhotos.length > 0 ? (
               <>
-                <div className="grid grid-cols-2 gap-1.5">
+                <div className="grid grid-cols-2 gap-2">
                   {workPhotos.slice(0, 5).map((photo, i) => (
                     <button
                       key={i}
                       onClick={() => setSelectedImageIndex(i)}
-                      className="aspect-video rounded overflow-hidden bg-muted hover:opacity-80 transition-opacity relative"
+                      className="aspect-video rounded-lg overflow-hidden bg-muted hover:opacity-80 transition-opacity relative"
                     >
                       <img src={photo} alt="" className="h-full w-full object-cover" loading="lazy" />
                     </button>
@@ -557,21 +661,21 @@ export default function ScriptViewer() {
                   {workPhotos.length > 5 && (
                     <button
                       onClick={() => setSelectedImageIndex(5)}
-                      className="aspect-video rounded overflow-hidden bg-muted hover:opacity-80 transition-opacity relative"
+                      className="aspect-video rounded-lg overflow-hidden bg-muted hover:opacity-80 transition-opacity relative"
                     >
                       <img src={workPhotos[5]} alt="" className="h-full w-full object-cover" loading="lazy" />
                       <div className="absolute inset-0 bg-black/50 flex items-center justify-center">
-                        <span className="text-white text-[14px] font-semibold">+{workPhotos.length - 5}</span>
+                        <span className="text-white text-sm font-semibold">+{workPhotos.length - 5}</span>
                       </div>
                     </button>
                   )}
                 </div>
-                <Link to={`/edit/${client.id}`} className="mt-2 block text-[11px] text-muted-foreground hover:text-foreground transition-colors text-center">
+                <Link to={`/edit/${client.id}`} className="mt-2 block text-xs text-muted-foreground hover:text-foreground transition-colors text-center">
                   Edit client ↗
                 </Link>
               </>
             ) : (
-              <Link to={`/edit/${client.id}`} className="flex items-center justify-center gap-1.5 rounded-md border border-dashed border-border py-4 text-[11px] text-muted-foreground hover:text-foreground hover:border-foreground/30 transition-colors">
+              <Link to={`/edit/${client.id}`} className="flex items-center justify-center gap-1.5 rounded-lg border border-dashed border-border py-5 text-sm text-muted-foreground hover:text-foreground hover:border-foreground/30 transition-colors">
                 + Add work photos
               </Link>
             )}
@@ -623,7 +727,7 @@ export default function ScriptViewer() {
                     <RichTextEditor value={editedContent} onChange={setEditedContent} placeholder="Enter script content..." minHeight="500px" />
                   </div>
                 ) : (
-                  <FormattedScript content={script.script_content} />
+                  <FormattedScript content={processedScriptContent} />
                 )}
               </div>
             )}

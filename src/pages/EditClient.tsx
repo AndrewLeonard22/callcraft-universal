@@ -8,7 +8,6 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/com
 import { Label } from "@/components/ui/label";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
-import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { TagInput, HARD_NO_OPTIONS, SERVICES_ADVERTISED_OPTIONS } from "@/components/TagInput";
 import { AreaSettingsEditor, type AreaSettings } from "@/components/ExcludedAreaEditor";
 import { logger } from "@/utils/logger";
@@ -57,6 +56,10 @@ export default function EditClient() {
   const [additionalContacts, setAdditionalContacts] = useState<AdditionalContact[]>([]);
   const [financingOffered, setFinancingOffered] = useState("");
   const [avgInstallTime, setAvgInstallTime] = useState("");
+
+  // DQ threshold fields
+  const [projectMinPrice, setProjectMinPrice] = useState("");
+  const [timelineDqThreshold, setTimelineDqThreshold] = useState("none");
 
   // Area map settings (hq_lat/hq_lng/hq_address/excluded_areas on clients table)
   const [areaSettings, setAreaSettings] = useState<AreaSettings>({
@@ -186,6 +189,8 @@ export default function EditClient() {
         setAreaSettings(prev => ({ ...prev, serviceRadiusMiles: radiusVal }));
         setLogoUrl(detailsMap.get("logo_url") || "");
         setOwnerPhotoUrl(detailsMap.get("owner_photo_url") || "");
+        setProjectMinPrice(detailsMap.get("project_min_price") || "");
+        setTimelineDqThreshold(detailsMap.get("timeline_dq_threshold") || "none");
         
         // Parse work photos
         const workPhotosRaw = detailsMap.get("work_photos") || "";
@@ -440,6 +445,8 @@ export default function EditClient() {
         "service_radius_miles",
         "owner_photo_url",
         "work_photos",
+        "project_min_price",
+        "timeline_dq_threshold",
       ];
       
       const detailsArray = [] as { client_id: string; field_name: string; field_value: string }[];
@@ -453,6 +460,8 @@ export default function EditClient() {
         { name: "address", value: address.trim() },
         { name: "services_offered", value: servicesOffered.trim() },
         { name: "other_key_info", value: otherKeyInfo.trim() },
+        { name: "project_min_price", value: projectMinPrice.replace(/[^0-9.]/g, "").trim() },
+        { name: "timeline_dq_threshold", value: timelineDqThreshold !== "none" ? timelineDqThreshold : "" },
       ];
 
       businessFields.forEach(({ name, value }) => {
@@ -616,101 +625,130 @@ export default function EditClient() {
 
   return (
     <div className="min-h-screen bg-background">
-      <div className="container mx-auto px-6 py-8 max-w-4xl">
-        <Link to={`/client/${clientId}`}>
-          <Button variant="ghost" size="sm" className="mb-6">
-            <ArrowLeft className="mr-2 h-4 w-4" />
-            Back to Scripts
-          </Button>
-        </Link>
+      <div className="border-b border-border bg-background sticky top-0 z-10">
+        <div className="container mx-auto px-6 py-3 max-w-3xl">
+          <Link to={`/client/${clientId}`}>
+            <Button variant="ghost" size="sm" className="gap-1.5 -ml-2">
+              <ArrowLeft className="h-4 w-4" />
+              Back to Scripts
+            </Button>
+          </Link>
+        </div>
+      </div>
 
+      <div className="container mx-auto px-6 py-8 max-w-3xl">
         <div className="mb-8">
-          <h1 className="text-3xl font-bold mb-2">Edit Client Information</h1>
-          <p className="text-muted-foreground">
-            Update client business information and links
-          </p>
+          <h1 className="text-2xl font-semibold tracking-tight mb-1">Edit Client Information</h1>
+          <p className="text-sm text-muted-foreground">Update company profile, qualification data, and links</p>
         </div>
 
         <div className="space-y-6">
-          {/* Quick Fill — qualification fields prominent at the top */}
-          <Card className="border-indigo-200 bg-indigo-50/30">
+
+          {/* 1 · Company Identity */}
+          <Card>
             <CardHeader>
-              <CardTitle className="text-indigo-900">Quick Fill</CardTitle>
-              <CardDescription>
-                Critical qualification data — setters see this during every call
-              </CardDescription>
+              <CardTitle>Company Identity</CardTitle>
+              <CardDescription>Basic details that identify this company in the system</CardDescription>
             </CardHeader>
-            <CardContent className="space-y-5">
+            <CardContent className="space-y-4">
               <div>
-                <Label className="text-[13px] font-semibold text-red-700 uppercase tracking-wide">Hard NOs</Label>
-                <p className="text-xs text-muted-foreground mb-1.5">Project types this client will never accept — shown as red pills on every call</p>
-                <TagInput
-                  value={hardNos}
-                  onChange={setHardNos}
-                  options={HARD_NO_OPTIONS}
-                  placeholder="Add hard NO..."
-                />
+                <Label htmlFor="business-name">Business Name</Label>
+                <Input id="business-name" placeholder="Acme Outdoor Solutions" value={businessName} onChange={e => setBusinessName(e.target.value)} className="mt-1" />
               </div>
               <div>
-                <Label className="text-[13px] font-semibold">Services Advertised</Label>
-                <p className="text-xs text-muted-foreground mb-1.5">What this client sells — shown in the Info tab during calls</p>
-                <TagInput
-                  value={servicesAdvertised}
-                  onChange={setServicesAdvertised}
-                  options={SERVICES_ADVERTISED_OPTIONS}
-                  placeholder="Add service..."
-                />
+                <Label htmlFor="client-name">Display Name</Label>
+                <p className="text-xs text-muted-foreground mt-0.5 mb-1">Internal label used in the dashboard</p>
+                <Input id="client-name" placeholder="Client name" value={clientName} onChange={e => setClientName(e.target.value)} />
+              </div>
+              <div className="grid grid-cols-2 gap-4">
+                <div>
+                  <Label htmlFor="service-type">Service Type</Label>
+                  <Input id="service-type" placeholder="e.g., HVAC, Solar, Roofing" value={serviceType} onChange={e => setServiceType(e.target.value)} className="mt-1" />
+                </div>
+                <div>
+                  <Label htmlFor="city">City</Label>
+                  <Input id="city" placeholder="e.g., Phoenix, AZ" value={city} onChange={e => setCity(e.target.value)} className="mt-1" />
+                </div>
               </div>
               <div>
-                <Label className="text-[13px] font-semibold">Excluded Zip Codes</Label>
-                <p className="text-xs text-muted-foreground mb-1.5">Zips the setter should never book into — instant red flag in ZipChecker</p>
-                <TagInput
-                  value={excludedZips}
-                  onChange={setExcludedZips}
-                  options={[]}
-                  placeholder="Type zip and press Enter..."
-                />
+                <Label htmlFor="address">Business Address</Label>
+                <Input id="address" placeholder="123 Main St, Phoenix, AZ 85001" value={address} onChange={e => setAddress(e.target.value)} className="mt-1" />
               </div>
               <div>
-                <Label className="text-[13px] font-semibold">Things to Know</Label>
-                <p className="text-xs text-muted-foreground mb-1.5">Bullets shown at the top of the left panel — one item per line</p>
-                <Textarea
-                  value={thingsToKnow}
-                  onChange={(e) => setThingsToKnow(e.target.value)}
-                  placeholder={"- Does NOT work with HOAs\n- Minimum $8k project\n- Books out 6 weeks"}
-                  className="min-h-[96px] resize-none font-mono text-sm"
-                />
+                <Label>Company Logo</Label>
+                <p className="text-xs text-muted-foreground mt-0.5 mb-2">JPG/PNG — max 2MB</p>
+                <div className="flex items-center gap-3">
+                  {logoUrl && (
+                    <div className="h-20 w-20 rounded-lg overflow-hidden bg-muted border border-border shrink-0">
+                      <img src={logoUrl} alt="Company logo" className="h-full w-full object-contain p-1" />
+                    </div>
+                  )}
+                  <Label htmlFor="logo-upload" className="cursor-pointer">
+                    <div className="flex items-center gap-2 px-4 py-2 border border-input rounded-lg hover:bg-accent transition-colors">
+                      <Upload className="h-4 w-4" />
+                      <span className="text-sm font-medium">{uploading ? "Uploading..." : logoUrl ? "Change Logo" : "Upload Logo"}</span>
+                    </div>
+                    <input id="logo-upload" type="file" accept="image/*" onChange={handleLogoUpload} className="hidden" disabled={uploading} />
+                  </Label>
+                </div>
               </div>
-              <div>
-                <Label className="text-[13px] font-semibold">Financing Offered</Label>
-                <Input
-                  value={financingOffered}
-                  onChange={(e) => setFinancingOffered(e.target.value)}
-                  placeholder="e.g., 0% for 18 months via Hearth"
-                />
+            </CardContent>
+          </Card>
+
+          {/* 2 · People */}
+          <Card>
+            <CardHeader>
+              <CardTitle>People</CardTitle>
+              <CardDescription>Owner, sales rep, and any additional contacts for setters</CardDescription>
+            </CardHeader>
+            <CardContent className="space-y-4">
+              <div className="grid grid-cols-2 gap-4">
+                <div>
+                  <Label htmlFor="owners-name">Owner's Name</Label>
+                  <Input id="owners-name" placeholder="John Smith" value={ownersName} onChange={e => setOwnersName(e.target.value)} className="mt-1" />
+                </div>
+                <div>
+                  <Label>Owner Photo</Label>
+                  <div className="mt-1 flex items-center gap-3">
+                    {ownerPhotoUrl && (
+                      <div className="h-10 w-10 rounded-full overflow-hidden bg-muted border border-border shrink-0">
+                        <img src={ownerPhotoUrl} alt="Owner" className="h-full w-full object-cover" />
+                      </div>
+                    )}
+                    <Label htmlFor="owner-photo-upload" className="cursor-pointer">
+                      <div className="flex items-center gap-2 px-3 py-1.5 border border-input rounded-lg hover:bg-accent transition-colors">
+                        <Upload className="h-3.5 w-3.5" />
+                        <span className="text-sm font-medium">{uploadingOwnerPhoto ? "Uploading..." : ownerPhotoUrl ? "Change" : "Upload Photo"}</span>
+                      </div>
+                      <input id="owner-photo-upload" type="file" accept="image/*" onChange={handleOwnerPhotoUpload} className="hidden" disabled={uploadingOwnerPhoto} />
+                    </Label>
+                    {ownerPhotoUrl && (
+                      <Button type="button" variant="ghost" size="sm" onClick={() => setOwnerPhotoUrl("")} className="text-destructive hover:text-destructive h-8 w-8 p-0">
+                        <X className="h-4 w-4" />
+                      </Button>
+                    )}
+                  </div>
+                </div>
               </div>
-              <div>
-                <Label className="text-[13px] font-semibold">Avg Install Time</Label>
-                <Input
-                  value={avgInstallTime}
-                  onChange={(e) => setAvgInstallTime(e.target.value)}
-                  placeholder="e.g., 3–5 days"
-                />
+              <div className="grid grid-cols-2 gap-4">
+                <div>
+                  <Label htmlFor="sales-rep-name">Sales Rep Name</Label>
+                  <Input id="sales-rep-name" placeholder="Jane Doe" value={salesRepName} onChange={e => setSalesRepName(e.target.value)} className="mt-1" />
+                </div>
+                <div>
+                  <Label htmlFor="sales-rep-phone">Sales Rep Phone</Label>
+                  <Input id="sales-rep-phone" type="tel" placeholder="+1 (555) 123-4567" value={salesRepPhone} onChange={e => setSalesRepPhone(e.target.value)} className="mt-1" />
+                </div>
               </div>
               <div>
                 <div className="flex items-center justify-between mb-2">
                   <div>
-                    <Label className="text-[13px] font-semibold">Additional Contacts</Label>
+                    <Label className="text-sm font-medium">Additional Contacts</Label>
                     <p className="text-xs text-muted-foreground">Extra numbers setters may need during a call</p>
                   </div>
-                  <Button
-                    type="button"
-                    variant="outline"
-                    size="sm"
-                    className="h-7 text-xs"
-                    onClick={() => setAdditionalContacts(prev => [...prev, { name: "", role: "", phone: "" }])}
-                  >
-                    <Plus className="h-3 w-3 mr-1" /> Add Contact
+                  <Button type="button" variant="outline" size="sm" className="h-7 text-xs"
+                    onClick={() => setAdditionalContacts(prev => [...prev, { name: "", role: "", phone: "" }])}>
+                    <Plus className="h-3 w-3 mr-1" /> Add
                   </Button>
                 </div>
                 {additionalContacts.length === 0 && (
@@ -720,33 +758,12 @@ export default function EditClient() {
                   {additionalContacts.map((contact, i) => (
                     <div key={i} className="flex gap-2 items-start">
                       <div className="grid grid-cols-3 gap-2 flex-1">
-                        <Input
-                          placeholder="Name"
-                          value={contact.name}
-                          onChange={(e) => setAdditionalContacts(prev => prev.map((c, idx) => idx === i ? { ...c, name: e.target.value } : c))}
-                          className="h-8 text-sm"
-                        />
-                        <Input
-                          placeholder="Role"
-                          value={contact.role}
-                          onChange={(e) => setAdditionalContacts(prev => prev.map((c, idx) => idx === i ? { ...c, role: e.target.value } : c))}
-                          className="h-8 text-sm"
-                        />
-                        <Input
-                          placeholder="Phone"
-                          type="tel"
-                          value={contact.phone}
-                          onChange={(e) => setAdditionalContacts(prev => prev.map((c, idx) => idx === i ? { ...c, phone: e.target.value } : c))}
-                          className="h-8 text-sm"
-                        />
+                        <Input placeholder="Name" value={contact.name} onChange={e => setAdditionalContacts(prev => prev.map((c, idx) => idx === i ? { ...c, name: e.target.value } : c))} className="h-8 text-sm" />
+                        <Input placeholder="Role" value={contact.role} onChange={e => setAdditionalContacts(prev => prev.map((c, idx) => idx === i ? { ...c, role: e.target.value } : c))} className="h-8 text-sm" />
+                        <Input placeholder="Phone" type="tel" value={contact.phone} onChange={e => setAdditionalContacts(prev => prev.map((c, idx) => idx === i ? { ...c, phone: e.target.value } : c))} className="h-8 text-sm" />
                       </div>
-                      <Button
-                        type="button"
-                        variant="ghost"
-                        size="sm"
-                        className="h-8 w-8 p-0 text-muted-foreground hover:text-destructive shrink-0"
-                        onClick={() => setAdditionalContacts(prev => prev.filter((_, idx) => idx !== i))}
-                      >
+                      <Button type="button" variant="ghost" size="sm" className="h-8 w-8 p-0 text-muted-foreground hover:text-destructive shrink-0"
+                        onClick={() => setAdditionalContacts(prev => prev.filter((_, idx) => idx !== i))}>
                         <Trash2 className="h-3.5 w-3.5" />
                       </Button>
                     </div>
@@ -756,177 +773,56 @@ export default function EditClient() {
             </CardContent>
           </Card>
 
+          {/* 3 · Services & Qualification */}
           <Card>
             <CardHeader>
-              <CardTitle>Basic Information</CardTitle>
-              <CardDescription>
-                Update the client's basic details
-              </CardDescription>
+              <CardTitle>Services & Qualification</CardTitle>
+              <CardDescription>What the company sells, what to avoid, and key info for setters</CardDescription>
             </CardHeader>
-            <CardContent className="space-y-4">
+            <CardContent className="space-y-5">
               <div>
-                <Label htmlFor="client-name">Client Name</Label>
-                <Input
-                  id="client-name"
-                  value={clientName}
-                  onChange={(e) => setClientName(e.target.value)}
-                  placeholder="Client name"
-                />
+                <Label className="text-sm font-medium">Services Advertised</Label>
+                <p className="text-xs text-muted-foreground mt-0.5 mb-1.5">What this client sells — shown in the Info tab during calls</p>
+                <TagInput value={servicesAdvertised} onChange={setServicesAdvertised} options={SERVICES_ADVERTISED_OPTIONS} placeholder="Add service..." />
               </div>
               <div>
-                <Label htmlFor="service-type">Service Type</Label>
-                <Input
-                  id="service-type"
-                  value={serviceType}
-                  onChange={(e) => setServiceType(e.target.value)}
-                  placeholder="e.g., HVAC, Plumbing, Solar"
-                />
+                <Label htmlFor="services-offered">Services Offered (details)</Label>
+                <Textarea id="services-offered" placeholder="e.g., Pergolas, Turf, Pavers, Full Outdoor Remodels" value={servicesOffered} onChange={e => setServicesOffered(e.target.value)} className="mt-1 min-h-[80px] resize-none" />
               </div>
               <div>
-                <Label htmlFor="city">City</Label>
-                <Input
-                  id="city"
-                  value={city}
-                  onChange={(e) => setCity(e.target.value)}
-                  placeholder="City"
-                />
+                <Label className="text-sm font-medium text-red-700">Hard NOs</Label>
+                <p className="text-xs text-muted-foreground mt-0.5 mb-1.5">Project types this client will never accept — shown as red pills on every call</p>
+                <TagInput value={hardNos} onChange={setHardNos} options={HARD_NO_OPTIONS} placeholder="Add hard NO..." />
               </div>
               <div>
-                <Label>Company Logo</Label>
-                <div className="flex items-center gap-4">
-                  {logoUrl && (
-                    <div className="h-20 w-20 rounded-lg overflow-hidden bg-muted border border-border">
-                      <img 
-                        src={logoUrl} 
-                        alt="Company logo"
-                        className="h-full w-full object-cover"
-                      />
-                    </div>
-                  )}
-                  <Label htmlFor="logo-upload" className="cursor-pointer">
-                    <div className="flex items-center gap-2 px-4 py-2 border border-input rounded-lg hover:bg-accent transition-colors">
-                      <Upload className="h-4 w-4" />
-                      <span className="text-sm font-medium">
-                        {uploading ? "Uploading..." : logoUrl ? "Change Logo" : "Upload Logo"}
-                      </span>
-                    </div>
-                    <input
-                      id="logo-upload"
-                      type="file"
-                      accept="image/*"
-                      onChange={handleLogoUpload}
-                      className="hidden"
-                      disabled={uploading}
-                    />
-                  </Label>
+                <Label htmlFor="things-to-know">Things to Know</Label>
+                <p className="text-xs text-muted-foreground mt-0.5 mb-1.5">Bullet points shown in the left panel during calls — one item per line</p>
+                <Textarea id="things-to-know" placeholder={"- Does NOT work with HOAs\n- Minimum $8k project\n- Books out 6 weeks"} value={thingsToKnow} onChange={e => setThingsToKnow(e.target.value)} className="min-h-[96px] resize-none font-mono text-sm" />
+              </div>
+              <div>
+                <Label htmlFor="other-key-info">Additional Information</Label>
+                <Textarea id="other-key-info" placeholder="Important notes agents should know about this client" value={otherKeyInfo} onChange={e => setOtherKeyInfo(e.target.value)} className="mt-1 min-h-[80px] resize-none" />
+              </div>
+              <div className="grid grid-cols-2 gap-4">
+                <div>
+                  <Label htmlFor="financing">Financing Offered</Label>
+                  <Input id="financing" placeholder="e.g., 0% for 18 months via Hearth" value={financingOffered} onChange={e => setFinancingOffered(e.target.value)} className="mt-1" />
                 </div>
-                <p className="text-xs text-muted-foreground mt-2">
-                  Upload a company logo (max 2MB, JPG/PNG)
-                </p>
-              </div>
-              
-              {/* Owner Photo Upload */}
-              <div>
-                <Label>Business Owner Photo</Label>
-                <div className="flex items-center gap-4 mt-2">
-                  {ownerPhotoUrl && (
-                    <div className="h-20 w-20 rounded-full overflow-hidden bg-muted border border-border">
-                      <img 
-                        src={ownerPhotoUrl} 
-                        alt="Owner photo"
-                        className="h-full w-full object-cover"
-                      />
-                    </div>
-                  )}
-                  <Label htmlFor="owner-photo-upload" className="cursor-pointer">
-                    <div className="flex items-center gap-2 px-4 py-2 border border-input rounded-lg hover:bg-accent transition-colors">
-                      <Upload className="h-4 w-4" />
-                      <span className="text-sm font-medium">
-                        {uploadingOwnerPhoto ? "Uploading..." : ownerPhotoUrl ? "Change Photo" : "Upload Photo"}
-                      </span>
-                    </div>
-                    <input
-                      id="owner-photo-upload"
-                      type="file"
-                      accept="image/*"
-                      onChange={handleOwnerPhotoUpload}
-                      className="hidden"
-                      disabled={uploadingOwnerPhoto}
-                    />
-                  </Label>
-                  {ownerPhotoUrl && (
-                    <Button
-                      type="button"
-                      variant="ghost"
-                      size="sm"
-                      onClick={() => setOwnerPhotoUrl("")}
-                      className="text-destructive hover:text-destructive"
-                    >
-                      <X className="h-4 w-4" />
-                    </Button>
-                  )}
-                </div>
-                <p className="text-xs text-muted-foreground mt-2">
-                  Upload a photo of the business owner (max 2MB, JPG/PNG)
-                </p>
-              </div>
-              
-              {/* Work Photos Upload */}
-              <div>
-                <Label>Photos of Work</Label>
-                <p className="text-xs text-muted-foreground mb-3">
-                  Upload sample photos of completed projects (max 5MB each)
-                </p>
-                <div className="grid grid-cols-3 sm:grid-cols-4 gap-3">
-                  {workPhotos.map((photo, index) => (
-                    <div key={index} className="relative aspect-square rounded-lg overflow-hidden bg-muted border border-border group">
-                      <img 
-                        src={photo} 
-                        alt={`Work photo ${index + 1}`}
-                        className="h-full w-full object-cover"
-                      />
-                      <button
-                        type="button"
-                        onClick={() => removeWorkPhoto(index)}
-                        className="absolute top-1 right-1 p-1 bg-destructive text-destructive-foreground rounded-full opacity-0 group-hover:opacity-100 transition-opacity"
-                      >
-                        <X className="h-3 w-3" />
-                      </button>
-                    </div>
-                  ))}
-                  <Label htmlFor="work-photo-upload" className="cursor-pointer">
-                    <div className="aspect-square rounded-lg border-2 border-dashed border-input hover:border-primary/50 flex flex-col items-center justify-center gap-2 transition-colors">
-                      {uploadingWorkPhoto ? (
-                        <span className="text-xs text-muted-foreground">Uploading...</span>
-                      ) : (
-                        <>
-                          <Plus className="h-6 w-6 text-muted-foreground" />
-                          <span className="text-xs text-muted-foreground">Add Photo</span>
-                        </>
-                      )}
-                    </div>
-                    <input
-                      id="work-photo-upload"
-                      type="file"
-                      accept="image/*"
-                      onChange={handleWorkPhotoUpload}
-                      className="hidden"
-                      disabled={uploadingWorkPhoto}
-                    />
-                  </Label>
+                <div>
+                  <Label htmlFor="install-time">Avg Install Time</Label>
+                  <Input id="install-time" placeholder="e.g., 3–5 days" value={avgInstallTime} onChange={e => setAvgInstallTime(e.target.value)} className="mt-1" />
                 </div>
               </div>
             </CardContent>
           </Card>
 
+          {/* 4 · Service Area */}
           <Card>
             <CardHeader>
               <CardTitle>Service Area</CardTitle>
-              <CardDescription>
-                Set HQ location, service radius, and excluded areas shown during calls
-              </CardDescription>
+              <CardDescription>HQ location, service radius, and excluded zones shown to setters during calls</CardDescription>
             </CardHeader>
-            <CardContent>
+            <CardContent className="space-y-5">
               <AreaSettingsEditor
                 value={areaSettings}
                 onChange={v => {
@@ -934,182 +830,130 @@ export default function EditClient() {
                   setServiceRadiusMiles(v.serviceRadiusMiles);
                 }}
               />
+              <div>
+                <Label className="text-sm font-medium">Excluded Zip Codes</Label>
+                <p className="text-xs text-muted-foreground mt-0.5 mb-1.5">Zips the setter should never book into — instant red flag in ZipChecker</p>
+                <TagInput value={excludedZips} onChange={setExcludedZips} options={[]} placeholder="Type zip and press Enter..." />
+              </div>
             </CardContent>
           </Card>
 
+          {/* 5 · Disqualifier Thresholds */}
+          <Card className="border-red-200 bg-red-50/20">
+            <CardHeader>
+              <CardTitle className="text-red-900">Disqualifier Thresholds</CardTitle>
+              <CardDescription>Leads outside these thresholds are flagged as hard DQs during calls</CardDescription>
+            </CardHeader>
+            <CardContent className="space-y-5">
+              <div>
+                <Label>Minimum Project Budget</Label>
+                <p className="text-xs text-muted-foreground mt-0.5 mb-1.5">Any budget below this is shown as a hard DQ during calls</p>
+                <div className="relative max-w-[220px]">
+                  <span className="absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground text-sm">$</span>
+                  <Input value={projectMinPrice} onChange={e => setProjectMinPrice(e.target.value)} placeholder="e.g., 15000" className="pl-7" />
+                </div>
+              </div>
+              <div>
+                <Label>Max Timeline (DQ Threshold)</Label>
+                <p className="text-xs text-muted-foreground mt-0.5 mb-1.5">Anything beyond this timeline is flagged as a hard DQ</p>
+                <div className="flex flex-wrap gap-2 mt-1">
+                  {[
+                    { label: "No Limit", value: "none" },
+                    { label: "< 30 days", value: "under_30_days" },
+                    { label: "1–3 months", value: "1-3 months" },
+                    { label: "3–6 months", value: "3-6 months" },
+                    { label: "6+ months", value: "6+ months" },
+                  ].map(opt => (
+                    <button key={opt.value} type="button" onClick={() => setTimelineDqThreshold(opt.value)}
+                      className={`px-3 py-1.5 rounded-md text-[12px] font-medium border transition-colors ${timelineDqThreshold === opt.value ? "bg-red-600 border-red-600 text-white" : "bg-white border-border text-foreground hover:border-red-300"}`}>
+                      {opt.label}
+                    </button>
+                  ))}
+                </div>
+                {timelineDqThreshold !== "none" && (
+                  <p className="text-xs text-red-600 mt-2">
+                    Anything beyond "{timelineDqThreshold === "under_30_days" ? "< 30 days" : timelineDqThreshold}" will appear as → DQ in the script
+                  </p>
+                )}
+              </div>
+            </CardContent>
+          </Card>
+
+          {/* 6 · Links & Calendars */}
           <Card>
             <CardHeader>
-              <CardTitle>Client Information</CardTitle>
-              <CardDescription>
-                Edit the business info and links
-              </CardDescription>
+              <CardTitle>Links & Calendars</CardTitle>
+              <CardDescription>Website, social media, CRM, and booking calendar links</CardDescription>
             </CardHeader>
-            <CardContent>
-              <Tabs defaultValue="business" className="w-full">
-                <TabsList className="grid w-full grid-cols-2 mb-4">
-                  <TabsTrigger value="business">Business Info</TabsTrigger>
-                  <TabsTrigger value="links">Links</TabsTrigger>
-                </TabsList>
-                
-                <TabsContent value="business">
-                  <div className="space-y-4">
-                    <div>
-                      <Label htmlFor="business-name">Business Name</Label>
-                      <Input
-                        id="business-name"
-                        placeholder="Business Name"
-                        value={businessName}
-                        onChange={(e) => setBusinessName(e.target.value)}
-                      />
-                    </div>
-                    <div>
-                      <Label htmlFor="owners-name">Owner's Name</Label>
-                      <Input
-                        id="owners-name"
-                        placeholder="Owner's Name"
-                        value={ownersName}
-                        onChange={(e) => setOwnersName(e.target.value)}
-                      />
-                    </div>
-                    <div>
-                      <Label htmlFor="sales-rep-name">Sales Rep Name</Label>
-                      <Input
-                        id="sales-rep-name"
-                        placeholder="Jane Doe"
-                        value={salesRepName}
-                        onChange={(e) => setSalesRepName(e.target.value)}
-                      />
-                    </div>
-                    <div>
-                      <Label htmlFor="sales-rep">Sales Rep Phone</Label>
-                      <Input
-                        id="sales-rep"
-                        type="tel"
-                        placeholder="+1 (555) 123-4567"
-                        value={salesRepPhone}
-                        onChange={(e) => setSalesRepPhone(e.target.value)}
-                      />
+            <CardContent className="space-y-4">
+              <div className="grid grid-cols-2 gap-4">
+                <div>
+                  <Label htmlFor="website">Website</Label>
+                  <Input id="website" type="url" placeholder="https://example.com" value={website} onChange={e => setWebsite(e.target.value)} className="mt-1" />
                 </div>
                 <div>
-                  <Label htmlFor="service-radius">Service Radius (miles)</Label>
-                  <Input
-                    id="service-radius"
-                    type="number"
-                    min={1}
-                    placeholder="e.g., 30"
-                    value={serviceRadiusMiles}
-                    onChange={(e) => setServiceRadiusMiles(e.target.value)}
-                  />
-                    </div>
-                    <div>
-                      <Label htmlFor="address">Address</Label>
-                      <Input
-                        id="address"
-                        placeholder="123 Main St, City, State ZIP"
-                        value={address}
-                        onChange={(e) => setAddress(e.target.value)}
-                      />
-                    </div>
-                    <div>
-                      <Label htmlFor="services-offered">Services Offered</Label>
-                      <Textarea
-                        id="services-offered"
-                        placeholder="e.g., Pergolas, Turf, Pavers, Full Outdoor Remodels"
-                        value={servicesOffered}
-                        onChange={(e) => setServicesOffered(e.target.value)}
-                        className="min-h-[100px] resize-none"
-                      />
-                    </div>
-                    <div>
-                      <Label htmlFor="other-key-info">Things to Know</Label>
-                      <Textarea
-                        id="other-key-info"
-                        placeholder="Important notes about this client (e.g., 'Does NOT build decks')"
-                        value={otherKeyInfo}
-                        onChange={(e) => setOtherKeyInfo(e.target.value)}
-                        className="min-h-[100px] resize-none"
-                      />
-                      <p className="text-xs text-muted-foreground mt-1">
-                        Key information call agents should know about this client
-                      </p>
-                    </div>
-                  </div>
-                </TabsContent>
-                
-                <TabsContent value="links">
-                  <div className="space-y-4">
-                    <div>
-                      <Label htmlFor="website">Website</Label>
-                      <Input
-                        id="website"
-                        type="url"
-                        placeholder="https://example.com"
-                        value={website}
-                        onChange={(e) => setWebsite(e.target.value)}
-                      />
-                    </div>
-                    <div>
-                      <Label htmlFor="facebook">Facebook Page</Label>
-                      <Input
-                        id="facebook"
-                        type="url"
-                        placeholder="https://facebook.com/yourpage"
-                        value={facebookPage}
-                        onChange={(e) => setFacebookPage(e.target.value)}
-                      />
-                    </div>
-                    <div>
-                      <Label htmlFor="instagram">Instagram</Label>
-                      <Input
-                        id="instagram"
-                        type="url"
-                        placeholder="https://instagram.com/yourprofile"
-                        value={instagram}
-                        onChange={(e) => setInstagram(e.target.value)}
-                      />
-                    </div>
-                    <div>
-                      <Label htmlFor="crm">CRM Account Link</Label>
-                      <Input
-                        id="crm"
-                        type="url"
-                        placeholder="https://crm.example.com/account"
-                        value={crmAccountLink}
-                        onChange={(e) => setCrmAccountLink(e.target.value)}
-                      />
-                    </div>
-                    <div>
-                      <Label htmlFor="appointment-calendar">Appointment Calendar</Label>
-                      <Input
-                        id="appointment-calendar"
-                        type="url"
-                        placeholder="https://calendly.com/..."
-                        value={appointmentCalendar}
-                        onChange={(e) => setAppointmentCalendar(e.target.value)}
-                      />
-                    </div>
-                    <div>
-                      <Label htmlFor="reschedule-calendar">Reschedule Calendar</Label>
-                      <Input
-                        id="reschedule-calendar"
-                        type="url"
-                        placeholder="https://calendly.com/reschedule/..."
-                        value={rescheduleCalendar}
-                        onChange={(e) => setRescheduleCalendar(e.target.value)}
-                      />
-                    </div>
-                  </div>
-                </TabsContent>
-              </Tabs>
+                  <Label htmlFor="crm">CRM Account</Label>
+                  <Input id="crm" type="url" placeholder="https://crm.example.com/account" value={crmAccountLink} onChange={e => setCrmAccountLink(e.target.value)} className="mt-1" />
+                </div>
+              </div>
+              <div className="grid grid-cols-2 gap-4">
+                <div>
+                  <Label htmlFor="facebook">Facebook</Label>
+                  <Input id="facebook" type="url" placeholder="https://facebook.com/page" value={facebookPage} onChange={e => setFacebookPage(e.target.value)} className="mt-1" />
+                </div>
+                <div>
+                  <Label htmlFor="instagram">Instagram</Label>
+                  <Input id="instagram" type="url" placeholder="https://instagram.com/profile" value={instagram} onChange={e => setInstagram(e.target.value)} className="mt-1" />
+                </div>
+              </div>
+              <div className="grid grid-cols-2 gap-4">
+                <div>
+                  <Label htmlFor="appointment-calendar">Appointment Calendar</Label>
+                  <Input id="appointment-calendar" type="url" placeholder="https://calendly.com/..." value={appointmentCalendar} onChange={e => setAppointmentCalendar(e.target.value)} className="mt-1" />
+                </div>
+                <div>
+                  <Label htmlFor="reschedule-calendar">Reschedule Calendar</Label>
+                  <Input id="reschedule-calendar" type="url" placeholder="https://calendly.com/reschedule/..." value={rescheduleCalendar} onChange={e => setRescheduleCalendar(e.target.value)} className="mt-1" />
+                </div>
+              </div>
             </CardContent>
           </Card>
 
-          <Button
-            onClick={handleSave}
-            disabled={saving}
-            className="w-full"
-            size="lg"
-          >
+          {/* 7 · Work Photos */}
+          <Card>
+            <CardHeader>
+              <CardTitle>Work Photos</CardTitle>
+              <CardDescription>Sample photos of completed projects — max 5MB each</CardDescription>
+            </CardHeader>
+            <CardContent>
+              <div className="grid grid-cols-3 sm:grid-cols-4 gap-3">
+                {workPhotos.map((photo, index) => (
+                  <div key={index} className="relative aspect-square rounded-lg overflow-hidden bg-muted border border-border group">
+                    <img src={photo} alt={`Work photo ${index + 1}`} className="h-full w-full object-cover" />
+                    <button type="button" onClick={() => removeWorkPhoto(index)}
+                      className="absolute top-1 right-1 p-1 bg-destructive text-destructive-foreground rounded-full opacity-0 group-hover:opacity-100 transition-opacity">
+                      <X className="h-3 w-3" />
+                    </button>
+                  </div>
+                ))}
+                <Label htmlFor="work-photo-upload" className="cursor-pointer">
+                  <div className="aspect-square rounded-lg border-2 border-dashed border-input hover:border-primary/50 flex flex-col items-center justify-center gap-2 transition-colors">
+                    {uploadingWorkPhoto ? (
+                      <span className="text-xs text-muted-foreground">Uploading...</span>
+                    ) : (
+                      <>
+                        <Plus className="h-6 w-6 text-muted-foreground" />
+                        <span className="text-xs text-muted-foreground">Add Photo</span>
+                      </>
+                    )}
+                  </div>
+                  <input id="work-photo-upload" type="file" accept="image/*" onChange={handleWorkPhotoUpload} className="hidden" disabled={uploadingWorkPhoto} />
+                </Label>
+              </div>
+            </CardContent>
+          </Card>
+
+          <Button onClick={handleSave} disabled={saving} className="w-full" size="lg">
             {saving ? "Saving..." : "Save Changes"}
           </Button>
         </div>

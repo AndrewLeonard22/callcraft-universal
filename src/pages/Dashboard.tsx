@@ -613,61 +613,84 @@ export default function Dashboard() {
       </div>
 
       <div className="container mx-auto px-4 sm:px-6 py-6 sm:py-8 max-w-7xl">
-        {/* View Mode Tabs */}
+        {/* View Mode Tabs + Search Toolbar */}
         {!loading && clients.length > 0 && (
-          <div className="mb-6">
-            <div className="flex items-center gap-2 p-1 bg-muted/50 rounded-lg w-fit">
-              <Button
-                variant={viewMode === 'live' ? 'default' : 'ghost'}
-                size="sm"
-                onClick={() => setViewMode('live')}
-                className="gap-2"
-              >
-                Live Companies
-                <span className="ml-1 px-2 py-0.5 bg-background/50 rounded-full text-xs font-medium">
-                  {clients.filter(c => !c.archived).length}
-                </span>
-              </Button>
-              <Button
-                variant={viewMode === 'archived' ? 'default' : 'ghost'}
-                size="sm"
-                onClick={() => setViewMode('archived')}
-                className="gap-2"
-              >
-                <FileText className="h-4 w-4" />
-                Archived
-                <span className="ml-1 px-2 py-0.5 bg-background/50 rounded-full text-xs font-medium">
-                  {clients.filter(c => c.archived).length}
-                </span>
-              </Button>
+          <div className="mb-6 sm:mb-8 space-y-4">
+            {/* Tab row with underline style */}
+            <div className="flex items-end justify-between border-b border-border">
+              <div className="flex items-center">
+                <button
+                  onClick={() => setViewMode('live')}
+                  className={`relative flex items-center gap-2 px-1 pb-3 mr-6 text-sm font-medium transition-colors ${
+                    viewMode === 'live' ? 'text-foreground' : 'text-muted-foreground hover:text-foreground'
+                  }`}
+                >
+                  <span className="relative flex h-2 w-2 flex-shrink-0">
+                    {viewMode === 'live' && (
+                      <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-emerald-400 opacity-75" />
+                    )}
+                    <span className={`relative inline-flex rounded-full h-2 w-2 ${viewMode === 'live' ? 'bg-emerald-500' : 'bg-muted-foreground/40'}`} />
+                  </span>
+                  Live Companies
+                  <span className={`inline-flex items-center justify-center min-w-[20px] h-5 px-1.5 rounded text-xs font-semibold tabular-nums transition-colors ${
+                    viewMode === 'live' ? 'bg-foreground text-background' : 'bg-muted text-muted-foreground'
+                  }`}>
+                    {clients.filter(c => !c.archived).length}
+                  </span>
+                  {viewMode === 'live' && (
+                    <span className="absolute bottom-0 left-0 right-0 h-0.5 bg-foreground rounded-full" />
+                  )}
+                </button>
+
+                <button
+                  onClick={() => setViewMode('archived')}
+                  className={`relative flex items-center gap-2 px-1 pb-3 text-sm font-medium transition-colors ${
+                    viewMode === 'archived' ? 'text-foreground' : 'text-muted-foreground hover:text-foreground'
+                  }`}
+                >
+                  <Archive className={`h-3.5 w-3.5 flex-shrink-0 transition-colors ${viewMode === 'archived' ? 'text-foreground' : 'text-muted-foreground/60'}`} />
+                  Archived
+                  <span className={`inline-flex items-center justify-center min-w-[20px] h-5 px-1.5 rounded text-xs font-semibold tabular-nums transition-colors ${
+                    viewMode === 'archived' ? 'bg-foreground text-background' : 'bg-muted text-muted-foreground'
+                  }`}>
+                    {clients.filter(c => c.archived).length}
+                  </span>
+                  {viewMode === 'archived' && (
+                    <span className="absolute bottom-0 left-0 right-0 h-0.5 bg-foreground rounded-full" />
+                  )}
+                </button>
+              </div>
+
+              <p className="text-xs text-muted-foreground pb-3 hidden sm:block">
+                {filteredClients.length} {filteredClients.length === 1 ? 'company' : 'companies'} {viewMode === 'live' ? 'active' : 'archived'}
+              </p>
             </div>
-          </div>
-        )}
-        
-        {/* Search Bar */}
-        {!loading && clients.length > 0 && (
-          <div className="mb-6 sm:mb-8">
-            <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-3">
-              <div className="relative flex-1 max-w-md">
-                <Search className="absolute left-3 sm:left-4 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+
+            {/* Unified search + filter toolbar */}
+            <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-2">
+              <div className="relative flex-1 max-w-sm">
+                <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-3.5 w-3.5 text-muted-foreground" />
                 <Input
                   type="text"
                   placeholder="Search companies..."
                   value={searchQuery}
                   onChange={(e) => setSearchQuery(e.target.value)}
-                  className="pl-10 sm:pl-11 h-10 sm:h-12 bg-card shadow-sm border-border/50 focus:border-primary/50 transition-colors text-sm sm:text-base"
+                  className="pl-9 h-9 text-sm bg-background border-border/60 focus-visible:border-primary/50 placeholder:text-muted-foreground/50"
                 />
               </div>
-              
-              <div className="flex items-center gap-2">
+
+              <div className="flex items-center gap-1.5 sm:ml-auto">
                 <DropdownMenu>
                   <DropdownMenuTrigger asChild>
-                    <Button variant="outline" size="sm" className="h-10 sm:h-12 shadow-sm">
-                      <Phone className="h-4 w-4 mr-2" />
-                      {selectedAgent === 'all' ? 'All Agents' : selectedAgent === 'unassigned' ? 'Unassigned' : callAgents.find(a => a.id === selectedAgent)?.name || 'Agent'}
+                    <Button variant="outline" size="sm" className="h-9 gap-1.5 text-xs font-medium border-border/60 text-muted-foreground hover:text-foreground px-3">
+                      <Phone className="h-3.5 w-3.5" />
+                      <span className="hidden sm:inline">
+                        {selectedAgent === 'all' ? 'All Agents' : selectedAgent === 'unassigned' ? 'Unassigned' : callAgents.find(a => a.id === selectedAgent)?.name || 'Agent'}
+                      </span>
+                      <ChevronDown className="h-3 w-3 opacity-50" />
                     </Button>
                   </DropdownMenuTrigger>
-                  <DropdownMenuContent align="end">
+                  <DropdownMenuContent align="end" className="w-44">
                     <DropdownMenuItem onClick={() => setSelectedAgent('all')}>
                       All Agents {selectedAgent === 'all' && '✓'}
                     </DropdownMenuItem>
@@ -682,12 +705,15 @@ export default function Dashboard() {
                     ))}
                   </DropdownMenuContent>
                 </DropdownMenu>
-                
+
                 <DropdownMenu>
                   <DropdownMenuTrigger asChild>
-                    <Button variant="outline" size="sm" className="h-10 sm:h-12 shadow-sm">
-                      <ArrowUpDown className="h-4 w-4 mr-2" />
-                      Sort
+                    <Button variant="outline" size="sm" className="h-9 gap-1.5 text-xs font-medium border-border/60 text-muted-foreground hover:text-foreground px-3">
+                      <ArrowUpDown className="h-3.5 w-3.5" />
+                      <span className="hidden sm:inline">
+                        {sortBy === 'name' ? 'Name' : sortBy === 'date' ? 'Date' : 'Service'}
+                      </span>
+                      <ChevronDown className="h-3 w-3 opacity-50" />
                     </Button>
                   </DropdownMenuTrigger>
                   <DropdownMenuContent align="end">
@@ -703,29 +729,35 @@ export default function Dashboard() {
                   </DropdownMenuContent>
                 </DropdownMenu>
 
-                <div className="flex border rounded-md shadow-sm">
-                  <Button
-                    variant={displayMode === 'grid' ? 'default' : 'ghost'}
-                    size="sm"
+                <div className="flex items-center border border-border/60 rounded-md overflow-hidden h-9 flex-shrink-0">
+                  <button
                     onClick={() => setDisplayMode('grid')}
-                    className="rounded-r-none h-10 sm:h-12"
+                    className={`flex items-center justify-center w-9 h-full transition-colors ${
+                      displayMode === 'grid'
+                        ? 'bg-foreground text-background'
+                        : 'text-muted-foreground hover:text-foreground hover:bg-muted/50'
+                    }`}
                   >
-                    <Grid3x3 className="h-4 w-4" />
-                  </Button>
-                  <Button
-                    variant={displayMode === 'list' ? 'default' : 'ghost'}
-                    size="sm"
+                    <Grid3x3 className="h-3.5 w-3.5" />
+                  </button>
+                  <div className="w-px h-4 bg-border/60" />
+                  <button
                     onClick={() => setDisplayMode('list')}
-                    className="rounded-l-none h-10 sm:h-12"
+                    className={`flex items-center justify-center w-9 h-full transition-colors ${
+                      displayMode === 'list'
+                        ? 'bg-foreground text-background'
+                        : 'text-muted-foreground hover:text-foreground hover:bg-muted/50'
+                    }`}
                   >
-                    <List className="h-4 w-4" />
-                  </Button>
+                    <List className="h-3.5 w-3.5" />
+                  </button>
                 </div>
               </div>
             </div>
+
             {searchQuery && (
-              <p className="text-xs sm:text-sm text-muted-foreground mt-2 sm:mt-3">
-                Found {filteredClients.length} {filteredClients.length === 1 ? 'result' : 'results'}
+              <p className="text-xs text-muted-foreground">
+                {filteredClients.length} {filteredClients.length === 1 ? 'result' : 'results'} for "{searchQuery}"
               </p>
             )}
           </div>
