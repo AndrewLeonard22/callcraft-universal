@@ -14,7 +14,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
 import { ZipChecker } from "@/components/ZipChecker";
 import { RichTextEditor } from "@/components/RichTextEditor";
-import { BadassMapCanvas } from "@/components/BadassMapCanvas";
+import { AreaCockpit } from "@/components/AreaCockpit";
 import { FormattedScript } from "@/components/FormattedScript";
 import { ScriptActions } from "@/components/ScriptActions";
 import { ProjectEstimatePanel } from "@/components/ProjectEstimatePanel";
@@ -741,7 +741,7 @@ function selectDQChip(widget,key,btn,isDQ){
                   absolute-inset carries real height (the old auto-scroll
                   column collapsed the canvas to 0px = Andrew's 'blank'). */}
               <div className="absolute inset-0">
-                <BadassMapCanvas
+                <AreaCockpit
                   hqAddress={getDetailValue("address") || undefined}
                   hqLat={client.hq_lat ?? undefined}
                   hqLng={client.hq_lng ?? undefined}
