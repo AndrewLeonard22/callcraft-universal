@@ -418,6 +418,7 @@ function InteractiveMap({ searchedQuery, hqAddress, hqLat, hqLng, serviceRadiusM
     const p = panoRef.current;
     if (!p || !streetReady) return;
     const next = !streetOpen;
+    if (next) setView3d(false); // Street View replaces the 3D/2D canvas
     p.setVisible(next);
     setStreetOpen(next);
   };
@@ -429,6 +430,7 @@ function InteractiveMap({ searchedQuery, hqAddress, hqLat, hqLng, serviceRadiusM
       exitMeasure();
       return;
     }
+    setView3d(false); // draw-to-measure runs on the 2D map
     const [{ DrawingManager, OverlayType }, { spherical }] = await Promise.all([
       getLoader().importLibrary("drawing") as Promise<google.maps.DrawingLibrary>,
       getLoader().importLibrary("geometry") as Promise<google.maps.GeometryLibrary>,
@@ -462,17 +464,17 @@ function InteractiveMap({ searchedQuery, hqAddress, hqLat, hqLng, serviceRadiusM
     });
   }, [measuring, exitMeasure]);
 
-  // Photorealistic 3D ("Google Earth") — toggles a Map3DElement over the 2D map,
-  // centered on the current focus. Graceful: if maps3d can't load, the button hides.
-  const toggle3d = useCallback(async () => {
-    if (view3d) {
-      setView3d(false);
-      return;
-    }
+  const currentFocus = useCallback(
+    (): google.maps.LatLngLiteral | null =>
+      lastFocusRef.current ?? (hasHq ? { lat: hqLat as number, lng: hqLng as number } : null),
+    [hasHq, hqLat, hqLng],
+  );
+
+  // Photorealistic 3D ("Google Earth") — create/center a Map3DElement over the 2D map.
+  // Graceful: if maps3d can't load, threeDReady flips false and we stay 2D.
+  const activate3d = useCallback(async (focus: google.maps.LatLngLiteral) => {
     const host = map3dHost.current;
-    const focus =
-      lastFocusRef.current ?? (hasHq ? { lat: hqLat as number, lng: hqLng as number } : null);
-    if (!host || !focus) return;
+    if (!host) return;
     try {
       if (!map3dRef.current) {
         const { Map3DElement } = await getLoader().importLibrary("maps3d");
@@ -490,9 +492,27 @@ function InteractiveMap({ searchedQuery, hqAddress, hqLat, hqLng, serviceRadiusM
       }
       setView3d(true);
     } catch {
-      setThreeDReady(false); // maps3d unavailable — hide the 3D button
+      setThreeDReady(false); // maps3d unavailable — hide the 3D button, stay 2D
     }
-  }, [view3d, hasHq, hqLat, hqLng]);
+  }, []);
+
+  const toggle3d = useCallback(() => {
+    if (view3d) {
+      setView3d(false);
+      return;
+    }
+    const focus = currentFocus();
+    if (focus) void activate3d(focus);
+  }, [view3d, currentFocus, activate3d]);
+
+  // 3D is the DEFAULT view the moment there's a location to show — Andrew's ask:
+  // "a cool 3D model even when we just click Area". Falls back to 2D if maps3d fails.
+  useEffect(() => {
+    if (!ready || !threeDReady) return;
+    const focus = currentFocus();
+    if (focus) void activate3d(focus);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [ready]);
 
   if (loadError) {
     return (
