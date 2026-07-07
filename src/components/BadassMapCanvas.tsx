@@ -117,6 +117,34 @@ function InteractiveMap({ searchedQuery, hqAddress, hqLat, hqLng, serviceRadiusM
   const [verdict, setVerdict] = useState<{ miles: number; inRange: boolean } | null>(null);
   // Est. home value (RentCast via /api/home-value — qualification gold next to a $25k minimum)
   const [homeValue, setHomeValue] = useState<{ value: number; low: number | null; high: number | null } | null>(null);
+  // ✨ AI visualizer — describe the upgrade, render it on the real yard
+  const [vizOpen, setVizOpen] = useState(false);
+  const [vizPrompt, setVizPrompt] = useState("");
+  const [vizBusy, setVizBusy] = useState(false);
+  const [vizError, setVizError] = useState<string | null>(null);
+  const [vizResult, setVizResult] = useState<{ before: string; after: string } | null>(null);
+  const [showBefore, setShowBefore] = useState(false);
+  const runVisualize = useCallback(async () => {
+    const at = lastFocusRef.current;
+    if (!at || !vizPrompt.trim() || vizBusy) return;
+    setVizBusy(true);
+    setVizError(null);
+    try {
+      const r = await fetch("/api/visualize", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ lat: at.lat, lng: at.lng, prompt: vizPrompt.trim() }),
+      });
+      const d = await r.json();
+      if (!r.ok) throw new Error(d?.error || `HTTP ${r.status}`);
+      setVizResult({ before: d.before, after: d.after });
+    } catch (e) {
+      setVizError(String(e instanceof Error ? e.message : e).slice(0, 140));
+    } finally {
+      setVizBusy(false);
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [vizPrompt, vizBusy]);
   const mapDiv = useRef<HTMLDivElement>(null);
   const svDiv = useRef<HTMLDivElement>(null);
   const acHost = useRef<HTMLDivElement>(null);
@@ -660,6 +688,64 @@ function InteractiveMap({ searchedQuery, hqAddress, hqLat, hqLng, serviceRadiusM
           </Button>
         )}
       </div>
+
+      {/* ✨ AI visualizer */}
+      {focusLabel && !streetOpen && (
+        <div className="absolute bottom-3 right-3 z-10 w-[300px]">
+          {!vizOpen ? (
+            <Button size="sm" className="h-8 w-full shadow-lg" onClick={() => setVizOpen(true)}>
+              ✨ Visualize the project
+            </Button>
+          ) : (
+            <div className="space-y-2 rounded-xl border border-border bg-background/95 p-3 shadow-lg backdrop-blur">
+              <div className="flex items-center justify-between">
+                <span className="text-[12px] font-semibold">✨ Render the upgrade on this yard</span>
+                <button className="text-muted-foreground hover:text-foreground" onClick={() => setVizOpen(false)}>✕</button>
+              </div>
+              <div className="flex flex-wrap gap-1">
+                {["Turf lawn", "Paver patio", "Pergola", "Fire pit", "Pool"].map((c) => (
+                  <button
+                    key={c}
+                    className="rounded-full border border-border bg-muted/60 px-2 py-0.5 text-[11px] hover:bg-muted"
+                    onClick={() => setVizPrompt((p) => (p ? `${p}, ${c.toLowerCase()}` : c))}
+                  >
+                    {c}
+                  </button>
+                ))}
+              </div>
+              <textarea
+                value={vizPrompt}
+                onChange={(e) => setVizPrompt(e.target.value)}
+                placeholder="Describe it — 'turf in the back, pergola over a paver patio, fire pit in the corner'…"
+                rows={2}
+                className="w-full resize-none rounded-lg border border-border bg-background px-2.5 py-1.5 text-[12px] outline-none focus:border-primary"
+              />
+              {vizError && <div className="text-[11px] font-medium text-red-600">{vizError}</div>}
+              <Button size="sm" className="h-8 w-full" disabled={vizBusy || !vizPrompt.trim()} onClick={runVisualize}>
+                {vizBusy ? "Rendering the yard…" : "Render it"}
+              </Button>
+            </div>
+          )}
+        </div>
+      )}
+      {vizResult && (
+        <div className="absolute inset-0 z-30 flex flex-col bg-black/85">
+          <img
+            src={showBefore ? vizResult.before : vizResult.after}
+            alt="AI render"
+            className="min-h-0 flex-1 object-contain"
+          />
+          <div className="flex items-center justify-center gap-2 p-3">
+            <Button size="sm" variant="secondary" className="h-8"
+              onMouseDown={() => setShowBefore(true)} onMouseUp={() => setShowBefore(false)} onMouseLeave={() => setShowBefore(false)}>
+              Hold to compare
+            </Button>
+            <Button size="sm" variant="secondary" className="h-8" onClick={() => { setVizResult(null); setShowBefore(false); }}>
+              Close
+            </Button>
+          </div>
+        </div>
+      )}
 
       {/* Bottom overlays — stacked in one column so they never collide on a narrow pane. */}
       {!streetOpen && (focusLabel || route || measuring) && (
