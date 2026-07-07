@@ -1,4 +1,4 @@
-# Area Cockpit — ground-up rebuild spec (Dash, 2026-07-06)
+# Area Cockpit + Script surface — ground-up rebuild spec (Dash, 2026-07-06)
 
 Andrew's mandate (scoped to the AREA surface): existing code = feature spec only.
 World-class design, simplicity, consistency, performance, maintainability. Diff irrelevant.
@@ -25,3 +25,14 @@ World-class design, simplicity, consistency, performance, maintainability. Diff 
 
 ## Deletions
 BadassMapCanvas.tsx (replaced), ZipChecker usage on this surface, mode-tangled refs/shims, silent catch-all fallbacks (replaced by the diagnostic surface).
+
+## Script surface (scope extended by Andrew, same mandate)
+Current: rich-text HTML rendered in an iframe (HtmlPreviewFrame) with injected
+CSS fighting the editor's inline styles via !important — the whole class dies.
+First principles: PARSE the stored content (HTML or marker format) into a
+structured model — Module[] { title, rules[], sayLines[], notes[] } — and render
+natively in React as a true teleprompter component (ScriptTeleprompter.tsx):
+say-lines as the hero cards, rules quiet, module step-rail navigation (jump to
+module N), sticky current-module header, density set for mid-call reading.
+No iframe, no CSS injection, no editor-style warfare. Editing keeps the
+existing RichTextEditor path untouched.
