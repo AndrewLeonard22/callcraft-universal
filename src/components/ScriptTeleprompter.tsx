@@ -2,10 +2,16 @@ import { useEffect, useMemo, useRef, useState } from "react";
 import { AlertTriangle } from "lucide-react";
 
 // The script surface, rebuilt from first principles (docs/AREA-REBUILD.md).
-// The editor's HTML is parsed into a MODEL (modules → say-lines → coaching
-// rules → stage directions) and rendered natively — no iframe, no injected
-// CSS fighting inline styles, no postMessage resize loop. Empty editor
-// paragraphs vanish at parse time, so density is structural, not !important.
+// The editor's HTML is parsed into a MODEL and rendered natively — no iframe,
+// no injected CSS fighting inline styles. Empty editor paragraphs and literal
+// "•" filler vanish at parse time, so density is structural, not !important.
+//
+// Heading hierarchy (Andrew: "they're the same exact size and they look the
+// same" — they must NOT):
+//   module   "Module 5: The Project"   → numbered badge + bold title + rule
+//   section  "The Vision & Motivation" → small-caps sub-heading with tail rule
+//   caption  "Script (Core Questions)" → tiny colored eyebrow; switches the
+//            lane (say vs rules) and labels the block that follows
 
 interface TimelineOpt {
   label: string;
@@ -22,9 +28,11 @@ type RuleItem = { lead: string | null; body: string };
 
 type Block =
   | { kind: "module"; num: string | null; title: string; id: string }
+  | { kind: "section"; title: string; id: string }
+  | { kind: "caption"; lane: "say" | "rules"; text: string }
   | { kind: "say"; html: string }
   | { kind: "direction"; text: string }
-  | { kind: "rules"; items: RuleItem[] }
+  | { kind: "rules"; label: string; items: RuleItem[] }
   | { kind: "text"; html: string }
   | { kind: "timeline" };
 
@@ -37,13 +45,25 @@ const escapeHtml = (s: string) =>
 const chipPlaceholders = (html: string) =>
   html.replace(/\[([^\]<>]{1,40})\]/g, '<span class="tp-ph">$1</span>');
 
+// Literal "•" typed into the editor is noise here — cards and panels carry
+// the structure. Strip them at line starts; whole-bullet lines die upstream.
+const stripBullets = (html: string) =>
+  html.replace(/(^|<br\s*\/?>|<p>|<li>)\s*[•·▪◦‣]\s*/gi, "$1");
+
 const clean = (raw: string) =>
   raw
     .replace(/<script[\s\S]*?<\/script>/gi, "")
     .replace(/[\u{1F000}-\u{1FAFF}\u{2600}-\u{27BF}\u{FE0F}]/gu, "");
 
+const stripTags = (s: string) => s.replace(/<[^>]*>/g, "");
+
+function splitLead(t: string): RuleItem {
+  const m = t.match(/^([A-Z][\w' -]{1,22}):\s+(.+)$/s);
+  return m ? { lead: m[1], body: m[2] } : { lead: null, body: t };
+}
+
 function parseScript(content: string, wantTimeline: boolean): Block[] {
-  const isHtml = /<p[\s>]|<span|<strong>|<mark>|<h[1-4][\s>]/i.test(content);
+  const isHtml = /<p[\s>]|<span|<strong>|<mark>|<h[1-4][\s>]|<ul[\s>]|<ol[\s>]/i.test(content);
   const html = isHtml
     ? clean(content)
     : clean(content)
@@ -60,12 +80,36 @@ function parseScript(content: string, wantTimeline: boolean): Block[] {
   const doc = new DOMParser().parseFromString(html, "text/html");
   const blocks: Block[] = [];
   let mode: "say" | "rules" | null = null;
-  let moduleIdx = 0;
+  let rulesLabel = "Coaching";
+  let anchorIdx = 0;
 
   const pushRule = (item: RuleItem) => {
     const last = blocks[blocks.length - 1];
     if (last?.kind === "rules") last.items.push(item);
-    else blocks.push({ kind: "rules", items: [item] });
+    else blocks.push({ kind: "rules", label: rulesLabel, items: [item] });
+  };
+
+  const pushSay = (el: Element) => {
+    if (el.tagName === "UL" || el.tagName === "OL") {
+      // A list of spoken questions = one card PER question, never li bullets.
+      for (const li of Array.from(el.querySelectorAll("li"))) {
+        if ((li.textContent || "").replace(/[•·▪◦‣\s]+/g, "")) {
+          blocks.push({ kind: "say", html: chipPlaceholders(stripBullets(li.innerHTML)) });
+        }
+      }
+    } else {
+      blocks.push({ kind: "say", html: chipPlaceholders(stripBullets((el as HTMLElement).innerHTML)) });
+    }
+  };
+
+  const laneCaption = (txt: string): Block | null => {
+    const m = txt.match(/^(script|say|rules?|coach(?:ing)?|notes?)\b\s*[:(-]?/i);
+    if (!m || txt.length > 60) return null;
+    const lane: "say" | "rules" = /^(script|say)/i.test(m[1]) ? "say" : "rules";
+    mode = lane;
+    const text = txt.replace(/:\s*$/, "");
+    if (lane === "rules") rulesLabel = text;
+    return { kind: "caption", lane, text };
   };
 
   for (const el of Array.from(doc.body.children)) {
@@ -73,23 +117,30 @@ function parseScript(content: string, wantTimeline: boolean): Block[] {
     const tag = el.tagName;
 
     if (tag === "HR") continue;
-    if (!txt && !el.querySelector("img")) continue; // the gap-maker, gone
+    // Empty paragraphs AND bullet-only filler lines — the gap-makers, gone.
+    if (!txt.replace(/[•·▪◦‣\s]+/g, "") && !el.querySelector("img")) continue;
 
     if (/^H[1-4]$/.test(tag)) {
+      const modM = txt.match(/^module\s*(\d+)\s*[:.\-–—]?\s*(.*)$/i);
+      if (modM) {
+        mode = null;
+        rulesLabel = "Coaching";
+        blocks.push({ kind: "module", num: modM[1], title: modM[2].trim() || txt, id: `tp-mod-${anchorIdx++}` });
+        continue;
+      }
+      const cap = laneCaption(txt);
+      if (cap) { blocks.push(cap); continue; }
       mode = null;
-      const m = txt.match(/^module\s*(\d+)\s*[:.\-–—]?\s*(.*)$/i);
-      blocks.push({
-        kind: "module",
-        num: m ? m[1] : null,
-        title: (m ? m[2] : txt).replace(/\s*\((.{25,})\)\s*$/, "").trim() || txt,
-        id: `tp-mod-${moduleIdx++}`,
-      });
+      rulesLabel = "Coaching";
+      blocks.push({ kind: "section", title: txt.replace(/:\s*$/, ""), id: `tp-sec-${anchorIdx++}` });
       continue;
     }
 
-    // "Rules:" / "Script:" caption paragraphs switch the lane, render nothing.
-    if (/^(rules?|coach(?:ing)?|notes?)\s*:?$/i.test(txt) && txt.length < 24) { mode = "rules"; continue; }
-    if (/^(script|say)\s*:?$/i.test(txt) && txt.length < 24) { mode = "say"; continue; }
+    // "Rules:" / "Script:" caption paragraphs — same tier as caption headings.
+    if (txt.length < 60 && /^(script|say|rules?|coach(?:ing)?|notes?)\b\s*:?\s*(\(.*\))?$/i.test(txt)) {
+      const cap = laneCaption(txt);
+      if (cap) { blocks.push(cap); continue; }
+    }
 
     // (Wait for "Yes") — a stage direction, not a spoken line.
     if (/^\(.*\)$/s.test(txt) && txt.length < 160) {
@@ -97,25 +148,22 @@ function parseScript(content: string, wantTimeline: boolean): Block[] {
       continue;
     }
 
-    const spoken = !!el.querySelector("mark") || mode === "say" || /^["“]/.test(txt);
-    if (spoken) {
-      blocks.push({ kind: "say", html: chipPlaceholders((el as HTMLElement).innerHTML) });
-      continue;
-    }
+    const spoken = !!el.querySelector("mark") || mode === "say" || /^["“•·]?\s*["“]/.test(txt);
+    if (spoken) { pushSay(el); continue; }
 
     if (mode === "rules") {
       if (tag === "UL" || tag === "OL") {
         for (const li of Array.from(el.querySelectorAll("li"))) {
-          const t = (li.textContent || "").trim();
+          const t = (li.textContent || "").replace(/^[•·▪◦‣\s]+/, "").trim();
           if (t) pushRule(splitLead(t));
         }
       } else {
-        pushRule(splitLead(txt));
+        pushRule(splitLead(txt.replace(/^[•·▪◦‣\s]+/, "")));
       }
       continue;
     }
 
-    blocks.push({ kind: "text", html: chipPlaceholders((el as HTMLElement).innerHTML) });
+    blocks.push({ kind: "text", html: chipPlaceholders(stripBullets((el as HTMLElement).innerHTML)) });
   }
 
   if (wantTimeline) {
@@ -125,13 +173,6 @@ function parseScript(content: string, wantTimeline: boolean): Block[] {
     if (at !== -1) blocks.splice(at + 1, 0, { kind: "timeline" });
   }
   return blocks;
-}
-
-const stripTags = (s: string) => s.replace(/<[^>]*>/g, "");
-
-function splitLead(t: string): RuleItem {
-  const m = t.match(/^([A-Z][\w' -]{1,22}):\s+(.+)$/s);
-  return m ? { lead: m[1], body: m[2] } : { lead: null, body: t };
 }
 
 /* ── Timeline DQ — native React, replaces the injected-iframe widget ── */
@@ -181,19 +222,25 @@ function TimelineDQ({ options }: { options: TimelineOpt[] }) {
 // Rich HTML lands via dangerouslySetInnerHTML; these arbitrary-variant
 // classes are the entire "theme" — no iframe stylesheet to fight.
 const RICH =
-  "[&_mark]:bg-transparent [&_mark]:text-inherit [&_mark]:font-inherit [&_strong]:font-semibold " +
+  "[&_mark]:bg-transparent [&_mark]:text-inherit [&_strong]:font-semibold " +
   "[&_a]:pointer-events-none [&_a]:text-inherit [&_a]:no-underline [&_img]:max-w-full [&_img]:rounded-lg " +
+  "[&_ul]:list-none [&_ol]:list-none [&_li]:my-1 " +
   "[&_.tp-ph]:rounded [&_.tp-ph]:bg-primary/10 [&_.tp-ph]:px-1 [&_.tp-ph]:py-px [&_.tp-ph]:text-[0.92em] [&_.tp-ph]:font-semibold [&_.tp-ph]:text-primary";
 
 export function ScriptTeleprompter({ content, timeline }: TeleprompterProps) {
   const blocks = useMemo(() => parseScript(content, !!timeline), [content, timeline]);
-  const modules = useMemo(() => blocks.filter((b) => b.kind === "module") as Extract<Block, { kind: "module" }>[], [blocks]);
+  const rail = useMemo(() => {
+    const mods = blocks.filter((b) => b.kind === "module") as Extract<Block, { kind: "module" }>[];
+    if (mods.length) return mods.map((m) => ({ id: m.id, num: m.num, title: m.title }));
+    const secs = blocks.filter((b) => b.kind === "section") as Extract<Block, { kind: "section" }>[];
+    return secs.map((s) => ({ id: s.id, num: null as string | null, title: s.title }));
+  }, [blocks]);
   const [active, setActive] = useState<string | null>(null);
   const bodyRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
-    if (!modules.length || !bodyRef.current) return;
-    const els = modules
+    if (!rail.length || !bodyRef.current) return;
+    const els = rail
       .map((m) => bodyRef.current?.querySelector(`#${m.id}`))
       .filter(Boolean) as Element[];
     const io = new IntersectionObserver(
@@ -204,15 +251,15 @@ export function ScriptTeleprompter({ content, timeline }: TeleprompterProps) {
     );
     els.forEach((el) => io.observe(el));
     return () => io.disconnect();
-  }, [modules]);
+  }, [rail]);
 
   return (
     <div>
       {/* module rail — the call has stages; jump between them mid-call */}
-      {modules.length > 1 && (
+      {rail.length > 1 && (
         <div className="sticky top-0 z-20 -mx-6 border-b border-border bg-background/95 px-6 py-2 backdrop-blur">
           <div className="mx-auto flex max-w-[760px] gap-1.5 overflow-x-auto [scrollbar-width:none]">
-            {modules.map((m, i) => (
+            {rail.map((m, i) => (
               <button
                 key={m.id}
                 onClick={() => document.getElementById(m.id)?.scrollIntoView({ behavior: "smooth", block: "start" })}
@@ -235,15 +282,28 @@ export function ScriptTeleprompter({ content, timeline }: TeleprompterProps) {
           switch (b.kind) {
             case "module":
               return (
-                <div key={i} id={b.id} className="group mb-3 mt-8 scroll-mt-14 first:mt-1">
-                  <div className="flex items-center gap-2.5 border-t border-border pt-5 group-first:border-t-0 group-first:pt-0">
+                <div key={i} id={b.id} className="group mb-3 mt-9 scroll-mt-14 first:mt-1">
+                  <div className="flex items-center gap-2.5 border-t border-border pt-6 group-first:border-t-0 group-first:pt-0">
                     <span className="flex h-6 w-6 shrink-0 items-center justify-center rounded-md bg-foreground text-[12px] font-bold text-background">
                       {b.num ?? "§"}
                     </span>
-                    <h2 className="text-[14.5px] font-bold tracking-tight text-foreground">{b.title}</h2>
+                    <h2 className="text-[15px] font-bold tracking-tight text-foreground">{b.title}</h2>
                   </div>
                 </div>
               );
+            case "section":
+              return (
+                <div key={i} id={b.id} className="mb-2 mt-6 flex scroll-mt-14 items-center gap-2.5">
+                  <h3 className="shrink-0 text-[11.5px] font-bold uppercase tracking-[0.09em] text-foreground/70">{b.title}</h3>
+                  <div className="h-px flex-1 bg-border/70" />
+                </div>
+              );
+            case "caption":
+              return b.lane === "say" ? (
+                <div key={i} className="mb-1 mt-4 text-[10px] font-bold uppercase tracking-[0.14em] text-primary/80">
+                  {b.text}
+                </div>
+              ) : null; // rules captions label their panel instead
             case "say":
               return (
                 <div
@@ -261,7 +321,7 @@ export function ScriptTeleprompter({ content, timeline }: TeleprompterProps) {
             case "rules":
               return (
                 <div key={i} className="my-3 rounded-lg bg-muted/40 px-4 py-2.5">
-                  <div className="mb-1 text-[9.5px] font-bold uppercase tracking-[0.14em] text-muted-foreground/70">Coaching</div>
+                  <div className="mb-1 text-[9.5px] font-bold uppercase tracking-[0.14em] text-muted-foreground/70">{b.label}</div>
                   <ul className="space-y-1">
                     {b.items.map((r, j) => (
                       <li key={j} className="flex gap-2 text-[12.5px] leading-snug text-muted-foreground">
