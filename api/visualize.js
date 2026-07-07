@@ -2,7 +2,16 @@
 // a paver patio"), we fetch the property's satellite view (Static Maps) and
 // have Gemini's image model render the upgrade onto the REAL yard.
 // Keys are server-side only (public repo).
-const MAPS_KEY = "AIzaSyC4bx-C9vGvC0JEdRnd4B78Uvmhq6YtkbU"; // publishable (referrer-restricted client-side; server use for Static Maps)
+// Server-side Static Maps needs a key that works WITHOUT a referer. A referrer-restricted
+// key returns REQUEST_DENIED from a server → the visualizer would break the instant the client
+// Maps key is locked. So prefer a DEDICATED, non-referrer-restricted server key (MAPS_SERVER_KEY:
+// IP-restricted to Vercel egress or unrestricted, Static-Maps-only, quota-capped). Falls back to
+// the deploy env's client key (works server-side only while it's still unrestricted), then to the
+// already-public client key as a transitional last resort — remove once MAPS_SERVER_KEY is set.
+const MAPS_KEY =
+  process.env.MAPS_SERVER_KEY ||
+  process.env.VITE_GOOGLE_MAPS_API_KEY ||
+  "AIzaSyC4bx-C9vGvC0JEdRnd4B78Uvmhq6YtkbU";
 
 export default async function handler(req, res) {
   if (req.method !== "POST") return res.status(405).json({ error: "POST only" });
