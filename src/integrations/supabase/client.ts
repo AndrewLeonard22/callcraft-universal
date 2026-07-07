@@ -2,8 +2,14 @@
 import { createClient } from '@supabase/supabase-js';
 import type { Database } from './types';
 
-const SUPABASE_URL = import.meta.env.VITE_SUPABASE_URL;
-const SUPABASE_PUBLISHABLE_KEY = import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY;
+// Publishable fallbacks (2026-07-06 outage fix): b40f36f untracked .env for
+// good reasons, but the Vercel build was READING it — no project env vars were
+// ever set, so every deploy after built blind and prod white-screened
+// ("supabaseUrl is required"). These are the anon/publishable values
+// (public-by-design, already in git history); real env vars override them.
+const SUPABASE_URL = import.meta.env.VITE_SUPABASE_URL || "https://gveybpenbvfqqviyzylj.supabase.co";
+const SUPABASE_PUBLISHABLE_KEY = import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY ||
+  "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Imd2ZXlicGVuYnZmcXF2aXl6eWxqIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NjE4MzM2OTEsImV4cCI6MjA3NzQwOTY5MX0.sityc48AIt_IvM_AKSATOJfOaFZO7ObsrMRh7xUp7QU";
 
 // Import the supabase client like this:
 // import { supabase } from "@/integrations/supabase/client";
