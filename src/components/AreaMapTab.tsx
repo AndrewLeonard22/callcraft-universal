@@ -212,14 +212,12 @@ export function AreaMapTab({
   const [searched, setSearched] = useState<string | null>(null);
   const [appts, setAppts] = useState<TodayAppt[]>(propAppts ?? []);
   const [apptsLoading, setApptsLoading] = useState(false);
-  const [apptsError, setApptsError] = useState<string | null>(null);
 
   // Fetch appointments from Airtable via edge function
   useEffect(() => {
     if (propAppts) { setAppts(propAppts); return; }
     if (!businessName) return;
     setApptsLoading(true);
-    setApptsError(null);
     (async () => {
       try {
         const { data: sessionData } = await supabase.auth.getSession();
@@ -235,10 +233,19 @@ export function AreaMapTab({
             },
           }
         );
+        // The edge function 404s / returns an HTML error page when Airtable isn't
+        // wired — never surface a raw "Unexpected token '<'" JSON parse error to a
+        // setter mid-call. Appointments are optional; degrade to none, quietly.
+        const ct = res.headers.get("content-type") ?? "";
+        if (!res.ok || !ct.includes("application/json")) {
+          logger.error("Airtable appointments unavailable:", res.status, ct);
+          setAppts([]);
+          return;
+        }
         const data = await res.json();
         if (data.error) {
           logger.error("Airtable fetch error:", data.error);
-          setApptsError(data.error);
+          setAppts([]); // no scary red error; just no appointments
           return;
         }
 
@@ -256,9 +263,8 @@ export function AreaMapTab({
         );
         setAppts(mappedAppts);
       } catch (e) {
-        const msg = e instanceof Error ? e.message : String(e);
         logger.error("Failed to load Airtable appointments:", e);
-        setApptsError(msg);
+        setAppts([]); // network/parse failure = no appointments, not an on-screen error
       } finally {
         setApptsLoading(false);
       }
@@ -349,12 +355,7 @@ export function AreaMapTab({
             <div className="text-[20px] font-bold text-foreground leading-tight mt-0.5">
               {apptsLoading ? <Loader2 className="h-4 w-4 animate-spin inline" /> : todayAppts.length}
             </div>
-            {apptsError && (
-              <div className="text-[9px] text-red-500 break-all leading-tight mt-0.5" title={apptsError}>
-                Error: {apptsError.slice(0, 60)}
-              </div>
-            )}
-            {!apptsError && flaggedCount > 0 && (
+            {flaggedCount > 0 && (
               <div className="text-[10px] text-amber-600">{flaggedCount} flagged</div>
             )}
           </div>
