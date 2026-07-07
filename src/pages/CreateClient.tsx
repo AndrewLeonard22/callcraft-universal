@@ -213,10 +213,30 @@ export default function CreateClient() {
           <p className="text-sm text-muted-foreground">Fill in the company profile to get started with call scripts</p>
         </div>
 
+        <div className="sticky top-[53px] z-30 -mx-2 px-2 py-2 mb-1 bg-background/95 backdrop-blur-sm flex items-center gap-1 overflow-x-auto">
+          {[
+            { id: "ob-identity", label: "Identity" },
+            { id: "ob-people", label: "People" },
+            { id: "ob-services", label: "Services" },
+            { id: "ob-area", label: "Area" },
+            { id: "ob-links", label: "Links" },
+          ].map((sec, i) => (
+            <button
+              key={sec.id}
+              type="button"
+              onClick={() => document.getElementById(sec.id)?.scrollIntoView({ behavior: "smooth", block: "start" })}
+              className="shrink-0 inline-flex items-center gap-1.5 h-7 px-2.5 rounded-full border bg-card text-xs font-medium text-muted-foreground hover:text-foreground hover:border-primary/40 transition-colors"
+            >
+              <span className="text-[10px] font-semibold text-primary tabular-nums">{i + 1}</span>
+              {sec.label}
+            </button>
+          ))}
+        </div>
+
         <div className="space-y-6">
 
           {/* 1 · Company Identity */}
-          <Card>
+          <Card id="ob-identity" className="scroll-mt-24">
             <CardHeader>
               <CardTitle>Company Identity</CardTitle>
               <CardDescription>Basic details that identify this company in the system</CardDescription>
@@ -266,7 +286,7 @@ export default function CreateClient() {
           </Card>
 
           {/* 2 · People */}
-          <Card>
+          <Card id="ob-people" className="scroll-mt-24">
             <CardHeader>
               <CardTitle>People</CardTitle>
               <CardDescription>Owner, sales rep, and any additional contacts for setters</CardDescription>
@@ -345,7 +365,7 @@ export default function CreateClient() {
           </Card>
 
           {/* 3 · Services & Qualification */}
-          <Card>
+          <Card id="ob-services" className="scroll-mt-24">
             <CardHeader>
               <CardTitle>Services & Qualification</CardTitle>
               <CardDescription>What the company sells, what to avoid, and key info for setters</CardDescription>
@@ -388,7 +408,7 @@ export default function CreateClient() {
           </Card>
 
           {/* 4 · Service Area */}
-          <Card>
+          <Card id="ob-area" className="scroll-mt-24">
             <CardHeader>
               <CardTitle>Service Area</CardTitle>
               <CardDescription>HQ location, service radius, and excluded zones shown to setters during calls</CardDescription>
@@ -440,7 +460,7 @@ export default function CreateClient() {
           </Card>
 
           {/* 6 · Links & Calendars */}
-          <Card>
+          <Card id="ob-links" className="scroll-mt-24">
             <CardHeader>
               <CardTitle>Links & Calendars</CardTitle>
               <CardDescription>Website, social media, CRM, and booking calendar links</CardDescription>
