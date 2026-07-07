@@ -183,22 +183,21 @@ export default function TeamManagement() {
 
       if (membersError) throw membersError;
 
-      // Load profiles separately for each member
-      const membersWithProfiles = await Promise.all(
-        (membersData || []).map(async (member) => {
-          const { data: profileData } = await supabase
+      // Batch: one profiles query for all member user_ids (was one .single() query
+      // PER member — N+1, and .single() threw on any member missing a profile row).
+      const memberUserIds = (membersData || []).map((m) => m.user_id);
+      const { data: memberProfiles } = memberUserIds.length
+        ? await supabase
             .from("profiles")
-            .select("display_name, username, avatar_url")
-            .eq("id", member.user_id)
-            .single();
+            .select("id, display_name, username, avatar_url")
+            .in("id", memberUserIds)
+        : { data: [] as any[] };
+      const memberProfileById = new Map((memberProfiles || []).map((p: any) => [p.id, p]));
+      const membersWithProfiles = (membersData || []).map((member) => ({
+        ...member,
+        profiles: memberProfileById.get(member.user_id) ?? null,
+      }));
 
-          return {
-            ...member,
-            profiles: profileData,
-          };
-        })
-      );
-      
       setMembers(membersWithProfiles as OrganizationMember[]);
 
       // Load pending invitations
@@ -210,21 +209,16 @@ export default function TeamManagement() {
         .order("created_at", { ascending: false });
 
       if (!invitationsError && invitationsData) {
-        // Load inviter profiles
-        const invitationsWithProfiles = await Promise.all(
-          invitationsData.map(async (invitation) => {
-            const { data: inviterProfile } = await supabase
-              .from("profiles")
-              .select("display_name")
-              .eq("id", invitation.invited_by)
-              .single();
-
-            return {
-              ...invitation,
-              inviter_profile: inviterProfile,
-            };
-          })
-        );
+        // Batch: one query for all inviter profiles (was one .single() per invitation).
+        const inviterIds = [...new Set(invitationsData.map((i) => i.invited_by).filter(Boolean))];
+        const { data: inviterProfiles } = inviterIds.length
+          ? await supabase.from("profiles").select("id, display_name").in("id", inviterIds)
+          : { data: [] as any[] };
+        const inviterById = new Map((inviterProfiles || []).map((p: any) => [p.id, p]));
+        const invitationsWithProfiles = invitationsData.map((invitation) => ({
+          ...invitation,
+          inviter_profile: inviterById.get(invitation.invited_by) ?? null,
+        }));
         setPendingInvitations(invitationsWithProfiles as PendingInvitation[]);
       }
     } catch (error) {
