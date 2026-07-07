@@ -627,8 +627,12 @@ function selectDQChip(widget,key,btn,isDQ){
             </div>
           )}
 
-          {/* Area Check */}
-          {(getDetailValue("address") || client.excluded_zips?.length > 0 || client.hq_lat) && (
+          {/* Area Check — ALWAYS rendered: the checker geocodes keylessly and
+              shows the satellite view even when the client profile has no HQ
+              coords yet (it just skips the distance verdict). Gating this on
+              profile completeness hid the setter's #1 mid-call tool exactly for
+              the clients with thin profiles. */}
+          {(
             <div className="px-4 pt-4 pb-4 border-b border-border/60">
               <div className="text-[11px] font-semibold uppercase tracking-[0.1em] text-muted-foreground mb-2">Service Area</div>
               {getDetailValue("address") && (
