@@ -20,7 +20,13 @@ import { MapPin, Navigation, Ruler, Eye, Layers, ExternalLink, Loader2, X, Box }
  * so it never hard-breaks. Lazy: the JS API only loads when this canvas mounts.
  */
 
-const API_KEY = import.meta.env.VITE_GOOGLE_MAPS_API_KEY as string | undefined;
+// Publishable fallback (2026-07-06, the env-bake pipeline failed across THREE
+// domains serving keyless builds — Andrew staring at the iframe fallback all
+// night). Browser Maps keys are public-by-design: any working build ships the
+// string; the security control is the key's REFERRER RESTRICTION in Google
+// console, not secrecy. Env var still wins when present.
+const API_KEY = (import.meta.env.VITE_GOOGLE_MAPS_API_KEY as string | undefined) ||
+  "AIzaSyC4bx-C9vGvC0JEdRnd4B78Uvmhq6YtkbU";
 // A vector Map ID unlocks tilt + AdvancedMarkerElement (raster 45° imagery is
 // deprecated). DEMO_MAP_ID works out of the box; set VITE_GOOGLE_MAPS_MAP_ID to a
 // real Cloud-console vector Map ID for prod.
