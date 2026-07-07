@@ -1,7 +1,7 @@
 import { useCallback, useEffect, useRef, useState } from "react";
 import { Loader } from "@googlemaps/js-api-loader";
 import { Button } from "@/components/ui/button";
-import { MapPin, Navigation, Ruler, Eye, Layers, ExternalLink, Loader2, X, Box } from "lucide-react";
+import { MapPin, Navigation, Ruler, Eye, Layers, ExternalLink, Loader2, X, Box, Search } from "lucide-react";
 
 /**
  * BadassMapCanvas — the interactive Google Maps setter surface (Andrew's ask:
@@ -59,6 +59,12 @@ interface DrawMgr {
 // weekly channel (headless), but @types/google.maps doesn't type it yet. Minimal shim.
 interface Map3D extends HTMLElement {
   center: { lat: number; lng: number; altitude: number };
+}
+// Minimal shape of a Places AutocompleteSuggestion's placePrediction — @types lags
+// on the new suggestion API, so we type only what we call.
+interface PlacePred {
+  text: { toString(): string };
+  toPlace(): google.maps.places.Place;
 }
 let loaderSingleton: LoaderWithImport | null = null;
 function getLoader(): LoaderWithImport {
@@ -147,7 +153,8 @@ function InteractiveMap({ searchedQuery, hqAddress, hqLat, hqLng, serviceRadiusM
   }, [vizPrompt, vizBusy]);
   const mapDiv = useRef<HTMLDivElement>(null);
   const svDiv = useRef<HTMLDivElement>(null);
-  const acHost = useRef<HTMLDivElement>(null);
+  const acSessionRef = useRef<unknown>(null); // Places autocomplete session token
+  const acDebounceRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
   const mapRef = useRef<google.maps.Map | null>(null);
   const panoRef = useRef<google.maps.StreetViewPanorama | null>(null);
@@ -178,6 +185,10 @@ function InteractiveMap({ searchedQuery, hqAddress, hqLat, hqLng, serviceRadiusM
   const [focusLabel, setFocusLabel] = useState<string | null>(null);
   const [view3d, setView3d] = useState(false);
   const [threeDReady, setThreeDReady] = useState(true); // flips false only if maps3d fails to load
+  // Controllable Places autocomplete — own input + dropdown (the opaque
+  // gmp-place-autocomplete's closed shadow DOM was un-typeable/un-debuggable).
+  const [acInput, setAcInput] = useState("");
+  const [acSuggestions, setAcSuggestions] = useState<{ text: string; prediction: PlacePred }[]>([]);
 
   const hasHq = hqLat != null && hqLng != null;
 
@@ -388,37 +399,55 @@ function InteractiveMap({ searchedQuery, hqAddress, hqLat, hqLng, serviceRadiusM
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
-  // 2) Mount the Places (New) autocomplete once the map is ready.
-  useEffect(() => {
-    if (!ready || !acHost.current) return;
-    let el: HTMLElement | null = null;
-    let cancelled = false;
-    (async () => {
-      const { PlaceAutocompleteElement } = (await getLoader().importLibrary(
-        "places",
-      )) as google.maps.PlacesLibrary;
-      if (cancelled || !acHost.current) return;
-      el = new PlaceAutocompleteElement({ includedRegionCodes: ["us"] }) as unknown as HTMLElement;
-      el.style.width = "100%";
-      acHost.current.appendChild(el);
-      el.addEventListener("gmp-select", async (e: unknown) => {
-        // Claim the latest focus token BEFORE the await so the last pick wins the race.
-        const myReq = ++focusReqRef.current;
-        const prediction = (e as { placePrediction?: { toPlace: () => google.maps.places.Place } })
-          .placePrediction;
-        if (!prediction) return;
-        const place = prediction.toPlace();
-        await place.fetchFields({ fields: ["formattedAddress", "location"] });
-        const loc = place.location;
-        if (loc) focusOn(loc.lat(), loc.lng(), place.formattedAddress ?? null, myReq);
+  // 2) Places autocomplete — fully controllable: fetch suggestions on input, render our
+  // OWN dropdown (guaranteed above the 3D), resolve a pick to coords via toPlace().
+  const fetchSuggestions = useCallback(async (input: string) => {
+    if (input.trim().length < 3) {
+      setAcSuggestions([]);
+      return;
+    }
+    try {
+      const { AutocompleteSuggestion, AutocompleteSessionToken } =
+        await getLoader().importLibrary("places");
+      if (!acSessionRef.current) acSessionRef.current = new AutocompleteSessionToken();
+      const { suggestions } = await AutocompleteSuggestion.fetchAutocompleteSuggestions({
+        input,
+        includedRegionCodes: ["us"],
+        sessionToken: acSessionRef.current,
       });
-    })();
-    return () => {
-      cancelled = true;
-      el?.remove();
-    };
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [ready]);
+      setAcSuggestions(
+        (suggestions as { placePrediction?: PlacePred }[])
+          .map((s) => s.placePrediction)
+          .filter((p): p is PlacePred => !!p)
+          .map((p) => ({ text: p.text.toString(), prediction: p })),
+      );
+    } catch {
+      setAcSuggestions([]);
+    }
+  }, []);
+
+  const onAcInput = useCallback(
+    (v: string) => {
+      setAcInput(v);
+      if (acDebounceRef.current) clearTimeout(acDebounceRef.current);
+      acDebounceRef.current = setTimeout(() => void fetchSuggestions(v), 250);
+    },
+    [fetchSuggestions],
+  );
+
+  const pickSuggestion = useCallback(
+    async (prediction: PlacePred) => {
+      const myReq = ++focusReqRef.current;
+      const place = prediction.toPlace();
+      await place.fetchFields({ fields: ["formattedAddress", "location"] });
+      const loc = place.location;
+      setAcInput(place.formattedAddress ?? "");
+      setAcSuggestions([]);
+      acSessionRef.current = null; // token is single-use per session; reset after a pick
+      if (loc) focusOn(loc.lat(), loc.lng(), place.formattedAddress ?? null, myReq);
+    },
+    [focusOn],
+  );
 
   // 3) React to the rail's checked address → geocode + focus (+ route).
   useEffect(() => {
@@ -602,12 +631,35 @@ function InteractiveMap({ searchedQuery, hqAddress, hqLat, hqLng, serviceRadiusM
         </div>
       )}
 
-      {/* Address search (Places autocomplete) + in-range verdict */}
-      <div className="absolute top-3 left-3 z-10 w-80 max-w-[75%] space-y-1.5">
-        <div
-          ref={acHost}
-          className="rounded-lg bg-background/95 shadow-md border border-border [&_gmp-place-autocomplete]:w-full"
-        />
+      {/* Address search — controllable input + our own dropdown (z-30, above the 3D) + verdict card. */}
+      <div className="absolute top-3 left-3 z-30 w-80 max-w-[75%] space-y-1.5">
+        <div className="relative">
+          <Search className="pointer-events-none absolute left-2.5 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+          <input
+            value={acInput}
+            onChange={(e) => onAcInput(e.target.value)}
+            placeholder="Type an address…"
+            className="w-full h-9 pl-8 pr-3 rounded-lg bg-background/95 border border-border shadow-md text-[13px] text-foreground outline-none focus:ring-2 focus:ring-ring"
+          />
+        </div>
+        {acSuggestions.length > 0 && (
+          <div className="rounded-lg border border-border bg-background shadow-lg overflow-hidden">
+            {acSuggestions.map((s, i) => (
+              <button
+                key={i}
+                type="button"
+                onMouseDown={(e) => {
+                  e.preventDefault();
+                  void pickSuggestion(s.prediction);
+                }}
+                className="w-full flex items-center gap-2 px-3 py-2 text-left text-[13px] hover:bg-muted transition-colors"
+              >
+                <MapPin className="h-3.5 w-3.5 shrink-0 text-muted-foreground" />
+                <span className="truncate">{s.text}</span>
+              </button>
+            ))}
+          </div>
+        )}
         {focusLabel && !streetOpen && (
           <div
             className={`space-y-1 rounded-xl border px-3.5 py-2.5 text-[12px] font-medium shadow-lg backdrop-blur ${
