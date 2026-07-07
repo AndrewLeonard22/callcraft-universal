@@ -2,7 +2,6 @@ import { useState, useEffect, useRef, useCallback } from "react";
 import { Search, X, MapPin, Loader2 } from "lucide-react";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { supabase } from "@/integrations/supabase/client";
 import { logger } from "@/utils/logger";
 import type { ExcludedArea } from "@/utils/areaLookup";
 
@@ -52,21 +51,72 @@ function featureToExcludedArea(f: MapboxFeature): ExcludedArea {
   };
 }
 
-// ── Token helper (same pattern as ZipChecker) ──────────────────────────────
+// ── Keyless geocoding (OpenStreetMap Nominatim) ─────────────────────────────
+// The old Mapbox path fetched a token from a Supabase edge fn that returns
+// nothing → every suggestion box was silently empty. This is keyless (matches
+// areaLookup.ts). Nominatim hits are adapted to the MapboxFeature shape the rest
+// of this file speaks, so featureToExcludedArea / pick / render are untouched.
 
-async function getMapboxToken(): Promise<string | null> {
-  const cached = localStorage.getItem("MAPBOX_PUBLIC_TOKEN");
-  if (cached) return cached;
+interface NominatimHit {
+  place_id: number;
+  display_name: string;
+  lat: string;
+  lon: string;
+  boundingbox?: [string, string, string, string]; // [south, north, west, east]
+  type?: string;
+  class?: string;
+  addresstype?: string;
+  name?: string;
+  address?: { state?: string; [k: string]: string | undefined };
+}
+
+function nominatimToFeature(h: NominatimHit): MapboxFeature {
+  const lng = parseFloat(h.lon);
+  const lat = parseFloat(h.lat);
+  const at = h.addresstype || h.type || "";
+  const place_type =
+    at === "postcode"
+      ? ["postcode"]
+      : at === "county" || h.type === "administrative"
+        ? ["district"]
+        : at === "city" || at === "town" || at === "village"
+          ? ["place"]
+          : ["address"];
+  // Nominatim bbox is [south, north, west, east]; MapboxFeature wants [west, south, east, north].
+  const bbox: [number, number, number, number] | undefined = h.boundingbox
+    ? [
+        parseFloat(h.boundingbox[2]),
+        parseFloat(h.boundingbox[0]),
+        parseFloat(h.boundingbox[3]),
+        parseFloat(h.boundingbox[1]),
+      ]
+    : undefined;
+  // Preserve the region so the zip-label logic in featureToExcludedArea still works.
+  const context = h.address?.state ? [{ id: "region.0", text: h.address.state }] : undefined;
+  return {
+    id: `osm-${h.place_id}`,
+    place_name: h.display_name,
+    place_type,
+    center: [lng, lat],
+    bbox,
+    context,
+    text: h.name || h.display_name.split(",")[0].trim(),
+  };
+}
+
+async function keylessGeocode(q: string, limit: number): Promise<MapboxFeature[]> {
+  const url = `https://nominatim.openstreetmap.org/search?q=${encodeURIComponent(
+    q
+  )}&format=jsonv2&addressdetails=1&countrycodes=us&limit=${limit}`;
   try {
-    const { data } = await supabase.functions.invoke("get-mapbox-token");
-    if (data?.token) {
-      localStorage.setItem("MAPBOX_PUBLIC_TOKEN", data.token);
-      return data.token;
-    }
+    const res = await fetch(url, { headers: { Accept: "application/json" } });
+    if (!res.ok) return [];
+    const data: NominatimHit[] = await res.json();
+    return data.map(nominatimToFeature);
   } catch (e) {
-    logger.error("Failed to get Mapbox token", e);
+    logger.error("Keyless geocode failed", e);
+    return [];
   }
-  return null;
 }
 
 // ── HQ Geocoder ────────────────────────────────────────────────────────────
@@ -88,12 +138,8 @@ export function HqGeocoder({ value, onChange }: HqGeocoderProps) {
   const search = useCallback(async (q: string) => {
     if (q.length < 3) { setSuggestions([]); setOpen(false); return; }
     setLoading(true);
-    const token = await getMapboxToken();
-    if (!token) { setLoading(false); return; }
-    const url = `https://api.mapbox.com/geocoding/v5/mapbox.places/${encodeURIComponent(q)}.json?access_token=${token}&limit=5&types=address,place`;
-    const res = await fetch(url);
-    const data = await res.json();
-    setSuggestions(data.features ?? []);
+    const features = await keylessGeocode(q, 5);
+    setSuggestions(features);
     setOpen(true);
     setLoading(false);
   }, []);
@@ -168,12 +214,8 @@ export function ExcludedAreaEditor({ value, onChange }: ExcludedAreaEditorProps)
   const search = useCallback(async (q: string) => {
     if (q.length < 2) { setSuggestions([]); setOpen(false); return; }
     setLoading(true);
-    const token = await getMapboxToken();
-    if (!token) { setLoading(false); return; }
-    const url = `https://api.mapbox.com/geocoding/v5/mapbox.places/${encodeURIComponent(q)}.json?access_token=${token}&limit=6&types=postcode,place,district`;
-    const res = await fetch(url);
-    const data = await res.json();
-    setSuggestions(data.features ?? []);
+    const features = await keylessGeocode(q, 6);
+    setSuggestions(features);
     setOpen(true);
     setLoading(false);
   }, []);
