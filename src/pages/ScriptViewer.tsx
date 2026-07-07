@@ -722,25 +722,26 @@ function selectDQChip(widget,key,btn,isDQ){
 
           {/* Tab content — Area tab gets full-height flex treatment; others scroll */}
           {centerTab === "area" ? (
-            <div className="flex-1 min-h-0 flex flex-col">
-              {/* Andrew's actual verdict: the badass 3D + measurements IS the
-                  want — the earlier scope-back killed a bad execution, not the
-                  ambition. BadassMapCanvas is graceful keyless (renders its
-                  iframe fallback until VITE_GOOGLE_MAPS_API_KEY is injected);
-                  the keyless address-check rides above it as the quick verdict. */}
-              <div className="border-b border-border px-6 py-4">
+            <div className="relative flex-1 min-h-0">
+              {/* FULL-SCREEN map (Andrew's verdict): the canvas IS the tab —
+                  edge to edge, booting on the client's HQ so it's never blank —
+                  with the address-check floating over it as a glass card
+                  (the map-app idiom). Root is h-screen flex, so flex-1 +
+                  absolute-inset carries real height (the old auto-scroll
+                  column collapsed the canvas to 0px = Andrew's 'blank'). */}
+              <div className="absolute inset-0">
+                <BadassMapCanvas
+                  hqAddress={getDetailValue("address") || undefined}
+                  hqLat={client.hq_lat ?? undefined}
+                  hqLng={client.hq_lng ?? undefined}
+                />
+              </div>
+              <div className="absolute left-4 top-4 z-10 w-[380px] max-w-[calc(100%-2rem)] rounded-xl border border-border bg-card/95 p-4 shadow-pop backdrop-blur">
                 <ZipChecker
                   excludedZips={client.excluded_zips ?? []}
                   clientCity={client.city ?? undefined}
                   clientAddress={getDetailValue("address") || undefined}
                   serviceRadiusMiles={Number(getDetailValue("service_radius_miles")) || 30}
-                  hqLat={client.hq_lat ?? undefined}
-                  hqLng={client.hq_lng ?? undefined}
-                />
-              </div>
-              <div className="flex-1 min-h-0">
-                <BadassMapCanvas
-                  hqAddress={getDetailValue("address") || undefined}
                   hqLat={client.hq_lat ?? undefined}
                   hqLng={client.hq_lng ?? undefined}
                 />
