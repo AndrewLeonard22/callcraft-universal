@@ -1,3 +1,4 @@
+import { AppShell } from "@/components/AppShell";
 import { useEffect, useState, useCallback, useMemo, lazy, Suspense } from "react";
 import { GraduationCap, DollarSign, Phone, BookOpen, Lightbulb, Package, Shield, TrendingUp, Award, CheckCircle2, XCircle, AlertCircle, Video, ExternalLink, Brain, ArrowRight, RotateCcw, Check, X, Plus, Trash2, Edit, Trophy, Disc3, HelpCircle } from "lucide-react";
 
@@ -24,7 +25,6 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from "@/components/ui/alert-dialog";
 import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
-import agentIqLogo from "@/assets/agent-iq-logo.png";
 import { SpinWheel } from "@/components/SpinWheel";
 
 interface TrainingModule {
@@ -574,30 +574,14 @@ export default function Training() {
   const currentQuestion = questions[currentQuestionIndex];
 
   return (
-    <div className="min-h-screen bg-background">
-      {/* Header */}
-      <div className="border-b border-border bg-card sticky top-0 z-50">
-        <div className="container mx-auto px-4 sm:px-6 py-4 max-w-7xl">
-          <div className="flex items-center justify-between">
-            <div className="flex items-center gap-3">
-              <img src={agentIqLogo} alt="Agent IQ" className="h-10 sm:h-12 w-auto" />
-              <div className="h-6 w-px bg-border" />
-              <div>
-                <h1 className="text-xl font-semibold">Training Center</h1>
-              </div>
-            </div>
-            <div className="flex items-center gap-2">
-              <Link to="/training-management">
-                <Button size="sm">Manage Content</Button>
-              </Link>
-              <Link to="/">
-                <Button variant="outline" size="sm">Dashboard</Button>
-              </Link>
-            </div>
-          </div>
-        </div>
-      </div>
-
+    <AppShell
+      title="Training Center"
+      actions={
+        <Link to="/training-management">
+          <Button size="sm">Manage Content</Button>
+        </Link>
+      }
+    >
       <div className="container mx-auto px-4 sm:px-6 py-5 max-w-6xl">
 
         <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full">
@@ -1376,6 +1360,6 @@ export default function Training() {
           </Dialog>
         </Tabs>
       </div>
-    </div>
+    </AppShell>
   );
 }

@@ -1,3 +1,4 @@
+import { AppShell } from "@/components/AppShell";
 import { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import { Plus, Trash2, FileText, Edit2, MessageSquare, HelpCircle, ClipboardCheck, GripVertical, Copy, RefreshCw } from "lucide-react";
@@ -898,22 +899,8 @@ export default function Templates() {
   };
 
   return (
-    <div className="min-h-screen bg-background">
+    <AppShell title="Templates" subtitle="Reusable scripts, objection handling, and FAQs">
       <div className="container mx-auto px-6 py-5 max-w-5xl">
-        <div className="flex items-center justify-between border-b border-border pb-3 mb-5">
-          <div>
-            <h1 className="text-lg font-semibold">Templates</h1>
-            <p className="text-sm text-muted-foreground mt-1">
-              Manage reusable scripts, objection handling, and FAQs
-            </p>
-          </div>
-          <div className="flex gap-2">
-            <Button variant="outline" onClick={() => navigate("/")}>
-              Back to Dashboard
-            </Button>
-          </div>
-        </div>
-
         <Tabs defaultValue="scripts" className="w-full">
           <TabsList className="grid w-full max-w-2xl grid-cols-4 mb-6">
             <TabsTrigger value="scripts">
@@ -1661,6 +1648,6 @@ export default function Templates() {
           </DialogFooter>
         </DialogContent>
       </Dialog>
-    </div>
+    </AppShell>
   );
 }
