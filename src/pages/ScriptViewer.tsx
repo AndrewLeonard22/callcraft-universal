@@ -15,6 +15,7 @@ import { toast } from "sonner";
 import { ZipChecker } from "@/components/ZipChecker";
 import { RichTextEditor } from "@/components/RichTextEditor";
 import { AreaCockpit } from "@/components/AreaCockpit";
+import { ScriptTeleprompter } from "@/components/ScriptTeleprompter";
 import { FormattedScript } from "@/components/FormattedScript";
 import { ScriptActions } from "@/components/ScriptActions";
 import { ProjectEstimatePanel } from "@/components/ProjectEstimatePanel";
@@ -354,54 +355,10 @@ export default function ScriptViewer() {
   const isTimelineDQ = (key: string) => timelineThresholdIdx >= 0 && TIMELINE_ORDER.indexOf(key) > timelineThresholdIdx;
   const showTimelineWidget = timelineThresholdIdx >= 0;
 
-  // ── Inline DQ widget injection ────────────────────────────────────────────
-  const isHtmlScript = (c: string) =>
-    c.includes('<p>') || c.includes('<span') || c.includes('<strong>') || c.includes('<mark>');
-
-  const injectAfterParagraph = (html: string, triggers: RegExp[], widget: string): string => {
-    const parts = html.split('</p>');
-    const idx = parts.findIndex(p => triggers.some(t => t.test(p)));
-    if (idx === -1) return html;
-    return parts.slice(0, idx + 1).join('</p>') + '</p>' + widget + parts.slice(idx + 1).join('</p>');
-  };
-
-  const DQ_SCRIPT = `<script>
-function selectDQChip(widget,key,btn,isDQ){
-  var c=document.getElementById('dq-'+widget+'-chips');
-  if(!c)return;
-  c.querySelectorAll('button').forEach(function(b){
-    var dq=b.getAttribute('data-dq')==='true';
-    b.style.background=dq?'#fef2f2':'white';b.style.color=dq?'#b91c1c':'#111827';b.style.borderColor=dq?'#fca5a5':'#d1d5db';
-  });
-  btn.style.background=isDQ?'#dc2626':'#111827';btn.style.color='white';btn.style.borderColor=isDQ?'#dc2626':'#111827';
-  var a=document.getElementById('dq-'+widget+'-alert');if(a)a.style.display=isDQ?'flex':'none';
-  try{parent.postMessage({type:'DQ_SELECT',widget:widget,key:key,isDQ:isDQ},'*');}catch(e){}
-}
-<\/script>`;
-
-  const buildTimelineWidgetHtml = (): string => {
-    const chips = TIMELINE_OPTIONS.map(opt => {
-      const isDQ = isTimelineDQ(opt.key);
-      const baseStyle = `padding:6px 14px;border-radius:6px;font-size:12px;font-weight:500;cursor:pointer;border:1px solid;transition:all 0.15s;font-family:system-ui,-apple-system,sans-serif;`;
-      const colorStyle = isDQ
-        ? 'background:#fef2f2;border-color:#fca5a5;color:#b91c1c;'
-        : 'background:white;border-color:#d1d5db;color:#111827;';
-      return `<button onclick="selectDQChip('timeline','${opt.key}',this,${isDQ})" data-dq="${isDQ}" style="${baseStyle}${colorStyle}">${opt.label}${isDQ ? ' → DQ' : ''}</button>`;
-    }).join('');
-    return `<div style="margin:20px 0;padding:14px 16px;background:#fffbeb;border:1px solid #fcd34d;border-left:3px solid #f59e0b;border-radius:8px;font-family:system-ui,-apple-system,sans-serif;">
-      <div style="font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:0.12em;color:#b45309;margin-bottom:10px;">⊘ Required · Timeline</div>
-      <div style="font-size:13px;font-weight:500;margin-bottom:12px;color:#111827;">"When do you want this finished by?"</div>
-      <div id="dq-timeline-chips" style="display:flex;flex-wrap:wrap;gap:8px;">${chips}</div>
-      <div id="dq-timeline-alert" style="display:none;margin-top:10px;padding:8px 12px;background:#fef2f2;border:1px solid #fca5a5;border-radius:6px;color:#b91c1c;font-size:12px;font-weight:600;align-items:center;gap:6px;">
-        <span>✕</span><span>Hard disqualifier — timeline exceeds client maximum</span>
-      </div>
-    </div>`;
-  };
-
+  // The teleprompter parses the script natively now (no iframe, no injected
+  // DQ widget HTML) — this only resolves min-price placeholders beforehand.
   const processedScriptContent = (() => {
     let content = script.script_content;
-
-    // Replace min-price placeholders with the client's actual value
     if (minPriceNum && minPriceNum > 0) {
       const formatted = `$${minPriceNum.toLocaleString("en-US")}`;
       content = content
@@ -413,18 +370,6 @@ function selectDQChip(widget,key,btn,isDQ){
         .replace(/\[min price\]/gi, formatted)
         .replace(/\[minimum\]/gi, formatted);
     }
-
-    if (!isHtmlScript(content)) return content;
-    let injected = false;
-    if (showTimelineWidget) {
-      const before = content;
-      content = injectAfterParagraph(content,
-        [/finished by/i, /when do you want/i, /timeline/i, /when are you hoping/i, /how soon/i],
-        buildTimelineWidgetHtml()
-      );
-      if (content !== before) injected = true;
-    }
-    if (injected) content = content + DQ_SCRIPT;
     return content;
   })();
 
@@ -523,130 +468,122 @@ function selectDQChip(widget,key,btn,isDQ){
       {/* ── Three-column body ─────────────────────────────────────────────── */}
       <div className="flex flex-1 min-h-0">
 
-        {/* ── LEFT SIDEBAR ─────────────────────────────────────────────── */}
-        {centerTab !== "area" && <aside className="w-[340px] shrink-0 border-r border-border overflow-y-auto bg-background">
+        {/* ── LEFT SIDEBAR — rebuilt: one section pattern, reference-density ── */}
+        {centerTab !== "area" && <aside className="w-[300px] shrink-0 border-r border-border overflow-y-auto bg-muted/[0.18]">
 
-          {/* Book Appointment — primary CTA button */}
-          {quickLinks.some(l => l.key === "appointment_calendar") && (
-            <div className="px-4 pt-4 pb-3 border-b border-border">
+          {/* Actions — the CTA plus everything one click away */}
+          <div className="space-y-2 px-3.5 pb-3.5 pt-3.5">
+            {quickLinks.some(l => l.key === "appointment_calendar") && (
               <a
                 href={safeUrl(getDetailValue("appointment_calendar"))}
                 target="_blank"
                 rel="noopener noreferrer"
-                className="flex items-center justify-center gap-2 w-full h-10 rounded-lg bg-foreground text-background text-[13.5px] font-semibold hover:bg-foreground/90 transition-colors shadow-sm"
+                className="flex h-10 w-full items-center justify-center gap-2 rounded-lg bg-foreground text-[13px] font-semibold text-background shadow-sm transition-colors hover:bg-foreground/90"
               >
                 <Calendar className="h-4 w-4" />
                 Book Appointment
               </a>
-            </div>
-          )}
-
-          {/* Other quick links */}
-          {quickLinks.filter(l => l.key !== "appointment_calendar").length > 0 && (
-            <div className="py-1 border-b border-border">
-              {quickLinks.filter(l => l.key !== "appointment_calendar").map(({ key, label, icon: Icon }) => (
-                <a
-                  key={key}
-                  href={safeUrl(getDetailValue(key))}
-                  target="_blank"
-                  rel="noopener noreferrer"
-                  className="flex items-center gap-2.5 h-9 px-4 text-[13px] text-foreground hover:bg-muted/50 transition-colors group"
-                >
-                  <Icon className="h-4 w-4 text-muted-foreground shrink-0" />
-                  <span className="flex-1">{label}</span>
-                  <ExternalLink className="h-3.5 w-3.5 text-muted-foreground opacity-0 group-hover:opacity-100 transition-opacity" />
-                </a>
-              ))}
-            </div>
-          )}
+            )}
+            {quickLinks.filter(l => l.key !== "appointment_calendar").length > 0 && (
+              <div className="grid grid-cols-2 gap-1.5">
+                {quickLinks.filter(l => l.key !== "appointment_calendar").map(({ key, label, icon: Icon }) => (
+                  <a
+                    key={key}
+                    href={safeUrl(getDetailValue(key))}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="flex items-center gap-1.5 rounded-md border border-border bg-background px-2.5 py-1.5 text-[12px] font-medium text-foreground/85 transition-colors hover:border-foreground/25 hover:text-foreground"
+                  >
+                    <Icon className="h-3.5 w-3.5 shrink-0 text-muted-foreground" />
+                    <span className="truncate">{label}</span>
+                  </a>
+                ))}
+              </div>
+            )}
+          </div>
 
           {/* Contacts */}
           {contacts.length > 0 && (
-            <div className="px-4 pt-4 pb-4 border-b border-border/60">
-              <div className="text-[11px] font-semibold uppercase tracking-[0.1em] text-muted-foreground mb-3">Contacts</div>
-              <div className="space-y-3">
+            <section className="border-t border-border/70 px-3.5 py-3">
+              <h3 className="mb-2 text-[10.5px] font-semibold uppercase tracking-[0.11em] text-muted-foreground/80">Contacts</h3>
+              <div className="space-y-2">
                 {contacts.map((c, i) => (
-                  <div key={i} className="flex items-start gap-3">
+                  <div key={i} className="flex items-center gap-2.5">
                     {c.photo ? (
-                      <img src={c.photo} alt={c.name} className="h-10 w-10 rounded-full object-cover shrink-0 border border-border" />
+                      <img src={c.photo} alt={c.name} className="h-8 w-8 shrink-0 rounded-full border border-border object-cover" />
                     ) : (
-                      <div className={`h-10 w-10 rounded-full flex items-center justify-center text-[13px] font-bold shrink-0 ${avatarColor(c.name)}`}>
+                      <div className={`flex h-8 w-8 shrink-0 items-center justify-center rounded-full text-[11px] font-bold ${avatarColor(c.name)}`}>
                         {getInitials(c.name)}
                       </div>
                     )}
-                    <div>
-                      <div className="text-sm font-semibold text-foreground leading-tight">{c.name}</div>
-                      <div className="text-[13px] text-muted-foreground leading-tight mt-0.5">{c.role}{c.phone && ` · ${c.phone}`}</div>
+                    <div className="min-w-0">
+                      <div className="truncate text-[13px] font-semibold leading-tight text-foreground">{c.name}</div>
+                      <div className="truncate text-[11.5px] leading-tight text-muted-foreground">{c.role}{c.phone && ` · ${c.phone}`}</div>
                     </div>
                   </div>
                 ))}
               </div>
-            </div>
+            </section>
           )}
 
-          {/* Area Check — ALWAYS rendered: the checker geocodes keylessly and
-              shows the satellite view even when the client profile has no HQ
-              coords yet (it just skips the distance verdict). Gating this on
-              profile completeness hid the setter's #1 mid-call tool exactly for
-              the clients with thin profiles. */}
-          {(
-            <div className="px-4 pt-4 pb-4 border-b border-border/60">
-              <div className="text-[11px] font-semibold uppercase tracking-[0.1em] text-muted-foreground mb-2">Service Area</div>
-              {getDetailValue("address") && (
-                <div className="flex items-start gap-1.5 mb-2">
-                  <MapPin className="h-3.5 w-3.5 text-muted-foreground mt-0.5 shrink-0" />
-                  <span className="text-sm text-foreground">{getDetailValue("address")}</span>
-                </div>
-              )}
-              {client.excluded_zips?.length > 0 && (
-                <div className="mb-2 flex flex-wrap gap-1">
-                  {client.excluded_zips.map(z => (
-                    <span key={z} className="px-2 py-0.5 bg-red-50 border border-red-200 text-red-700 text-xs font-medium rounded">{z}</span>
-                  ))}
-                </div>
-              )}
-              <ZipChecker
-                excludedZips={client.excluded_zips ?? []}
-                clientCity={client.city ?? undefined}
-                clientAddress={getDetailValue("address") || undefined}
-                serviceRadiusMiles={Number(getDetailValue("service_radius_miles")) || 30}
-                hqLat={client.hq_lat ?? undefined}
-                hqLng={client.hq_lng ?? undefined}
-              />
-            </div>
-          )}
+          {/* Service Area — the setter's #1 mid-call tool, always rendered
+              (ZipChecker geocodes keylessly even when the profile is thin). */}
+          <section className="border-t border-border/70 px-3.5 py-3">
+            <h3 className="mb-2 text-[10.5px] font-semibold uppercase tracking-[0.11em] text-muted-foreground/80">Service Area</h3>
+            {getDetailValue("address") && (
+              <div className="mb-2 flex items-start gap-1.5">
+                <MapPin className="mt-0.5 h-3.5 w-3.5 shrink-0 text-muted-foreground" />
+                <span className="text-[12.5px] leading-snug text-foreground/90">{getDetailValue("address")}</span>
+              </div>
+            )}
+            {client.excluded_zips?.length > 0 && (
+              <div className="mb-2 flex flex-wrap gap-1">
+                {client.excluded_zips.map(z => (
+                  <span key={z} className="rounded border border-red-200 bg-red-50 px-1.5 py-0.5 text-[11px] font-medium text-red-700">{z}</span>
+                ))}
+              </div>
+            )}
+            <ZipChecker
+              excludedZips={client.excluded_zips ?? []}
+              clientCity={client.city ?? undefined}
+              clientAddress={getDetailValue("address") || undefined}
+              serviceRadiusMiles={Number(getDetailValue("service_radius_miles")) || 30}
+              hqLat={client.hq_lat ?? undefined}
+              hqLng={client.hq_lng ?? undefined}
+            />
+          </section>
 
           {/* Project Parameters */}
           {projectRows.length > 0 && (
-            <div className="px-4 pt-4 pb-4 border-b border-border/60">
-              <div className="text-[11px] font-semibold uppercase tracking-[0.1em] text-muted-foreground mb-3">Project Parameters</div>
-              <div className="space-y-2.5">
+            <section className="border-t border-border/70 px-3.5 py-3">
+              <h3 className="mb-2 text-[10.5px] font-semibold uppercase tracking-[0.11em] text-muted-foreground/80">Project Parameters</h3>
+              <div className="divide-y divide-border/50 rounded-lg border border-border/70 bg-background">
                 {projectRows.map(({ label, value }) => {
                   const text = String(value);
                   const money = /^[\d,]+$/.test(text.trim()) ? `$${text.trim()}` : text;
-                  return money.length > 32 ? (
-                    <div key={label}>
-                      <div className="mb-0.5 text-[11px] text-muted-foreground">{label}</div>
-                      <div className="text-[12.5px] leading-relaxed text-foreground/85">{money}</div>
+                  return money.length > 30 ? (
+                    <div key={label} className="px-3 py-2">
+                      <div className="text-[10.5px] text-muted-foreground">{label}</div>
+                      <div className="mt-0.5 text-[12px] leading-snug text-foreground/85">{money}</div>
                     </div>
                   ) : (
-                    <div key={label} className="flex items-baseline justify-between gap-3">
-                      <span className="text-[12px] text-muted-foreground">{label}</span>
-                      <span className="text-right text-[13px] font-semibold text-foreground">{money}</span>
+                    <div key={label} className="flex items-baseline justify-between gap-3 px-3 py-2">
+                      <span className="text-[11.5px] text-muted-foreground">{label}</span>
+                      <span className="text-right text-[12.5px] font-semibold tabular-nums text-foreground">{money}</span>
                     </div>
                   );
                 })}
               </div>
-            </div>
+            </section>
           )}
 
-          {/* Services Offered — reference, collapsed: not a mid-call read */}
+          {/* Reference drawers — not mid-call reads, one consistent pattern */}
           {services.length > 0 && (
-            <details className="group px-4 py-3 border-b border-border/60">
-              <summary className="flex items-center justify-between text-[11px] font-semibold uppercase tracking-[0.1em] text-muted-foreground cursor-pointer list-none select-none [&::-webkit-details-marker]:hidden hover:text-foreground transition-colors">Services Offered<ChevronRight className="h-3.5 w-3.5 transition-transform group-open:rotate-90" /></summary>
-              <div className="flex flex-wrap gap-1.5 pt-2.5">
+            <details className="group border-t border-border/70 px-3.5 py-2.5">
+              <summary className="flex cursor-pointer list-none select-none items-center justify-between text-[10.5px] font-semibold uppercase tracking-[0.11em] text-muted-foreground/80 transition-colors hover:text-foreground [&::-webkit-details-marker]:hidden">Services Offered<ChevronRight className="h-3.5 w-3.5 transition-transform group-open:rotate-90" /></summary>
+              <div className="flex flex-wrap gap-1 pt-2">
                 {services.map(s => (
-                  <span key={s} className="px-2.5 py-1 bg-muted text-foreground text-[13px] rounded-md border border-border">
+                  <span key={s} className="rounded-md border border-border bg-background px-2 py-0.5 text-[12px] text-foreground/85">
                     {client.services_advertised?.length ? serviceLabel(s) : s}
                   </span>
                 ))}
@@ -654,14 +591,13 @@ function selectDQChip(widget,key,btn,isDQ){
             </details>
           )}
 
-          {/* Things to Know — reference, collapsed */}
           {bullets.length > 0 && (
-            <details className="group px-4 py-3 border-b border-border/60">
-              <summary className="flex items-center justify-between text-[11px] font-semibold uppercase tracking-[0.1em] text-muted-foreground cursor-pointer list-none select-none [&::-webkit-details-marker]:hidden hover:text-foreground transition-colors">Things to Know<ChevronRight className="h-3.5 w-3.5 transition-transform group-open:rotate-90" /></summary>
-              <ul className="space-y-2 pt-2.5">
+            <details className="group border-t border-border/70 px-3.5 py-2.5">
+              <summary className="flex cursor-pointer list-none select-none items-center justify-between text-[10.5px] font-semibold uppercase tracking-[0.11em] text-muted-foreground/80 transition-colors hover:text-foreground [&::-webkit-details-marker]:hidden">Things to Know<ChevronRight className="h-3.5 w-3.5 transition-transform group-open:rotate-90" /></summary>
+              <ul className="space-y-1.5 pt-2">
                 {bullets.map((b, i) => (
-                  <li key={i} className="flex items-start gap-2 text-sm text-foreground leading-snug">
-                    <span className="mt-[6px] h-1.5 w-1.5 rounded-full bg-muted-foreground/50 shrink-0" />
+                  <li key={i} className="flex items-start gap-2 text-[12.5px] leading-snug text-foreground/90">
+                    <span className="mt-[6px] h-1 w-1 shrink-0 rounded-full bg-muted-foreground/50" />
                     {b}
                   </li>
                 ))}
@@ -669,18 +605,17 @@ function selectDQChip(widget,key,btn,isDQ){
             </details>
           )}
 
-          {/* Recent Work — reference, collapsed */}
-          <details className="group px-4 py-3">
-            <summary className="flex items-center justify-between text-[11px] font-semibold uppercase tracking-[0.1em] text-muted-foreground cursor-pointer list-none select-none [&::-webkit-details-marker]:hidden hover:text-foreground transition-colors">Recent Work<ChevronRight className="h-3.5 w-3.5 transition-transform group-open:rotate-90" /></summary>
-            <div className="pt-2.5">
+          <details className="group border-t border-border/70 px-3.5 py-2.5">
+            <summary className="flex cursor-pointer list-none select-none items-center justify-between text-[10.5px] font-semibold uppercase tracking-[0.11em] text-muted-foreground/80 transition-colors hover:text-foreground [&::-webkit-details-marker]:hidden">Recent Work<ChevronRight className="h-3.5 w-3.5 transition-transform group-open:rotate-90" /></summary>
+            <div className="pt-2">
             {workPhotos.length > 0 ? (
               <>
-                <div className="grid grid-cols-2 gap-2">
+                <div className="grid grid-cols-2 gap-1.5">
                   {workPhotos.slice(0, 5).map((photo, i) => (
                     <button
                       key={i}
                       onClick={() => setSelectedImageIndex(i)}
-                      className="aspect-video rounded-lg overflow-hidden bg-muted hover:opacity-80 transition-opacity relative"
+                      className="relative aspect-video overflow-hidden rounded-md bg-muted transition-opacity hover:opacity-80"
                     >
                       <img src={photo} alt="" className="h-full w-full object-cover" loading="lazy" />
                     </button>
@@ -688,21 +623,21 @@ function selectDQChip(widget,key,btn,isDQ){
                   {workPhotos.length > 5 && (
                     <button
                       onClick={() => setSelectedImageIndex(5)}
-                      className="aspect-video rounded-lg overflow-hidden bg-muted hover:opacity-80 transition-opacity relative"
+                      className="relative aspect-video overflow-hidden rounded-md bg-muted transition-opacity hover:opacity-80"
                     >
                       <img src={workPhotos[5]} alt="" className="h-full w-full object-cover" loading="lazy" />
-                      <div className="absolute inset-0 bg-black/50 flex items-center justify-center">
-                        <span className="text-white text-sm font-semibold">+{workPhotos.length - 5}</span>
+                      <div className="absolute inset-0 flex items-center justify-center bg-black/50">
+                        <span className="text-sm font-semibold text-white">+{workPhotos.length - 5}</span>
                       </div>
                     </button>
                   )}
                 </div>
-                <Link to={`/edit/${client.id}`} className="mt-2 block text-xs text-muted-foreground hover:text-foreground transition-colors text-center">
+                <Link to={`/edit/${client.id}`} className="mt-2 block text-center text-[11.5px] text-muted-foreground transition-colors hover:text-foreground">
                   Edit client ↗
                 </Link>
               </>
             ) : (
-              <Link to={`/edit/${client.id}`} className="flex items-center justify-center gap-1.5 rounded-lg border border-dashed border-border py-5 text-sm text-muted-foreground hover:text-foreground hover:border-foreground/30 transition-colors">
+              <Link to={`/edit/${client.id}`} className="flex items-center justify-center gap-1.5 rounded-lg border border-dashed border-border py-4 text-[12.5px] text-muted-foreground transition-colors hover:border-foreground/30 hover:text-foreground">
                 + Add work photos
               </Link>
             )}
@@ -755,14 +690,17 @@ function selectDQChip(widget,key,btn,isDQ){
 
             {/* SCRIPT */}
             {centerTab === "script" && (
-              <div className="px-6 py-5">
+              <div className="px-6 pb-5">
                 {isEditing ? (
-                  <div className="space-y-3">
+                  <div className="space-y-3 pt-5">
                     <p className="text-[12px] text-muted-foreground">Editing — save with the button in the top bar.</p>
                     <RichTextEditor value={editedContent} onChange={setEditedContent} placeholder="Enter script content..." minHeight="500px" />
                   </div>
                 ) : (
-                  <FormattedScript content={processedScriptContent} />
+                  <ScriptTeleprompter
+                    content={processedScriptContent}
+                    timeline={showTimelineWidget ? { options: TIMELINE_OPTIONS.map(o => ({ ...o, dq: isTimelineDQ(o.key) })) } : null}
+                  />
                 )}
               </div>
             )}
