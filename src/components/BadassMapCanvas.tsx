@@ -514,6 +514,14 @@ function InteractiveMap({ searchedQuery, hqAddress, hqLat, hqLng, serviceRadiusM
     }
   }, []);
 
+  // 3D on boot (reconcile of Apprentice's 3223c44 intent, lost in the merge
+  // storm — and Andrew's spec: "very cool 3D even when we just click Area").
+  // Graceful by construction: activate3d falls back to 2D if maps3d won't load.
+  useEffect(() => {
+    if (ready && hqLat != null && hqLng != null) void activate3d({ lat: hqLat, lng: hqLng });
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [ready]);
+
   const toggle3d = useCallback(() => {
     if (view3d) {
       setView3d(false);

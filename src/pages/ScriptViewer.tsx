@@ -620,13 +620,22 @@ function selectDQChip(widget,key,btn,isDQ){
           {projectRows.length > 0 && (
             <div className="px-4 pt-4 pb-4 border-b border-border/60">
               <div className="text-[11px] font-semibold uppercase tracking-[0.1em] text-muted-foreground mb-3">Project Parameters</div>
-              <div className="grid grid-cols-2 gap-x-4 gap-y-3">
-                {projectRows.map(({ label, value }) => (
-                  <div key={label}>
-                    <div className="text-[11px] text-muted-foreground leading-none mb-1">{label}</div>
-                    <div className="text-sm font-semibold text-foreground">{value}</div>
-                  </div>
-                ))}
+              <div className="space-y-2.5">
+                {projectRows.map(({ label, value }) => {
+                  const text = String(value);
+                  const money = /^[\d,]+$/.test(text.trim()) ? `$${text.trim()}` : text;
+                  return money.length > 32 ? (
+                    <div key={label}>
+                      <div className="mb-0.5 text-[11px] text-muted-foreground">{label}</div>
+                      <div className="text-[12.5px] leading-relaxed text-foreground/85">{money}</div>
+                    </div>
+                  ) : (
+                    <div key={label} className="flex items-baseline justify-between gap-3">
+                      <span className="text-[12px] text-muted-foreground">{label}</span>
+                      <span className="text-right text-[13px] font-semibold text-foreground">{money}</span>
+                    </div>
+                  );
+                })}
               </div>
             </div>
           )}
