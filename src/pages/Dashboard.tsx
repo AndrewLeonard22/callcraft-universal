@@ -167,7 +167,9 @@ export default function Dashboard() {
         .eq("is_template", false)
         .eq("organization_id", userOrganizationId)
         .order("created_at", { ascending: false }),
-      supabase.from("service_types").select("*"),
+      // Org-bound + shared globals (org_id null = global row — same idiom as the
+      // qualification_questions fetch). Was the last whole-table pull on this page.
+      supabase.from("service_types").select("*").or(`organization_id.eq.${userOrganizationId},organization_id.is.null`),
       clientIds.length
         ? supabase
             .from("generated_images")
