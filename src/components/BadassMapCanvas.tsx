@@ -1,7 +1,7 @@
 import { useCallback, useEffect, useRef, useState } from "react";
 import { Loader } from "@googlemaps/js-api-loader";
 import { Button } from "@/components/ui/button";
-import { MapPin, Navigation, Ruler, Eye, Layers, ExternalLink, Loader2, X } from "lucide-react";
+import { MapPin, Navigation, Ruler, Eye, Layers, ExternalLink, Loader2, X, Box } from "lucide-react";
 
 /**
  * BadassMapCanvas — the interactive Google Maps setter surface (Andrew's ask:
@@ -47,6 +47,11 @@ interface DrawMgr {
   setMap(map: google.maps.Map | null): void;
   setDrawingMode(mode: unknown): void;
   addListener(event: string, cb: (...args: unknown[]) => void): google.maps.MapsEventListener;
+}
+// Map3DElement (photorealistic 3D / "Google Earth" view) — verified available on the
+// weekly channel (headless), but @types/google.maps doesn't type it yet. Minimal shim.
+interface Map3D extends HTMLElement {
+  center: { lat: number; lng: number; altitude: number };
 }
 let loaderSingleton: LoaderWithImport | null = null;
 function getLoader(): LoaderWithImport {
@@ -113,6 +118,8 @@ function InteractiveMap({ searchedQuery, hqAddress, hqLat, hqLng }: BadassMapCan
   const measurePolyRef = useRef<google.maps.Polygon | null>(null);
   const markerRef = useRef<google.maps.marker.AdvancedMarkerElement | null>(null);
   const advMarkerCtor = useRef<typeof google.maps.marker.AdvancedMarkerElement | null>(null);
+  const map3dHost = useRef<HTMLDivElement>(null);
+  const map3dRef = useRef<Map3D | null>(null);
   // Monotonic focus token: the LATEST-initiated focus wins, whichever resolves last.
   // Shared by both focus sources (rail geocode + in-map autocomplete) so intent order holds.
   const focusReqRef = useRef(0);
@@ -129,6 +136,8 @@ function InteractiveMap({ searchedQuery, hqAddress, hqLat, hqLng }: BadassMapCan
   const [route, setRoute] = useState<{ miles: number; mins: number } | null>(null);
   // Starts null (not the raw query) so the pill only ever shows the resolved address.
   const [focusLabel, setFocusLabel] = useState<string | null>(null);
+  const [view3d, setView3d] = useState(false);
+  const [threeDReady, setThreeDReady] = useState(true); // flips false only if maps3d fails to load
 
   const hasHq = hqLat != null && hqLng != null;
 
@@ -200,6 +209,8 @@ function InteractiveMap({ searchedQuery, hqAddress, hqLat, hqLng }: BadassMapCan
       map.setZoom(19);
       setFocusLabel(label);
       lastFocusRef.current = { lat, lng };
+      // Keep the 3D view (if it exists) tracking the same address.
+      if (map3dRef.current) map3dRef.current.center = { lat, lng, altitude: 0 };
 
       panoRef.current?.setPosition({ lat, lng });
       setStreetReady(true);
@@ -281,6 +292,8 @@ function InteractiveMap({ searchedQuery, hqAddress, hqLat, hqLng }: BadassMapCan
       if (panoRef.current) google.maps.event.clearInstanceListeners(panoRef.current);
       mapRef.current = null;
       panoRef.current = null;
+      map3dRef.current?.remove();
+      map3dRef.current = null;
     };
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
@@ -409,6 +422,38 @@ function InteractiveMap({ searchedQuery, hqAddress, hqLat, hqLng }: BadassMapCan
     });
   }, [measuring, exitMeasure]);
 
+  // Photorealistic 3D ("Google Earth") — toggles a Map3DElement over the 2D map,
+  // centered on the current focus. Graceful: if maps3d can't load, the button hides.
+  const toggle3d = useCallback(async () => {
+    if (view3d) {
+      setView3d(false);
+      return;
+    }
+    const host = map3dHost.current;
+    const focus =
+      lastFocusRef.current ?? (hasHq ? { lat: hqLat as number, lng: hqLng as number } : null);
+    if (!host || !focus) return;
+    try {
+      if (!map3dRef.current) {
+        const { Map3DElement } = await getLoader().importLibrary("maps3d");
+        const el = new Map3DElement({
+          center: { lat: focus.lat, lng: focus.lng, altitude: 0 },
+          range: 450,
+          tilt: 62,
+        }) as unknown as Map3D;
+        el.style.width = "100%";
+        el.style.height = "100%";
+        host.appendChild(el);
+        map3dRef.current = el;
+      } else {
+        map3dRef.current.center = { lat: focus.lat, lng: focus.lng, altitude: 0 };
+      }
+      setView3d(true);
+    } catch {
+      setThreeDReady(false); // maps3d unavailable — hide the 3D button
+    }
+  }, [view3d, hasHq, hqLat, hqLng]);
+
   if (loadError) {
     return (
       <IframeFallback
@@ -426,6 +471,7 @@ function InteractiveMap({ searchedQuery, hqAddress, hqLat, hqLng }: BadassMapCan
     <div className="relative h-full w-full">
       <div ref={mapDiv} className="h-full w-full" />
       <div ref={svDiv} className={`absolute inset-0 ${streetOpen ? "" : "hidden"}`} />
+      <div ref={map3dHost} className={`absolute inset-0 ${view3d ? "" : "hidden"}`} />
 
       {!ready && (
         <div className="absolute inset-0 z-20 flex items-center justify-center bg-muted/30">
@@ -466,6 +512,12 @@ function InteractiveMap({ searchedQuery, hqAddress, hqLat, hqLng }: BadassMapCan
           <Ruler className="h-3.5 w-3.5" />
           Measure
         </Button>
+        {threeDReady && (
+          <Button size="sm" variant={view3d ? "default" : "outline"} className={btn} onClick={toggle3d}>
+            <Box className="h-3.5 w-3.5" />
+            3D
+          </Button>
+        )}
         {focusLabel && (
           <Button
             size="sm"
