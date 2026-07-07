@@ -2,7 +2,7 @@ import { useEffect, useState, useRef, useCallback } from "react";
 import { useParams, useNavigate, Link } from "react-router-dom";
 import {
   ArrowLeft, X, ClipboardCheck, Sparkles, ExternalLink,
-  Calendar, RotateCcw, Link2, Globe, Ban, Image as ImageIcon,
+  Calendar, RotateCcw, PhoneCall, Link2, Globe, Ban, Image as ImageIcon,
   ChevronRight, MapPin, Zap, MessageSquare,
 } from "lucide-react";
 import { DebouncedSaveManager } from "@/utils/saveHelpers";
@@ -430,6 +430,7 @@ function selectDQChip(widget,key,btn,isDQ){
   const quickLinks = [
     { key: "appointment_calendar", label: "Book Appointment", icon: Calendar },
     { key: "reschedule_calendar",  label: "Reschedule",       icon: RotateCcw },
+    { key: "callback_calendar",    label: "Callback",          icon: PhoneCall },
     { key: "crm_account_link",     label: "CRM Account",      icon: Link2 },
     { key: "website",              label: "Website",           icon: Globe },
   ].filter(({ key }) => !!getDetailValue(key));

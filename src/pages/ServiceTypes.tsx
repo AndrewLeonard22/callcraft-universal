@@ -248,6 +248,7 @@ export default function ServiceTypes() {
         { field_name: 'avg_install_time', field_label: 'Average Install Time After Booking', field_type: 'text', placeholder: 'e.g., 2-3 weeks', display_order: 7 },
         { field_name: 'appointment_calendar', field_label: 'Appointment Calendar Link', field_type: 'url', placeholder: 'https://calendly.com/...', display_order: 8 },
         { field_name: 'reschedule_calendar', field_label: 'Reschedule Calendar Link', field_type: 'url', placeholder: 'https://calendly.com/...', display_order: 9 },
+        { field_name: 'callback_calendar', field_label: 'Callback Calendar Link', field_type: 'url', placeholder: 'https://calendly.com/...', display_order: 10 },
       ];
 
       const fieldsToInsert = defaultFields.map(field => ({

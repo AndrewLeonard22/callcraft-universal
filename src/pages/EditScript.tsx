@@ -65,6 +65,7 @@ export default function EditScript() {
   const [avgInstallTime, setAvgInstallTime] = useState("");
   const [appointmentCalendar, setAppointmentCalendar] = useState("");
   const [rescheduleCalendar, setRescheduleCalendar] = useState("");
+  const [callbackCalendar, setCallbackCalendar] = useState("");
 
   useEffect(() => {
     loadScriptData();
@@ -171,6 +172,9 @@ export default function EditScript() {
           if (fieldName === `${scriptPrefix}reschedule_calendar` || fieldName === "reschedule_calendar") {
             if (!rescheduleCalendar) setRescheduleCalendar(fieldValue);
           }
+          if (fieldName === `${scriptPrefix}callback_calendar` || fieldName === "callback_calendar") {
+            if (!callbackCalendar) setCallbackCalendar(fieldValue);
+          }
         });
       }
     } catch (error) {
@@ -245,6 +249,7 @@ export default function EditScript() {
         { name: `${scriptPrefix}avg_install_time`, value: avgInstallTime },
         { name: `${scriptPrefix}appointment_calendar`, value: appointmentCalendar },
         { name: `${scriptPrefix}reschedule_calendar`, value: rescheduleCalendar },
+        { name: `${scriptPrefix}callback_calendar`, value: callbackCalendar },
       ];
 
       // Robust per-field upsert for script-specific details
@@ -353,6 +358,7 @@ export default function EditScript() {
               avg_install_time: avgInstallTime,
               appointment_calendar: appointmentCalendar,
               reschedule_calendar: rescheduleCalendar,
+              callback_calendar: callbackCalendar,
             }
           },
         });
@@ -653,6 +659,16 @@ export default function EditScript() {
                   placeholder="https://calendly.com/reschedule"
                   value={rescheduleCalendar}
                   onChange={(e) => setRescheduleCalendar(e.target.value)}
+                />
+              </div>
+              <div>
+                <Label htmlFor="callback">Callback Calendar Link</Label>
+                <Input
+                  id="callback"
+                  type="url"
+                  placeholder="https://calendly.com/callback"
+                  value={callbackCalendar}
+                  onChange={(e) => setCallbackCalendar(e.target.value)}
                 />
               </div>
             </CardContent>

@@ -47,7 +47,8 @@ export default function EditClient() {
   const [crmAccountLink, setCrmAccountLink] = useState("");
   const [appointmentCalendar, setAppointmentCalendar] = useState("");
   const [rescheduleCalendar, setRescheduleCalendar] = useState("");
-  
+  const [callbackCalendar, setCallbackCalendar] = useState("");
+
   // New qualification fields (stored on clients table)
   const [hardNos, setHardNos] = useState<string[]>([]);
   const [servicesAdvertised, setServicesAdvertised] = useState<string[]>([]);
@@ -184,6 +185,7 @@ export default function EditClient() {
         setCrmAccountLink(detailsMap.get("crm_account_link") || "");
         setAppointmentCalendar(detailsMap.get("appointment_calendar") || "");
         setRescheduleCalendar(detailsMap.get("reschedule_calendar") || "");
+        setCallbackCalendar(detailsMap.get("callback_calendar") || "");
         const radiusVal = detailsMap.get("service_radius_miles") || "";
         setServiceRadiusMiles(radiusVal);
         setAreaSettings(prev => ({ ...prev, serviceRadiusMiles: radiusVal }));
@@ -442,6 +444,7 @@ export default function EditClient() {
         "crm_account_link",
         "appointment_calendar",
         "reschedule_calendar",
+        "callback_calendar",
         "service_radius_miles",
         "owner_photo_url",
         "work_photos",
@@ -482,6 +485,7 @@ export default function EditClient() {
         { name: "crm_account_link", value: crmAccountLink.trim() },
         { name: "appointment_calendar", value: appointmentCalendar.trim() },
         { name: "reschedule_calendar", value: rescheduleCalendar.trim() },
+        { name: "callback_calendar", value: callbackCalendar.trim() },
       ];
 
       linkFields.forEach(({ name, value }) => {
@@ -914,6 +918,10 @@ export default function EditClient() {
                 <div>
                   <Label htmlFor="reschedule-calendar">Reschedule Calendar</Label>
                   <Input id="reschedule-calendar" type="url" placeholder="https://calendly.com/reschedule/..." value={rescheduleCalendar} onChange={e => setRescheduleCalendar(e.target.value)} className="mt-1" />
+                </div>
+                <div>
+                  <Label htmlFor="callback-calendar">Callback Calendar</Label>
+                  <Input id="callback-calendar" type="url" placeholder="https://calendly.com/callback/..." value={callbackCalendar} onChange={e => setCallbackCalendar(e.target.value)} className="mt-1" />
                 </div>
               </div>
             </CardContent>
