@@ -39,6 +39,7 @@ import { toast } from "sonner";
 import { FormattedContent } from "@/components/FormattedContent";
 import { TemplateEditor } from "@/components/TemplateEditor";
 import { TemplateList } from "@/components/TemplateList";
+import { resolveOrgId, getPage, mergePage } from "@/utils/sessionCache";
 
 // FormattedContent extracted to src/components/FormattedContent.tsx
 
@@ -84,12 +85,13 @@ interface QualificationQuestion {
 
 export default function Templates() {
   const navigate = useNavigate();
-  const [templates, setTemplates] = useState<Template[]>([]);
-  const [objectionTemplates, setObjectionTemplates] = useState<ObjectionTemplate[]>([]);
-  const [faqs, setFaqs] = useState<FAQ[]>([]);
-  const [qualificationQuestions, setQualificationQuestions] = useState<QualificationQuestion[]>([]);
-  const [serviceTypes, setServiceTypes] = useState<ServiceType[]>([]);
-  const [loading, setLoading] = useState(true);
+  const seed = getPage<{ templates?: Template[]; objectionTemplates?: ObjectionTemplate[]; faqs?: FAQ[]; qualificationQuestions?: QualificationQuestion[]; serviceTypes?: ServiceType[] }>("templates");
+  const [templates, setTemplates] = useState<Template[]>(() => seed?.templates ?? []);
+  const [objectionTemplates, setObjectionTemplates] = useState<ObjectionTemplate[]>(() => seed?.objectionTemplates ?? []);
+  const [faqs, setFaqs] = useState<FAQ[]>(() => seed?.faqs ?? []);
+  const [qualificationQuestions, setQualificationQuestions] = useState<QualificationQuestion[]>(() => seed?.qualificationQuestions ?? []);
+  const [serviceTypes, setServiceTypes] = useState<ServiceType[]>(() => seed?.serviceTypes ?? []);
+  const [loading, setLoading] = useState(() => !seed?.templates); // spinner only on true-first-visit
   const [showCreateForm, setShowCreateForm] = useState(false);
   const [showObjectionForm, setShowObjectionForm] = useState(false);
   const [showFaqForm, setShowFaqForm] = useState(false);
@@ -179,17 +181,9 @@ export default function Templates() {
 
   const loadUserOrganization = async () => {
     try {
-      const { data: { user } } = await supabase.auth.getUser();
-      if (!user) return;
-
-      const { data, error } = await supabase
-        .from('organization_members')
-        .select('organization_id')
-        .eq('user_id', user.id)
-        .single();
-
-      if (error) throw error;
-      setUserOrganizationId(data?.organization_id || null);
+      // session-cached: no per-visit user->org waterfall
+      const orgId = await resolveOrgId();
+      setUserOrganizationId(orgId);
     } catch (error) {
       console.error('Error loading user organization:', error);
     }
@@ -209,6 +203,7 @@ export default function Templates() {
 
       if (error) throw error;
       setTemplates(data || []);
+      mergePage("templates", { templates: data || [] });
     } catch (error) {
       console.error("Error loading templates:", error);
       toast.error("Failed to load templates");
@@ -230,6 +225,7 @@ export default function Templates() {
 
       if (error) throw error;
       setObjectionTemplates(data || []);
+      mergePage("templates", { objectionTemplates: data || [] });
     } catch (error) {
       console.error("Error loading objection templates:", error);
       toast.error("Failed to load objection handling templates");
@@ -248,6 +244,7 @@ export default function Templates() {
 
       if (error) throw error;
       setFaqs(data || []);
+      mergePage("templates", { faqs: data || [] });
     } catch (error) {
       console.error("Error loading FAQs:", error);
       toast.error("Failed to load FAQs");
@@ -263,6 +260,7 @@ export default function Templates() {
 
       if (error) throw error;
       setServiceTypes(data || []);
+      mergePage("templates", { serviceTypes: data || [] });
     } catch (error) {
       console.error("Error loading service types:", error);
       toast.error("Failed to load service types");
@@ -281,6 +279,7 @@ export default function Templates() {
 
       if (error) throw error;
       setQualificationQuestions(data || []);
+      mergePage("templates", { qualificationQuestions: data || [] });
     } catch (error) {
       console.error("Error loading qualification questions:", error);
       toast.error("Failed to load qualification questions");

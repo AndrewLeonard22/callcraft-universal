@@ -14,6 +14,7 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@
 import { Badge } from "@/components/ui/badge";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { ScrollArea } from "@/components/ui/scroll-area";
+import { resolveOrgId, getPage, setPage } from "@/utils/sessionCache";
 
 interface CallAgent {
   id: string;
@@ -36,8 +37,8 @@ interface Client {
 export default function CallAgents() {
   const navigate = useNavigate();
   const { toast } = useToast();
-  const [agents, setAgents] = useState<CallAgent[]>([]);
-  const [loading, setLoading] = useState(true);
+  const [agents, setAgents] = useState<CallAgent[]>(() => getPage<CallAgent[]>("callAgents") ?? []);
+  const [loading, setLoading] = useState(() => !getPage("callAgents")); // spinner only on true-first-visit
   const [dialogOpen, setDialogOpen] = useState(false);
   const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
   const [assignDialogOpen, setAssignDialogOpen] = useState(false);
@@ -59,23 +60,14 @@ export default function CallAgents() {
 
   const loadAgents = async () => {
     try {
-      const { data: { user } } = await supabase.auth.getUser();
-      if (!user) return;
-
-      // Get user's organization
-      const { data: orgMember } = await supabase
-        .from('organization_members')
-        .select('organization_id')
-        .eq('user_id', user.id)
-        .single();
-
-      if (!orgMember) return;
+      const organizationId = await resolveOrgId(); // session-cached: no per-visit user->org waterfall
+      if (!organizationId) return;
 
       // Get call agents
       const { data: agentsData, error } = await supabase
         .from('call_agents' as any)
         .select('*')
-        .eq('organization_id', orgMember.organization_id)
+        .eq('organization_id', organizationId)
         .order('name');
 
       if (error) throw error;
@@ -96,6 +88,7 @@ export default function CallAgents() {
       );
 
       setAgents(agentsWithCount as CallAgent[]);
+      setPage("callAgents", agentsWithCount as CallAgent[]); // next visit paints instantly
     } catch (error) {
       console.error('Error loading call agents:', error);
       toast({

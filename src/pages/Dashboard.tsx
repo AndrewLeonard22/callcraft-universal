@@ -36,6 +36,7 @@ import type { User } from "@supabase/supabase-js";
 import agentIqLogo from "@/assets/agent-iq-logo.png";
 import { CompanyLogoSettings } from "@/components/CompanyLogoSettings";
 import { getClientLogo } from "@/utils/clientHelpers";
+import { clearSessionCache } from "@/utils/sessionCache";
 
 interface ServiceType {
   id: string;
@@ -478,6 +479,7 @@ export default function Dashboard() {
   }, [toast, invalidateClients]);
 
   const handleLogout = useCallback(async () => {
+    clearSessionCache(); // next user on this browser never sees this org's cached pages
     await supabase.auth.signOut();
     navigate("/auth");
   }, [navigate]);

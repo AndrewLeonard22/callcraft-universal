@@ -26,6 +26,7 @@ import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, 
 import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
 import { SpinWheel } from "@/components/SpinWheel";
+import { resolveOrgId, getPage, mergePage } from "@/utils/sessionCache";
 
 interface TrainingModule {
   id: string;
@@ -105,10 +106,11 @@ interface WheelSegment {
 }
 
 export default function Training() {
-  const [modules, setModules] = useState<TrainingModule[]>([]);
-  const [serviceTypes, setServiceTypes] = useState<ServiceType[]>([]);
+  const seed = getPage<{ modules?: TrainingModule[]; serviceTypes?: ServiceType[]; callAgents?: CallAgent[]; wheelSegments?: WheelSegment[] }>("training");
+  const [modules, setModules] = useState<TrainingModule[]>(() => seed?.modules ?? []);
+  const [serviceTypes, setServiceTypes] = useState<ServiceType[]>(() => seed?.serviceTypes ?? []);
   const [selectedServiceId, setSelectedServiceId] = useState<string | null>(null);
-  const [loading, setLoading] = useState(true);
+  const [loading, setLoading] = useState(() => !seed?.modules); // spinner only on true-first-visit
   const [organizationId, setOrganizationId] = useState<string | null>(null);
   const [questions, setQuestions] = useState<TrainingQuestion[]>([]);
   const [currentQuestionIndex, setCurrentQuestionIndex] = useState(0);
@@ -121,11 +123,11 @@ export default function Training() {
   const [incorrectAnswers, setIncorrectAnswers] = useState<Set<string>>(new Set());
   const [quizCompleted, setQuizCompleted] = useState(false);
   const [scoreboard, setScoreboard] = useState<any[]>([]);
-  const [callAgents, setCallAgents] = useState<CallAgent[]>([]);
+  const [callAgents, setCallAgents] = useState<CallAgent[]>(() => seed?.callAgents ?? []);
   const [selectedAgentId, setSelectedAgentId] = useState<string>("");
   const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
   const [scoreToDelete, setScoreToDelete] = useState<string | null>(null);
-  const [wheelSegments, setWheelSegments] = useState<WheelSegment[]>([]);
+  const [wheelSegments, setWheelSegments] = useState<WheelSegment[]>(() => seed?.wheelSegments ?? []);
   const { toast } = useToast();
   useEffect(() => {
     loadOrganization();
@@ -143,18 +145,9 @@ export default function Training() {
   }, [organizationId]);
 
   const loadOrganization = async () => {
-    const { data: { user } } = await supabase.auth.getUser();
-    if (!user) return;
-
-    const { data: orgMember } = await supabase
-      .from("organization_members")
-      .select("organization_id")
-      .eq("user_id", user.id)
-      .single();
-
-    if (orgMember) {
-      setOrganizationId(orgMember.organization_id);
-    }
+    // session-cached: the user->org 2-hop waterfall is paid once per session, not per page
+    const orgId = await resolveOrgId();
+    if (orgId) setOrganizationId(orgId);
   };
 
   const loadModules = async () => {
@@ -215,6 +208,7 @@ export default function Training() {
       );
 
       setModules(modulesWithSections);
+      mergePage("training", { modules: modulesWithSections });
     } catch (error) {
       console.error("Error loading modules:", error);
       toast({
@@ -237,6 +231,7 @@ export default function Training() {
 
       if (error) throw error;
       setServiceTypes(data || []);
+      mergePage("training", { serviceTypes: data || [] });
     } catch (error: any) {
       console.error("Error loading service types:", error);
     }
@@ -295,6 +290,7 @@ export default function Training() {
 
       if (error) throw error;
       setCallAgents(data || []);
+      mergePage("training", { callAgents: data || [] });
     } catch (error) {
       console.error("Error loading call agents:", error);
     }
@@ -311,6 +307,7 @@ export default function Training() {
 
       if (error) throw error;
       setWheelSegments(data || []);
+      mergePage("training", { wheelSegments: data || [] });
     } catch (error) {
       console.error("Error loading wheel segments:", error);
     }
