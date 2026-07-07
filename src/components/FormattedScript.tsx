@@ -89,7 +89,7 @@ export function FormattedScript({ content }: FormattedScriptProps) {
         if (line.trim() === '') return <div key={index} className="h-4" />;
         if (line.startsWith('**') && line.endsWith('**')) {
           return (
-            <h2 key={index} className="text-xl font-bold text-primary mt-6 mb-4 border-b border-border pb-2">
+            <h2 key={index} className="mt-8 mb-4 border-t border-border pt-5 text-xs font-bold uppercase tracking-[0.07em] text-muted-foreground first:mt-0 first:border-t-0 first:pt-0">
               {line.slice(2, -2)}
             </h2>
           );

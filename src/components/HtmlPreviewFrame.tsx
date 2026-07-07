@@ -28,7 +28,24 @@ function HtmlPreviewFrame({ html, className }: HtmlPreviewFrameProps) {
 
     // Write a minimal HTML document; do NOT inject app styles
     doc.open();
-    doc.write(`<!doctype html><html><head><meta charset="utf-8"/><meta name="viewport" content="width=device-width, initial-scale=1"/><style>html,body{margin:0;padding:0;overflow-x:hidden;font-family:system-ui,-apple-system,sans-serif;font-size:15px;line-height:1.7;color:#0f172a;} img{max-width:100%;height:auto;display:block;} ol,ul{list-style:none;margin:0;padding:0;} p{margin:0 0 1em;} mark{background:rgba(99,102,241,0.13);color:inherit;padding:1px 3px;border-radius:3px;font-weight:600;} a{text-decoration:none;color:inherit;pointer-events:none;cursor:default;}</style></head><body style="margin:0;">
+    doc.write(`<!doctype html><html><head><meta charset="utf-8"/><meta name="viewport" content="width=device-width, initial-scale=1"/><style>
+/* Teleprompter typography (Fable 2026-07-06): the setter reads this MID-CALL.
+   Say-this lines (mark) are the star; module headers demote to step markers;
+   Rules:/Script: labels go small-caps; browser-default doc look is dead. */
+html,body{margin:0;padding:0;overflow-x:hidden;font-family:Inter,system-ui,-apple-system,sans-serif;font-size:14.5px;line-height:1.7;color:#3f4354;-webkit-font-smoothing:antialiased;}
+img{max-width:100%;height:auto;display:block;}
+ol,ul{list-style:none;margin:0 0 1.1em;padding:0;}
+li{margin:0 0 .45em;}
+p{margin:0 0 .85em;}
+h1,h2,h3{font-size:12.5px;font-weight:700;letter-spacing:.07em;text-transform:uppercase;color:#8a90a3;margin:2.4em 0 1em;padding-top:1.5em;border-top:1px solid #eceef3;}
+h1:first-child,h2:first-child,h3:first-child{margin-top:0;padding-top:0;border-top:none;}
+p>strong:only-child{display:inline-block;font-size:11px;font-weight:700;letter-spacing:.09em;text-transform:uppercase;color:#9aa0b4;margin-top:.3em;}
+strong{font-weight:650;color:#15192a;}
+mark{display:inline-block;background:#eef4ff;color:#101828;padding:10px 14px;border-radius:10px;border-left:3px solid #2f6bff;font-weight:500;font-size:16.5px;line-height:1.6;margin:2px 0 4px;}
+em{color:#8a90a3;font-size:13px;}
+hr{border:none;border-top:1px solid #eceef3;margin:1.5em 0;}
+a{text-decoration:none;color:inherit;pointer-events:none;cursor:default;}
+</style></head><body style="margin:0;">
       <div id="content">${html}</div>
       <script>
         let lastHeight = 0;
