@@ -316,6 +316,12 @@ export default function Training() {
   const loadScoreboard = useCallback(async () => {
     if (!organizationId) return;
     try {
+      // Rank by PERCENTAGE (the metric the UI actually shows, :1256), among
+      // agent-attributed scores, taking the top 10 AFTER filtering. The old query
+      // ordered by RAW score and limited to 10 BEFORE dropping no-agent rows — so an
+      // 8/10 (80%) ranked below a 9/20 (45%), and if any of the top-10-raw lacked a
+      // call agent the board showed <10 and hid valid scorers. Bounded fetch (recent
+      // 500) → filter → %-sort (tiebreak recency) → slice.
       const { data, error } = await (supabase as any)
         .from("quiz_scores")
         .select(`
@@ -323,14 +329,18 @@ export default function Training() {
           call_agents(name)
         `)
         .eq("organization_id", organizationId)
-        .order("score", { ascending: false })
         .order("completed_at", { ascending: false })
-        .limit(10);
+        .limit(500);
 
       if (error) throw error;
-      // Filter out entries without call agents
-      const filteredData = (data || []).filter((score: any) => score.call_agents?.name);
-      setScoreboard(filteredData);
+      const pct = (s: any) => (s.total_questions > 0 ? s.score / s.total_questions : 0);
+      const ranked = (data || [])
+        .filter((score: any) => score.call_agents?.name)
+        .sort((a: any, b: any) =>
+          pct(b) - pct(a) ||
+          new Date(b.completed_at).getTime() - new Date(a.completed_at).getTime())
+        .slice(0, 10);
+      setScoreboard(ranked);
     } catch (error) {
       console.error("Error loading scoreboard:", error);
     }
