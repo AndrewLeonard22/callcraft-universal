@@ -167,6 +167,10 @@ export function useAreaMap({ hqAddress, hqLat, hqLng, serviceRadiusMiles }: Area
               dirRenderer.current = new DirectionsRenderer({
                 map: mapRef.current,
                 suppressMarkers: false,
+                // NEVER move the camera — landing on the house then yanking
+                // out to frame the whole route read as "it jumps back to the
+                // map" (Andrew). The route draws; the setter stays on the house.
+                preserveViewport: true,
                 polylineOptions: { strokeColor: "#ef4444", strokeWeight: 5, strokeOpacity: 0.9 },
               });
             }
@@ -177,7 +181,6 @@ export function useAreaMap({ hqAddress, hqLat, hqLng, serviceRadiusMiles }: Area
             });
             if (token !== focusToken.current || !mapRef.current) return;
             dirRenderer.current.setDirections(res);
-            if (res.routes[0]?.bounds) mapRef.current.fitBounds(res.routes[0].bounds, 70);
             const leg = res.routes[0]?.legs[0];
             if (leg?.distance && leg?.duration) {
               setRoute({ miles: leg.distance.value / 1609.34, mins: leg.duration.value / 60 });

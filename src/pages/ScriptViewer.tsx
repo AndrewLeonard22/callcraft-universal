@@ -71,7 +71,7 @@ const AVATAR_COLORS = [
 ];
 const avatarColor = (name: string) => AVATAR_COLORS[name.charCodeAt(0) % AVATAR_COLORS.length];
 
-type CenterTab = "script" | "objections" | "faq" | "qualification" | "area";
+type CenterTab = "script" | "objections" | "faq" | "qualification" | "area" | "website";
 
 export default function ScriptViewer() {
   const { scriptId } = useParams();
@@ -87,6 +87,7 @@ export default function ScriptViewer() {
   const [editedContent, setEditedContent] = useState("");
   const [saving, setSaving] = useState(false);
   const [selectedImageIndex, setSelectedImageIndex] = useState<number | null>(null);
+  const [rescheduleOpen, setRescheduleOpen] = useState(false);
   const [expandedObjection, setExpandedObjection] = useState<string | null>(null);
   const [expandedFaq, setExpandedFaq] = useState<string | null>(null);
 
@@ -402,12 +403,16 @@ export default function ScriptViewer() {
     ? client.services_advertised
     : getDetailValue("services_offered") ? getDetailValue("services_offered").split(/[,\n]/).map(s => s.trim()).filter(Boolean) : [];
 
+  const websiteUrl = getDetailValue("website");
+  const rescheduleUrl = getDetailValue("reschedule_calendar");
+
   const centerTabs: { id: CenterTab; label: string; icon?: string }[] = [
     { id: "script",         label: "Script" },
     { id: "area",           label: "Area" },
     { id: "objections",     label: `Objections${objectionTemplates.length > 0 ? ` (${objectionTemplates.length})` : ""}` },
     { id: "faq",            label: `FAQ${faqs.length > 0 ? ` (${faqs.length})` : ""}` },
     { id: "qualification",  label: "Qualification" },
+    ...(websiteUrl ? [{ id: "website" as CenterTab, label: "Website" }] : []),
   ];
 
   return (
@@ -486,18 +491,25 @@ export default function ScriptViewer() {
             )}
             {quickLinks.filter(l => l.key !== "appointment_calendar").length > 0 && (
               <div className="grid grid-cols-2 gap-1.5">
-                {quickLinks.filter(l => l.key !== "appointment_calendar").map(({ key, label, icon: Icon }) => (
-                  <a
-                    key={key}
-                    href={safeUrl(getDetailValue(key))}
-                    target="_blank"
-                    rel="noopener noreferrer"
-                    className="flex items-center gap-1.5 rounded-md border border-border bg-background px-2.5 py-1.5 text-[12px] font-medium text-foreground/85 transition-colors hover:border-foreground/25 hover:text-foreground"
-                  >
-                    <Icon className="h-3.5 w-3.5 shrink-0 text-muted-foreground" />
-                    <span className="truncate">{label}</span>
-                  </a>
-                ))}
+                {quickLinks.filter(l => l.key !== "appointment_calendar").map(({ key, label, icon: Icon }) => {
+                  const pill = "flex items-center gap-1.5 rounded-md border border-border bg-background px-2.5 py-1.5 text-[12px] font-medium text-foreground/85 transition-colors hover:border-foreground/25 hover:text-foreground";
+                  // Reschedule opens IN PLACE (Andrew: "I would just want that
+                  // to be a pop up") — no tab-jumping mid-call.
+                  if (key === "reschedule_calendar") {
+                    return (
+                      <button key={key} className={pill} onClick={() => setRescheduleOpen(true)}>
+                        <Icon className="h-3.5 w-3.5 shrink-0 text-muted-foreground" />
+                        <span className="truncate">{label}</span>
+                      </button>
+                    );
+                  }
+                  return (
+                    <a key={key} href={safeUrl(getDetailValue(key))} target="_blank" rel="noopener noreferrer" className={pill}>
+                      <Icon className="h-3.5 w-3.5 shrink-0 text-muted-foreground" />
+                      <span className="truncate">{label}</span>
+                    </a>
+                  );
+                })}
               </div>
             )}
           </div>
@@ -685,7 +697,30 @@ export default function ScriptViewer() {
               </div>
             </div>
           )}
-          {centerTab !== "area" && (
+          {/* WEBSITE — kept mounted so the page doesn't reload every switch */}
+          {websiteUrl && (
+            <div className={centerTab === "website" ? "flex min-h-0 flex-1 flex-col" : "hidden"}>
+              <div className="flex h-9 shrink-0 items-center gap-2 border-b border-border bg-muted/30 px-3 text-[12px] text-muted-foreground">
+                <Globe className="h-3.5 w-3.5 shrink-0" />
+                <span className="truncate">{websiteUrl.replace(/^https?:\/\//, "").replace(/\/$/, "")}</span>
+                <a
+                  href={safeUrl(websiteUrl)}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="ml-auto flex shrink-0 items-center gap-1 transition-colors hover:text-foreground"
+                >
+                  Open <ExternalLink className="h-3 w-3" />
+                </a>
+              </div>
+              <iframe
+                src={safeUrl(websiteUrl)}
+                title="Company website"
+                className="min-h-0 w-full flex-1 bg-white"
+                sandbox="allow-scripts allow-same-origin allow-forms allow-popups"
+              />
+            </div>
+          )}
+          {centerTab !== "area" && centerTab !== "website" && (
           <div className="flex-1 overflow-y-auto">
 
             {/* SCRIPT */}
@@ -820,8 +855,8 @@ export default function ScriptViewer() {
           )}
         </main>
 
-        {/* ── RIGHT — Project Estimate (hidden on Area tab) ────────────── */}
-        {centerTab !== "area" && (
+        {/* ── RIGHT — Project Estimate (hidden on full-bleed tabs) ─────── */}
+        {centerTab !== "area" && centerTab !== "website" && (
           <aside className="w-80 shrink-0 border-l border-border overflow-hidden flex flex-col bg-background">
             <ProjectEstimatePanel
               clientMinPrice={minPriceNum}
@@ -831,6 +866,30 @@ export default function ScriptViewer() {
           </aside>
         )}
       </div>
+
+      {/* ── Reschedule popup — the calendar comes to the setter ─────────── */}
+      {rescheduleOpen && rescheduleUrl && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 p-4" onClick={() => setRescheduleOpen(false)}>
+          <div className="flex h-[85vh] w-full max-w-[920px] flex-col overflow-hidden rounded-xl bg-background shadow-2xl" onClick={e => e.stopPropagation()}>
+            <div className="flex h-11 shrink-0 items-center gap-2 border-b border-border px-4">
+              <RotateCcw className="h-4 w-4 text-muted-foreground" />
+              <span className="text-[13px] font-semibold text-foreground">Reschedule</span>
+              <a
+                href={safeUrl(rescheduleUrl)}
+                target="_blank"
+                rel="noopener noreferrer"
+                className="ml-auto flex items-center gap-1 text-[12px] text-muted-foreground transition-colors hover:text-foreground"
+              >
+                Open in new tab <ExternalLink className="h-3 w-3" />
+              </a>
+              <button onClick={() => setRescheduleOpen(false)} className="ml-2 rounded-md p-1 text-muted-foreground transition-colors hover:bg-muted hover:text-foreground">
+                <X className="h-4 w-4" />
+              </button>
+            </div>
+            <iframe src={safeUrl(rescheduleUrl)} title="Reschedule calendar" className="min-h-0 w-full flex-1 bg-white" />
+          </div>
+        </div>
+      )}
 
       {/* ── Lightbox ─────────────────────────────────────────────────────── */}
       {selectedImageIndex !== null && (
