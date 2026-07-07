@@ -667,7 +667,7 @@ export default function Training() {
                         const moduleType = MODULE_TYPES.find(t => t.id === module.category);
                         
                         return (
-                          <Card key={module.id} className="group hover:shadow-lg transition-all duration-300 border-border/60 hover:border-primary/40 overflow-hidden">
+                          <Card key={module.id} className="group transition-colors border-border hover:border-primary/40 overflow-hidden">
                             <CardHeader className="pb-4 space-y-3">
                               <div className="flex items-start justify-between gap-3">
                                 <div className="flex items-start gap-3 flex-1 min-w-0">
@@ -821,7 +821,7 @@ export default function Training() {
                           const IconComponent = getIconComponent(module.icon_name);
                           
                           return (
-                            <Card key={module.id} className="group hover:shadow-lg transition-all duration-200 border-border/50 hover:border-primary/30">
+                            <Card key={module.id} className="group transition-colors border-border hover:border-primary/30">
                               <CardHeader className="pb-3">
                                 <div className="flex items-start gap-3">
                                   <div className="p-2 bg-primary/10 rounded-lg group-hover:bg-primary/20 transition-colors">

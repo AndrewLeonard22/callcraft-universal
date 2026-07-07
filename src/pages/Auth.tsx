@@ -424,7 +424,7 @@ export default function Auth() {
                       <p className="text-sm text-destructive">{loginErrors.password}</p>
                     )}
                   </div>
-                  <Button type="submit" className="w-full transition-all duration-300 hover:shadow-md hover:scale-[1.02]" disabled={loading}>
+                  <Button type="submit" className="w-full" disabled={loading}>
                     {loading ? (
                       <>
                         <Loader2 className="mr-2 h-4 w-4 animate-spin" />
@@ -506,7 +506,7 @@ export default function Auth() {
                       <p className="text-sm text-destructive">{signupErrors.password}</p>
                     )}
                   </div>
-                  <Button type="submit" className="w-full transition-all duration-300 hover:shadow-md hover:scale-[1.02]" disabled={loading}>
+                  <Button type="submit" className="w-full" disabled={loading}>
                     {loading ? (
                       <>
                         <Loader2 className="mr-2 h-4 w-4 animate-spin" />

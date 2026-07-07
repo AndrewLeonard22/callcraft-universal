@@ -933,7 +933,7 @@ const [moduleForm, setModuleForm] = useState({
                           key={type.id}
                           type="button"
                           onClick={() => setModuleForm({ ...moduleForm, category: type.id, icon_name: type.icon.name })}
-                          className={`p-4 rounded-lg border-2 text-left transition-all hover:shadow-md ${
+                          className={`p-4 rounded-[10px] border text-left transition-colors hover:bg-muted/40 ${
                             isSelected 
                               ? 'border-primary bg-primary/5' 
                               : 'border-border hover:border-primary/50'
