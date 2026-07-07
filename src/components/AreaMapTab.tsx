@@ -13,6 +13,7 @@ import { Button } from "@/components/ui/button";
 import { supabase } from "@/integrations/supabase/client";
 import { logger } from "@/utils/logger";
 import { lookupArea, type AreaLookupResult, type ExcludedArea, type ClientAreaConfig } from "@/utils/areaLookup";
+import { BadassMapCanvas } from "@/components/BadassMapCanvas";
 
 // ── Types ─────────────────────────────────────────────────────────────────
 
@@ -199,91 +200,6 @@ interface LayerToggles {
 }
 
 
-// ── Google canvas (keyless) ────────────────────────────────────────────────
-// Replaces the dead "Map token not configured" state. No key, no edge function,
-// no token table: a Google Maps embed driven by whatever the setter checked in
-// the rail. Check a full address → satellite view of the actual home (Andrew's
-// ask); no search yet → satellite overview of the HQ area. Toggle sat/map,
-// or pop out to full Google Maps (street view / Earth from there).
-
-interface GoogleCanvasProps {
-  searchedQuery?: string | null;   // the rail's last checked zip/city/address
-  hqAddress?: string;
-  hqLat?: number | null;
-  hqLng?: number | null;
-}
-
-function GoogleCanvas({ searchedQuery, hqAddress, hqLat, hqLng }: GoogleCanvasProps) {
-  const [mode, setMode] = useState<"satellite" | "map">("satellite");
-
-  // Focus priority: searched address (zoomed — see the home) > HQ address > HQ coords
-  const focus = searchedQuery?.trim()
-    ? { q: searchedQuery.trim(), z: 19 }
-    : hqAddress?.trim()
-      ? { q: hqAddress.trim(), z: 12 }
-      : hqLat != null && hqLng != null
-        ? { q: `${hqLat},${hqLng}`, z: 12 }
-        : null;
-
-  if (!focus) {
-    return (
-      <div className="h-full flex items-center justify-center text-center px-8">
-        <div>
-          <MapPin className="h-8 w-8 text-muted-foreground mx-auto mb-2" />
-          <div className="text-[13px] font-medium text-foreground">No location to show yet</div>
-          <div className="text-[12px] text-muted-foreground mt-1">Check an address in the rail, or set the HQ address in Edit Client → Service Area</div>
-        </div>
-      </div>
-    );
-  }
-
-  const t = mode === "satellite" ? "k" : "m";
-  const src = `https://maps.google.com/maps?q=${encodeURIComponent(focus.q)}&t=${t}&z=${focus.z}&output=embed`;
-
-  return (
-    <div className="relative h-full w-full">
-      <iframe
-        key={src} // remount on focus/mode change — embeds don't hot-swap src reliably
-        src={src}
-        className="h-full w-full border-0"
-        loading="lazy"
-        referrerPolicy="no-referrer-when-downgrade"
-        title={searchedQuery ? `Satellite view: ${focus.q}` : "Service area map"}
-      />
-      <div className="absolute top-3 right-3 z-10 flex gap-1.5">
-        <Button
-          size="sm"
-          variant={mode === "satellite" ? "default" : "outline"}
-          className="h-7 px-2.5 text-[11px] shadow-md"
-          onClick={() => setMode("satellite")}
-        >
-          Satellite
-        </Button>
-        <Button
-          size="sm"
-          variant={mode === "map" ? "default" : "outline"}
-          className="h-7 px-2.5 text-[11px] shadow-md"
-          onClick={() => setMode("map")}
-        >
-          Map
-        </Button>
-        <Button
-          size="sm"
-          variant="outline"
-          className="h-7 px-2.5 text-[11px] shadow-md"
-          onClick={() => window.open(`https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(focus.q)}`, "_blank", "noopener")}
-        >
-          Open in Google Maps
-        </Button>
-      </div>
-      {searchedQuery && (
-        <div className="absolute bottom-3 left-3 z-10 bg-background/95 border border-border rounded-lg px-3 py-1.5 text-[11px] font-medium shadow-md max-w-[70%] truncate">
-          📍 {searchedQuery}
-        </div>
-      )}
-    </div>
-  );
-}
 
 // ── Main AreaMapTab ────────────────────────────────────────────────────────
 
@@ -613,9 +529,9 @@ export function AreaMapTab({
 
       {/* ── MAP CANVAS ───────────────────────────────────────────────────── */}
       <div className="flex-1 relative overflow-hidden bg-muted/30">
-        {/* Keyless Google canvas — the Mapbox token pipeline is dead, and this is
-            better anyway: check a full address in the rail → satellite of the home. */}
-        <GoogleCanvas searchedQuery={searched} hqAddress={hqAddress} hqLat={hqLat} hqLng={hqLng} />
+        {/* Badass interactive Google Maps: Places search + satellite/tilt + Street View +
+            route/distance from HQ + draw-to-measure. Falls back to a keyless iframe with no key. */}
+        <BadassMapCanvas searchedQuery={searched} hqAddress={hqAddress} hqLat={hqLat} hqLng={hqLng} />
 
         {/* Live lead popup */}
         {leadPopupOpen && liveLead && (
