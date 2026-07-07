@@ -702,7 +702,7 @@ function selectDQChip(widget,key,btn,isDQ){
               <button
                 key={tab.id}
                 onClick={() => setCenterTab(tab.id)}
-                className={`px-3 py-3 text-[13px] font-medium border-b-2 -mb-px transition-colors whitespace-nowrap ${
+                className={`px-3 py-2.5 text-[13px] font-medium border-b-2 -mb-px transition-colors whitespace-nowrap ${
                   centerTab === tab.id
                     ? "border-foreground text-foreground"
                     : "border-transparent text-muted-foreground hover:text-foreground"
