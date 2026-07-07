@@ -44,6 +44,13 @@ strong{font-weight:650;color:#15192a;}
 em{color:#8a90a3;}
 hr{border:none;border-top:1px solid #eceef3;margin:1.5em 0;}
 a{text-decoration:none;color:inherit;pointer-events:none;cursor:default;}
+/* HARD density ceiling — editor inline font-sizes lose to this (Andrew: 'too
+   zoomed in' ×4). Nothing in the script renders above these caps. */
+#content, #content *:not(.say):not(.say *) { font-size: 13px !important; line-height: 1.6 !important; }
+#content h1, #content h2, #content h3, #content h1 *, #content h2 *, #content h3 * { font-size: 14px !important; }
+#content .say, #content .say * { font-size: 14.5px !important; line-height: 1.55 !important; }
+#content .lbl, #content .lbl * { font-size: 10.5px !important; }
+#content .rule, #content .rule * { font-size: 12px !important; }
 mark{background:transparent!important;color:inherit;padding:0;font-weight:inherit;}
 .lbl,.lbl *{font-size:11px!important;font-weight:700!important;letter-spacing:.09em;text-transform:uppercase;color:#9aa0b4!important;}
 .lbl{margin:1.6em 0 .7em;}

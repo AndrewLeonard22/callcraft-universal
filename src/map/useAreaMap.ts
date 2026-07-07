@@ -29,12 +29,6 @@ interface Map3DEl extends HTMLElement {
   center: { lat: number; lng: number; altitude: number };
 }
 
-interface DrawMgr {
-  setMap(map: google.maps.Map | null): void;
-  setDrawingMode(mode: unknown): void;
-  addListener(event: string, cb: (...args: unknown[]) => void): google.maps.MapsEventListener;
-}
-
 export interface AreaMapOptions {
   hqLat?: number | null;
   hqLng?: number | null;
@@ -55,7 +49,9 @@ export function useAreaMap({ hqLat, hqLng, serviceRadiusMiles }: AreaMapOptions)
   const markerCtor = useRef<typeof google.maps.marker.AdvancedMarkerElement | null>(null);
   const markerRef = useRef<google.maps.marker.AdvancedMarkerElement | null>(null);
   const dirRenderer = useRef<google.maps.DirectionsRenderer | null>(null);
-  const drawMgr = useRef<DrawMgr | null>(null);
+  const measurePoly = useRef<google.maps.Polygon | null>(null);
+  const measureMarkers = useRef<google.maps.marker.AdvancedMarkerElement[]>([]);
+  const measureClick = useRef<google.maps.MapsEventListener | null>(null);
   const focusToken = useRef(0);
 
   const [ready, setReady] = useState(false);
@@ -103,7 +99,15 @@ export function useAreaMap({ hqLat, hqLng, serviceRadiusMiles }: AreaMapOptions)
         const at = focus ?? (hasHq ? { lat: hqLat as number, lng: hqLng as number } : null);
         if (!at || !panoRef.current) return;
         panoRef.current.setPosition(at);
+        panoRef.current.setPov({ heading: 0, pitch: 0 });
         panoRef.current.setVisible(true);
+        // A pano created inside a hidden 0×0 div renders BLACK — force a
+        // resize + POV nudge once its container has real dimensions.
+        setTimeout(() => {
+          if (!panoRef.current) return;
+          google.maps.event.trigger(panoRef.current, "resize");
+          panoRef.current.setPov({ heading: 0, pitch: 5 });
+        }, 60);
       } else {
         panoRef.current?.setVisible(false);
       }
@@ -187,13 +191,24 @@ export function useAreaMap({ hqLat, hqLng, serviceRadiusMiles }: AreaMapOptions)
 
   /* ── measure: draw a polygon, read square feet (map mode only) ── */
 
-  const exitMeasure = useCallback(() => {
-    drawMgr.current?.setDrawingMode(null);
-    drawMgr.current?.setMap(null);
-    drawMgr.current = null;
-    setMeasuring(false);
+  const clearMeasureGeometry = useCallback(() => {
+    measureClick.current?.remove();
+    measureClick.current = null;
+    measurePoly.current?.setMap(null);
+    measurePoly.current = null;
+    measureMarkers.current.forEach((mk) => (mk.map = null));
+    measureMarkers.current = [];
   }, []);
 
+  const exitMeasure = useCallback(() => {
+    clearMeasureGeometry();
+    setMeasuring(false);
+    setAreaSqFt(null);
+  }, [clearMeasureGeometry]);
+
+  // Tap-to-drop corners → live sq-ft. DrawingManager was DELETED in Maps
+  // v3.65, so this is hand-rolled from a Polygon + click handler — and it's
+  // better: precise corner taps beat freehand, double-click/close to finish.
   const toggleMeasure = useCallback(async () => {
     if (measuring) {
       exitMeasure();
@@ -201,28 +216,44 @@ export function useAreaMap({ hqLat, hqLng, serviceRadiusMiles }: AreaMapOptions)
     }
     const map = mapRef.current;
     if (!map) return;
-    setModeState("map"); // drawing lives on the 2D map
+    setModeState("map");
     panoRef.current?.setVisible(false);
     try {
-      const [{ DrawingManager, OverlayType }, { spherical }] = await Promise.all([
-        importLibrary<google.maps.DrawingLibrary>("drawing"),
-        importLibrary<google.maps.GeometryLibrary>("geometry"),
-      ]);
+      const { spherical } = await importLibrary<google.maps.GeometryLibrary>("geometry");
       if (!mapRef.current) return;
-      const dm = new (DrawingManager as unknown as new (o: unknown) => DrawMgr)({
-        drawingMode: OverlayType.POLYGON,
-        drawingControl: false,
-        polygonOptions: { fillColor: "#2f6bff", fillOpacity: 0.18, strokeColor: "#2f6bff", strokeWeight: 2 },
+      const path: google.maps.LatLngLiteral[] = [];
+      const poly = new google.maps.Polygon({
+        map,
+        paths: [],
+        fillColor: "#2f6bff",
+        fillOpacity: 0.18,
+        strokeColor: "#2f6bff",
+        strokeWeight: 2,
       });
-      dm.setMap(mapRef.current);
-      dm.addListener("polygoncomplete", (...args: unknown[]) => {
-        const poly = args[0] as google.maps.Polygon;
-        const sqMeters = spherical.computeArea(poly.getPath());
-        setAreaSqFt(sqMeters * 10.7639);
-        dm.setDrawingMode(null);
-        poly.addListener("click", () => poly.setMap(null));
+      measurePoly.current = poly;
+      const recompute = () => {
+        poly.setPaths([path]);
+        if (path.length >= 3) {
+          const sqM = spherical.computeArea(
+            path.map((p) => new google.maps.LatLng(p.lat, p.lng)),
+          );
+          setAreaSqFt(sqM * 10.7639);
+        } else {
+          setAreaSqFt(null);
+        }
+      };
+      measureClick.current = map.addListener("click", (e: google.maps.MapMouseEvent) => {
+        if (!e.latLng) return;
+        path.push({ lat: e.latLng.lat(), lng: e.latLng.lng() });
+        if (markerCtor.current) {
+          const dot = document.createElement("div");
+          dot.style.cssText = "width:10px;height:10px;border-radius:50%;background:#2f6bff;border:2px solid #fff;box-shadow:0 1px 3px rgba(0,0,0,.4)";
+          measureMarkers.current.push(
+            new markerCtor.current({ map, position: e.latLng, content: dot }),
+          );
+        }
+        recompute();
       });
-      drawMgr.current = dm;
       setMeasuring(true);
       setAreaSqFt(null);
     } catch (e) {
