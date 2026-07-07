@@ -1313,9 +1313,7 @@ export default function Training() {
                 label: segment.label,
                 color: segment.color
               }))}
-              onSpin={(winner) => {
-                console.log("Winner:", winner);
-              }}
+              onSpin={() => { /* wheel is decorative — result already rendered by SpinWheel */ }}
             />
           </TabsContent>
           )}
