@@ -2,7 +2,7 @@ import { useEffect, useState, useRef, useCallback } from "react";
 import { useParams, useNavigate, Link } from "react-router-dom";
 import {
   ArrowLeft, X, ClipboardCheck, Sparkles, ExternalLink,
-  Calendar, RotateCcw, Link2, Globe, Ban, Image as ImageIcon,
+  Calendar, RotateCcw, PhoneCall, Link2, Globe, Ban, Image as ImageIcon,
   ChevronRight, MapPin, Zap, MessageSquare,
 } from "lucide-react";
 import { DebouncedSaveManager } from "@/utils/saveHelpers";
@@ -150,9 +150,12 @@ export default function ScriptViewer() {
     } finally { setLoading(false); }
   }, [scriptId]);
 
-  const loadObjectionTemplates = useCallback(async () => {
+  // Org-scoped (was: select * of EVERY org's templates, and the tab label
+  // proudly displayed the global count). Loads once organizationId resolves
+  // from the script row; realtime re-load is filtered to this org too.
+  const loadObjectionTemplates = useCallback(async (orgId: string) => {
     try {
-      const { data, error } = await supabase.from("objection_handling_templates").select("*").order("created_at", { ascending: false });
+      const { data, error } = await supabase.from("objection_handling_templates").select("*").eq("organization_id", orgId).order("created_at", { ascending: false });
       if (error) throw error;
       setObjectionTemplates(data || []);
     } catch (error) { logger.error("Error loading objection templates:", error); }
@@ -160,13 +163,21 @@ export default function ScriptViewer() {
 
   useEffect(() => {
     if (!scriptId) return;
-    loadClientData(); loadObjectionTemplates();
+    loadClientData();
     const ch = supabase.channel("sv-main")
       .on("postgres_changes", { event: "UPDATE", schema: "public", table: "scripts", filter: `id=eq.${scriptId}` }, () => loadClientData())
-      .on("postgres_changes", { event: "*", schema: "public", table: "objection_handling_templates" }, () => loadObjectionTemplates())
       .subscribe();
     return () => { supabase.removeChannel(ch); };
-  }, [scriptId, loadClientData, loadObjectionTemplates]);
+  }, [scriptId, loadClientData]);
+
+  useEffect(() => {
+    if (!organizationId) return;
+    loadObjectionTemplates(organizationId);
+    const ch = supabase.channel("sv-objections")
+      .on("postgres_changes", { event: "*", schema: "public", table: "objection_handling_templates", filter: `organization_id=eq.${organizationId}` }, () => loadObjectionTemplates(organizationId))
+      .subscribe();
+    return () => { supabase.removeChannel(ch); };
+  }, [organizationId, loadObjectionTemplates]);
 
   useEffect(() => {
     if (!client?.id) return;
@@ -419,6 +430,7 @@ function selectDQChip(widget,key,btn,isDQ){
   const quickLinks = [
     { key: "appointment_calendar", label: "Book Appointment", icon: Calendar },
     { key: "reschedule_calendar",  label: "Reschedule",       icon: RotateCcw },
+    { key: "callback_calendar",    label: "Callback",          icon: PhoneCall },
     { key: "crm_account_link",     label: "CRM Account",      icon: Link2 },
     { key: "website",              label: "Website",           icon: Globe },
   ].filter(({ key }) => !!getDetailValue(key));

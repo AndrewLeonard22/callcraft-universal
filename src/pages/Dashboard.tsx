@@ -1,4 +1,4 @@
-import { useEffect, useState, useMemo, useCallback } from "react";
+import { useEffect, useState, useMemo, useCallback, useRef } from "react";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { Link, useNavigate } from "react-router-dom";
 import { Plus, FileText, Calendar, Search, Settings, Trash2, LogOut, User as UserIcon, Users, Wand2, Archive, ArchiveRestore, GraduationCap, Building2, List, Grid3x3, ArrowUpDown, Phone, ChevronDown } from "lucide-react";
@@ -140,9 +140,20 @@ export default function Dashboard() {
     const userOrganizationId = orgMember.organization_id;
     setOrganizationId(userOrganizationId);
 
-    // Batch parallel API calls for better performance
+    // Wave 1: the org's clients (one indexed query) — every other fetch is
+    // then BOUNDED to those client ids. The Lovable original pulled the whole
+    // scripts / generated_images / client_details TABLES across every
+    // organization and filtered in JS.
+    const { data: clientsData, error: clientsError } = await supabase
+      .from("clients")
+      .select("*")
+      .eq("organization_id", userOrganizationId)
+      .neq("id", "00000000-0000-0000-0000-000000000001")
+      .order("last_accessed_at", { ascending: false, nullsFirst: false });
+    if (clientsError) throw clientsError;
+    const clientIds = (clientsData || []).map((c) => c.id);
+
     const [
-      { data: clientsData, error: clientsError },
       { data: scriptsData, error: scriptsError },
       { data: serviceTypesData, error: serviceTypesError },
       { data: generatedImagesData, error: generatedImagesError },
@@ -151,36 +162,39 @@ export default function Dashboard() {
       { data: callAgentsData },
     ] = await Promise.all([
       supabase
-        .from("clients")
-        .select("*")
-        .eq("organization_id", userOrganizationId)
-        .neq("id", "00000000-0000-0000-0000-000000000001")
-        .order("last_accessed_at", { ascending: false, nullsFirst: false }),
-      supabase
         .from("scripts")
         .select("id, service_name, created_at, client_id, service_type_id, image_url")
         .eq("is_template", false)
+        .eq("organization_id", userOrganizationId)
         .order("created_at", { ascending: false }),
       supabase.from("service_types").select("*"),
-      supabase
-        .from("generated_images")
-        .select("id, client_id, image_url, features, feature_size, created_at")
-        .order("created_at", { ascending: false }),
-      supabase
-        .from("client_details")
-        .select("client_id, field_value")
-        .eq("field_name", "logo_url"),
-      supabase
-        .from("client_details")
-        .select("client_id, field_name, field_value")
-        .in("field_name", ["business_name", "owners_name"]),
+      clientIds.length
+        ? supabase
+            .from("generated_images")
+            .select("id, client_id, image_url, features, feature_size, created_at")
+            .in("client_id", clientIds)
+            .order("created_at", { ascending: false })
+        : Promise.resolve({ data: [], error: null }),
+      clientIds.length
+        ? supabase
+            .from("client_details")
+            .select("client_id, field_value")
+            .eq("field_name", "logo_url")
+            .in("client_id", clientIds)
+        : Promise.resolve({ data: [], error: null }),
+      clientIds.length
+        ? supabase
+            .from("client_details")
+            .select("client_id, field_name, field_value")
+            .in("field_name", ["business_name", "owners_name"])
+            .in("client_id", clientIds)
+        : Promise.resolve({ data: [], error: null }),
       supabase
         .from("call_agents" as any)
         .select("id, name")
         .eq("organization_id", userOrganizationId),
     ]);
 
-    if (clientsError) throw clientsError;
     if (scriptsError) throw scriptsError;
     if (serviceTypesError) throw serviceTypesError;
     if (generatedImagesError) throw generatedImagesError;
@@ -319,6 +333,36 @@ export default function Dashboard() {
       supabase.removeChannel(clientDetailsChannel);
     };
   }, [invalidateClients]);
+
+  // Open-a-client used to cost 3 sequential hops before a setter saw a script:
+  // /client/:id route chunk -> latest-script lookup -> redirect -> /script/:id chunk
+  // -> script fetch. Hovering a card now prefetches the script id AND warms the
+  // ScriptViewer chunk; click jumps STRAIGHT to /script/:id. Falls back to the
+  // old /client/:id redirect when the prefetch hasn't landed (slow hover, touch).
+  const prefetchedScriptIds = useRef(new Map<string, string | null>());
+  const prefetchClient = useCallback((clientId: string) => {
+    if (prefetchedScriptIds.current.has(clientId)) return;
+    prefetchedScriptIds.current.set(clientId, null); // in-flight marker
+    import("./ScriptViewer"); // warm the route chunk while the wire works
+    supabase
+      .from("scripts")
+      .select("id")
+      .eq("client_id", clientId)
+      .eq("is_template", false)
+      .order("created_at", { ascending: false })
+      .limit(1)
+      .maybeSingle()
+      .then(({ data }) => {
+        if (data?.id) prefetchedScriptIds.current.set(clientId, data.id);
+        else prefetchedScriptIds.current.delete(clientId); // let fallback handle no-script
+      });
+  }, []);
+  const openClient = useCallback((clientId: string) => {
+    // preserve the last_accessed_at touch ClientScripts used to do on our behalf
+    supabase.from("clients").update({ last_accessed_at: new Date().toISOString() }).eq("id", clientId).then();
+    const sid = prefetchedScriptIds.current.get(clientId);
+    navigate(sid ? `/script/${sid}` : `/client/${clientId}`);
+  }, [navigate]);
 
   const openDeleteDialog = (clientId: string, clientName: string) => {
     setClientToDelete({ id: clientId, name: clientName });
@@ -839,7 +883,8 @@ export default function Dashboard() {
               <Card 
                 key={client.id} 
                 className="group relative overflow-hidden border-border/50 bg-card shadow-sm hover:shadow-md transition-all duration-300 hover:border-primary/20 cursor-pointer"
-                onClick={() => navigate(`/client/${client.id}`)}
+                onMouseEnter={() => prefetchClient(client.id)}
+                onClick={() => openClient(client.id)}
               >
                 {/* Subtle gradient overlay on hover */}
                 <div className="absolute inset-0 bg-gradient-to-br from-primary/5 to-accent/5 opacity-0 group-hover:opacity-100 transition-opacity duration-300" />
@@ -976,7 +1021,8 @@ export default function Dashboard() {
                   <TableRow 
                     key={client.id} 
                     className="cursor-pointer hover:bg-muted/50"
-                    onClick={() => navigate(`/client/${client.id}`)}
+                    onMouseEnter={() => prefetchClient(client.id)}
+                    onClick={() => openClient(client.id)}
                   >
                     <TableCell>
                       <div className="flex items-center gap-3">

@@ -68,6 +68,7 @@ export default function CreateClient() {
   const [crmAccountLink, setCrmAccountLink] = useState("");
   const [appointmentCalendar, setAppointmentCalendar] = useState("");
   const [rescheduleCalendar, setRescheduleCalendar] = useState("");
+  const [callbackCalendar, setCallbackCalendar] = useState("");
 
   const handleLogoChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
@@ -173,6 +174,7 @@ export default function CreateClient() {
       if (timelineDqThreshold !== "none") extraDetails.push({ client_id: newClientId, field_name: "timeline_dq_threshold", field_value: timelineDqThreshold });
       if (appointmentCalendar.trim()) extraDetails.push({ client_id: newClientId, field_name: "appointment_calendar", field_value: appointmentCalendar.trim() });
       if (rescheduleCalendar.trim()) extraDetails.push({ client_id: newClientId, field_name: "reschedule_calendar", field_value: rescheduleCalendar.trim() });
+      if (callbackCalendar.trim()) extraDetails.push({ client_id: newClientId, field_name: "callback_calendar", field_value: callbackCalendar.trim() });
 
       if (extraDetails.length > 0) {
         const { error: detailsErr } = await supabase.from("client_details").insert(extraDetails);
@@ -472,6 +474,10 @@ export default function CreateClient() {
                 <div>
                   <Label htmlFor="reschedule-cal">Reschedule Calendar</Label>
                   <Input id="reschedule-cal" type="url" placeholder="https://calendly.com/reschedule/..." value={rescheduleCalendar} onChange={e => setRescheduleCalendar(e.target.value)} className="mt-1" />
+                </div>
+                <div>
+                  <Label htmlFor="callback-cal">Callback Calendar</Label>
+                  <Input id="callback-cal" type="url" placeholder="https://calendly.com/callback/..." value={callbackCalendar} onChange={e => setCallbackCalendar(e.target.value)} className="mt-1" />
                 </div>
               </div>
             </CardContent>

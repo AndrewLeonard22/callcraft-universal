@@ -50,27 +50,28 @@ function pointInBbox(
   return lng >= west && lng <= east && lat >= south && lat <= north;
 }
 
-// Resolve a zip code or city string to coordinates via Mapbox Geocoding API.
+// Resolve a zip code, city, or full street address to coordinates via OpenStreetMap
+// Nominatim — keyless, so the checker works without the (dead) Mapbox token pipeline.
+// Full addresses now resolve too (Mapbox call was limited to postcode/place/district).
 // Returns null if no result found.
 async function geocode(
   input: string,
-  mapboxToken: string
+  _mapboxToken?: string // legacy param, ignored — kept so call sites don't break
 ): Promise<{ lng: number; lat: number; label: string } | null> {
   const q = encodeURIComponent(input.trim());
-  const url = `https://api.mapbox.com/geocoding/v5/mapbox.places/${q}.json?access_token=${mapboxToken}&limit=1&types=postcode,place,district`;
-  const res = await fetch(url);
+  const url = `https://nominatim.openstreetmap.org/search?q=${q}&format=json&limit=1&countrycodes=us`;
+  const res = await fetch(url, { headers: { Accept: "application/json" } });
   if (!res.ok) return null;
   const data = await res.json();
-  const feature = data.features?.[0];
-  if (!feature) return null;
-  const [lng, lat] = feature.center as [number, number];
-  return { lng, lat, label: feature.place_name as string };
+  const hit = data?.[0];
+  if (!hit) return null;
+  return { lng: parseFloat(hit.lon), lat: parseFloat(hit.lat), label: hit.display_name as string };
 }
 
 export async function lookupArea(
   input: string,
   config: ClientAreaConfig,
-  mapboxToken: string
+  mapboxToken?: string // legacy, ignored — geocoding is keyless now
 ): Promise<AreaLookupResult> {
   if (!input.trim()) return { status: "unknown" };
 
