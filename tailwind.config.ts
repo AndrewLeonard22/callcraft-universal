@@ -65,6 +65,12 @@ export default {
         lg: "var(--radius)",
         md: "calc(var(--radius) - 2px)",
         sm: "calc(var(--radius) - 4px)",
+        control: "var(--radius-control)",
+        pop: "var(--radius-pop)",
+      },
+      boxShadow: {
+        control: "var(--shadow-control)",
+        pop: "var(--shadow-pop)",
       },
       keyframes: {
         "accordion-down": {

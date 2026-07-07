@@ -6,8 +6,7 @@ import { Label } from "@/components/ui/label";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
-import { Loader2 } from "lucide-react";
-import logo from "@/assets/agent-iq-logo.png";
+import { Headphones, Loader2 } from "lucide-react";
 
 export default function ResetPassword() {
   const navigate = useNavigate();
@@ -64,7 +63,7 @@ export default function ResetPassword() {
     return (
       <div className="min-h-screen bg-background flex items-center justify-center p-4">
         <div className="w-full max-w-md text-center space-y-4">
-          <img src={logo} alt="Agent IQ" className="h-20 w-20 mx-auto object-contain" />
+          <div className="flex items-center justify-center rounded-xl mx-auto" style={{ width: 56, height: 56, background: "linear-gradient(125deg, hsl(218 100% 55%), hsl(258 90% 62%))", boxShadow: "0 8px 24px hsl(218 100% 55% / 0.35)" }}><Headphones color="#fff" size={28} strokeWidth={2.2} /></div>
           <h1 className="text-2xl font-bold text-foreground">Verifying reset link…</h1>
           <Loader2 className="h-6 w-6 animate-spin text-primary mx-auto" />
           <p className="text-sm text-muted-foreground">If nothing happens, the link may have expired. Go back and request a new one.</p>
@@ -78,7 +77,7 @@ export default function ResetPassword() {
     <div className="min-h-screen bg-background flex items-center justify-center p-4">
       <div className="w-full max-w-md">
         <div className="flex flex-col items-center mb-6 space-y-3">
-          <img src={logo} alt="Agent IQ" className="h-20 w-20 object-contain" />
+          <div className="flex items-center justify-center rounded-xl mx-auto" style={{ width: 56, height: 56, background: "linear-gradient(125deg, hsl(218 100% 55%), hsl(258 90% 62%))", boxShadow: "0 8px 24px hsl(218 100% 55% / 0.35)" }}><Headphones color="#fff" size={28} strokeWidth={2.2} /></div>
           <h1 className="text-3xl font-bold text-foreground tracking-tight">Reset Password</h1>
         </div>
         <Card className="border-border shadow-medium">
