@@ -862,7 +862,27 @@ export default function Dashboard() {
                       </div>
                     </TableCell>
                     <TableCell>
-                      <Badge variant="secondary" className="whitespace-nowrap">{client.service_type}</Badge>
+                      {(() => {
+                        // prose→chips (2026-07-06): service_type arrives as a whole
+                        // sentence; one nowrap Badge made rows sprawl sideways.
+                        const parts = client.service_type
+                          .replace(/\(.*?\)/g, "")
+                          .split(/[,;•]| - /)
+                          .map((t) => t.trim())
+                          .filter(Boolean)
+                          .map((t) => t.charAt(0).toUpperCase() + t.slice(1));
+                        const shown = parts.slice(0, 3);
+                        return (
+                          <div className="flex min-w-0 items-center gap-1.5" title={client.service_type}>
+                            {shown.map((t) => (
+                              <Badge key={t} variant="secondary" className="max-w-[180px] truncate whitespace-nowrap font-normal">{t}</Badge>
+                            ))}
+                            {parts.length > shown.length && (
+                              <span className="whitespace-nowrap text-xs text-muted-foreground">+{parts.length - shown.length} more</span>
+                            )}
+                          </div>
+                        );
+                      })()}
                     </TableCell>
                     <TableCell>
                       {client.call_agent_name ? (
