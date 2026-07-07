@@ -280,17 +280,12 @@ export default function CreateScript() {
 
       if (error) throw error;
 
-      // Try to get the newly created script id
-      const { data: newScript, error: fetchErr } = await supabase
-        .from("scripts")
-        .select("id")
-        .eq("client_id", clientId)
-        .order("created_at", { ascending: false })
-        .limit(1)
-        .maybeSingle();
-
-      if (fetchErr) throw fetchErr;
-      const newScriptId = newScript?.id;
+      // Use the authoritative id the edge fn returns (extract-client-data:675
+      // `script_id: scriptData?.id`), NOT a "latest script for this client" guess:
+      // two people generating for the SAME client at once both resolved to whichever
+      // row won max(created_at), so one user's service_details got attached to the
+      // other's script. Trust the id of the script THIS call created.
+      const newScriptId = (data as { script_id?: string } | null)?.script_id;
 
       if (newScriptId) {
         const prefix = `script_${newScriptId}_`;
