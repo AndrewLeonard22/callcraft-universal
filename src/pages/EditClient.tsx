@@ -11,6 +11,7 @@ import { toast } from "sonner";
 import { TagInput, HARD_NO_OPTIONS, SERVICES_ADVERTISED_OPTIONS } from "@/components/TagInput";
 import { AreaSettingsEditor, type AreaSettings } from "@/components/ExcludedAreaEditor";
 import { logger } from "@/utils/logger";
+import { getPage, setPage } from "@/utils/sessionCache";
 
 interface AdditionalContact {
   name: string;
@@ -21,49 +22,63 @@ interface AdditionalContact {
 export default function EditClient() {
   const { clientId } = useParams();
   const navigate = useNavigate();
-  const [loading, setLoading] = useState(true);
+
+  // Seed from the session cache so a revisit paints instantly (no full-screen spinner);
+  // refreshes quietly behind — the "as fast as Relay" pattern. Keyed per client.
+  const seed = getPage<{
+    clientName: string; serviceType: string; city: string; businessName: string;
+    ownersName: string; salesRepName: string; salesRepPhone: string; address: string;
+    servicesOffered: string; otherKeyInfo: string; serviceRadiusMiles: string;
+    website: string; facebookPage: string; instagram: string; crmAccountLink: string;
+    appointmentCalendar: string; rescheduleCalendar: string; callbackCalendar: string;
+    hardNos: string[]; servicesAdvertised: string[]; excludedZips: string[];
+    thingsToKnow: string; additionalContacts: AdditionalContact[]; financingOffered: string;
+    avgInstallTime: string; projectMinPrice: string; timelineDqThreshold: string;
+    areaSettings: AreaSettings; logoUrl: string; ownerPhotoUrl: string; workPhotos: string[];
+  }>(`editClient:${clientId}`);
+  const [loading, setLoading] = useState(() => !seed); // spinner only on true-first-visit
   const [saving, setSaving] = useState(false);
-  
+
   // Client basic info
-  const [clientName, setClientName] = useState("");
-  const [serviceType, setServiceType] = useState("");
-  const [city, setCity] = useState("");
-  
-  
+  const [clientName, setClientName] = useState(() => seed?.clientName ?? "");
+  const [serviceType, setServiceType] = useState(() => seed?.serviceType ?? "");
+  const [city, setCity] = useState(() => seed?.city ?? "");
+
+
   // Business Info
-  const [businessName, setBusinessName] = useState("");
-  const [ownersName, setOwnersName] = useState("");
-  const [salesRepName, setSalesRepName] = useState("");
-  const [salesRepPhone, setSalesRepPhone] = useState("");
-  const [address, setAddress] = useState("");
-  const [servicesOffered, setServicesOffered] = useState("");
-  const [otherKeyInfo, setOtherKeyInfo] = useState("");
-  const [serviceRadiusMiles, setServiceRadiusMiles] = useState("");
-  
+  const [businessName, setBusinessName] = useState(() => seed?.businessName ?? "");
+  const [ownersName, setOwnersName] = useState(() => seed?.ownersName ?? "");
+  const [salesRepName, setSalesRepName] = useState(() => seed?.salesRepName ?? "");
+  const [salesRepPhone, setSalesRepPhone] = useState(() => seed?.salesRepPhone ?? "");
+  const [address, setAddress] = useState(() => seed?.address ?? "");
+  const [servicesOffered, setServicesOffered] = useState(() => seed?.servicesOffered ?? "");
+  const [otherKeyInfo, setOtherKeyInfo] = useState(() => seed?.otherKeyInfo ?? "");
+  const [serviceRadiusMiles, setServiceRadiusMiles] = useState(() => seed?.serviceRadiusMiles ?? "");
+
   // Links
-  const [website, setWebsite] = useState("");
-  const [facebookPage, setFacebookPage] = useState("");
-  const [instagram, setInstagram] = useState("");
-  const [crmAccountLink, setCrmAccountLink] = useState("");
-  const [appointmentCalendar, setAppointmentCalendar] = useState("");
-  const [rescheduleCalendar, setRescheduleCalendar] = useState("");
-  const [callbackCalendar, setCallbackCalendar] = useState("");
+  const [website, setWebsite] = useState(() => seed?.website ?? "");
+  const [facebookPage, setFacebookPage] = useState(() => seed?.facebookPage ?? "");
+  const [instagram, setInstagram] = useState(() => seed?.instagram ?? "");
+  const [crmAccountLink, setCrmAccountLink] = useState(() => seed?.crmAccountLink ?? "");
+  const [appointmentCalendar, setAppointmentCalendar] = useState(() => seed?.appointmentCalendar ?? "");
+  const [rescheduleCalendar, setRescheduleCalendar] = useState(() => seed?.rescheduleCalendar ?? "");
+  const [callbackCalendar, setCallbackCalendar] = useState(() => seed?.callbackCalendar ?? "");
 
   // New qualification fields (stored on clients table)
-  const [hardNos, setHardNos] = useState<string[]>([]);
-  const [servicesAdvertised, setServicesAdvertised] = useState<string[]>([]);
-  const [excludedZips, setExcludedZips] = useState<string[]>([]);
-  const [thingsToKnow, setThingsToKnow] = useState("");
-  const [additionalContacts, setAdditionalContacts] = useState<AdditionalContact[]>([]);
-  const [financingOffered, setFinancingOffered] = useState("");
-  const [avgInstallTime, setAvgInstallTime] = useState("");
+  const [hardNos, setHardNos] = useState<string[]>(() => seed?.hardNos ?? []);
+  const [servicesAdvertised, setServicesAdvertised] = useState<string[]>(() => seed?.servicesAdvertised ?? []);
+  const [excludedZips, setExcludedZips] = useState<string[]>(() => seed?.excludedZips ?? []);
+  const [thingsToKnow, setThingsToKnow] = useState(() => seed?.thingsToKnow ?? "");
+  const [additionalContacts, setAdditionalContacts] = useState<AdditionalContact[]>(() => seed?.additionalContacts ?? []);
+  const [financingOffered, setFinancingOffered] = useState(() => seed?.financingOffered ?? "");
+  const [avgInstallTime, setAvgInstallTime] = useState(() => seed?.avgInstallTime ?? "");
 
   // DQ threshold fields
-  const [projectMinPrice, setProjectMinPrice] = useState("");
-  const [timelineDqThreshold, setTimelineDqThreshold] = useState("none");
+  const [projectMinPrice, setProjectMinPrice] = useState(() => seed?.projectMinPrice ?? "");
+  const [timelineDqThreshold, setTimelineDqThreshold] = useState(() => seed?.timelineDqThreshold ?? "none");
 
   // Area map settings (hq_lat/hq_lng/hq_address/excluded_areas on clients table)
-  const [areaSettings, setAreaSettings] = useState<AreaSettings>({
+  const [areaSettings, setAreaSettings] = useState<AreaSettings>(() => seed?.areaSettings ?? {
     hqAddress: "",
     hqLat: null,
     hqLng: null,
@@ -72,11 +87,11 @@ export default function EditClient() {
   });
 
   // Logo and Photos
-  const [logoUrl, setLogoUrl] = useState("");
+  const [logoUrl, setLogoUrl] = useState(() => seed?.logoUrl ?? "");
   const [uploading, setUploading] = useState(false);
-  const [ownerPhotoUrl, setOwnerPhotoUrl] = useState("");
+  const [ownerPhotoUrl, setOwnerPhotoUrl] = useState(() => seed?.ownerPhotoUrl ?? "");
   const [uploadingOwnerPhoto, setUploadingOwnerPhoto] = useState(false);
-  const [workPhotos, setWorkPhotos] = useState<string[]>([]);
+  const [workPhotos, setWorkPhotos] = useState<string[]>(() => seed?.workPhotos ?? []);
   const [uploadingWorkPhoto, setUploadingWorkPhoto] = useState(false);
 
   useEffect(() => {
@@ -196,13 +211,61 @@ export default function EditClient() {
         
         // Parse work photos
         const workPhotosRaw = detailsMap.get("work_photos") || "";
-        if (workPhotosRaw) {
-          try {
-            setWorkPhotos(JSON.parse(workPhotosRaw));
-          } catch {
-            setWorkPhotos(workPhotosRaw.split(",").map(url => url.trim()).filter(Boolean));
-          }
-        }
+        const workPhotosVal: string[] = workPhotosRaw
+          ? (() => {
+              try {
+                return JSON.parse(workPhotosRaw);
+              } catch {
+                return workPhotosRaw.split(",").map((url) => url.trim()).filter(Boolean);
+              }
+            })()
+          : [];
+        setWorkPhotos(workPhotosVal);
+
+        // Cache the fully-loaded client so the NEXT open paints instantly (no spinner).
+        setPage(`editClient:${clientId}`, {
+          clientName: clientResult.data.name || "",
+          serviceType: clientResult.data.service_type || "",
+          city: clientResult.data.city || "",
+          businessName: detailsMap.get("business_name") || "",
+          ownersName: detailsMap.get("owners_name") || "",
+          salesRepName: detailsMap.get("sales_rep_name") || "",
+          salesRepPhone: detailsMap.get("sales_rep_phone") || "",
+          address: detailsMap.get("address") || "",
+          servicesOffered: detailsMap.get("services_offered") || "",
+          otherKeyInfo: detailsMap.get("other_key_info") || "",
+          serviceRadiusMiles: detailsMap.get("service_radius_miles") || "",
+          website: detailsMap.get("website") || "",
+          facebookPage: detailsMap.get("facebook_page") || "",
+          instagram: detailsMap.get("instagram") || "",
+          crmAccountLink: detailsMap.get("crm_account_link") || "",
+          appointmentCalendar: detailsMap.get("appointment_calendar") || "",
+          rescheduleCalendar: detailsMap.get("reschedule_calendar") || "",
+          callbackCalendar: detailsMap.get("callback_calendar") || "",
+          hardNos: clientResult.data.hard_nos || [],
+          servicesAdvertised: clientResult.data.services_advertised || [],
+          excludedZips: clientResult.data.excluded_zips || [],
+          thingsToKnow: clientResult.data.things_to_know || "",
+          additionalContacts: Array.isArray(clientResult.data.additional_contacts)
+            ? (clientResult.data.additional_contacts as unknown as AdditionalContact[])
+            : [],
+          financingOffered: clientResult.data.financing_offered || "",
+          avgInstallTime: clientResult.data.avg_install_time || "",
+          projectMinPrice: detailsMap.get("project_min_price") || "",
+          timelineDqThreshold: detailsMap.get("timeline_dq_threshold") || "none",
+          areaSettings: {
+            hqAddress: (clientResult.data as any).hq_address || "",
+            hqLat: (clientResult.data as any).hq_lat ?? null,
+            hqLng: (clientResult.data as any).hq_lng ?? null,
+            serviceRadiusMiles: detailsMap.get("service_radius_miles") || "",
+            excludedAreas: Array.isArray((clientResult.data as any).excluded_areas)
+              ? (clientResult.data as any).excluded_areas
+              : [],
+          },
+          logoUrl: detailsMap.get("logo_url") || "",
+          ownerPhotoUrl: detailsMap.get("owner_photo_url") || "",
+          workPhotos: workPhotosVal,
+        });
       }
     } catch (error) {
       logger.error("Error loading client data:", error);
