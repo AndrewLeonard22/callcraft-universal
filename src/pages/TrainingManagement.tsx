@@ -210,11 +210,14 @@ const [moduleForm, setModuleForm] = useState({
     const { data: { user } } = await supabase.auth.getUser();
     if (!user) return;
 
+    // limit(1).maybeSingle() — .single() threw for multi-org (invited) users, leaving
+    // organizationId null → this admin page stuck on permanent "Loading…".
     const { data: orgMember } = await supabase
       .from("organization_members")
       .select("organization_id")
       .eq("user_id", user.id)
-      .single();
+      .limit(1)
+      .maybeSingle();
 
     if (orgMember) {
       setOrganizationId(orgMember.organization_id);

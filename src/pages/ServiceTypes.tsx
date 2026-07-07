@@ -78,11 +78,16 @@ export default function ServiceTypes() {
       const { data: { user } } = await supabase.auth.getUser();
       if (!user) return;
 
+      // limit(1).maybeSingle(): a user can belong to >1 org (composite unique on
+      // (org,user) + invite flow adds a 2nd membership) — .single() 406-errored for
+      // both 0-row and multi-row, threw, and left org null → page hung on skeleton
+      // forever for every invited teammate. Take the first membership deterministically.
       const { data, error } = await supabase
         .from('organization_members')
         .select('organization_id')
         .eq('user_id', user.id)
-        .single();
+        .limit(1)
+        .maybeSingle();
 
       if (error) throw error;
       setUserOrganizationId(data?.organization_id || null);

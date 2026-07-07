@@ -123,12 +123,15 @@ export default function TeamManagement() {
       }
       setUser(user);
 
-      // Get user's organization membership
+      // Get user's organization membership. limit(1).maybeSingle() — .single()
+      // 406-errored for multi-org (invited) users and bounced them to "/" with a
+      // false "not part of any organization"; take the first membership.
       const { data: membershipData, error: membershipError } = await supabase
         .from("organization_members")
         .select("organization_id, role")
         .eq("user_id", user.id)
-        .single();
+        .limit(1)
+        .maybeSingle();
 
       if (membershipError || !membershipData) {
         toast({
