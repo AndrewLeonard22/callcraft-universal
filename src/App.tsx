@@ -18,6 +18,29 @@ const ClientScripts = lazy(() => import("./pages/ClientScripts"));
 const CreateScript = lazy(() => import("./pages/CreateScript"));
 const EditScript = lazy(() => import("./pages/EditScript"));
 const ScriptViewer = lazy(() => import("./pages/ScriptViewer"));
+
+// After-first-paint route warm-up: with 15 lazy routes, every FIRST visit to a
+// page downloaded its chunk behind the spinner ("every single button i click
+// still has a shit loading screen"). Warm the pages a user actually touches in
+// a session during network idle — after that, navigation is instant and the
+// Suspense fallback never shows again this session.
+if (typeof window !== "undefined") {
+  const warmRoutes = () => {
+    import("./pages/Dashboard");
+    import("./pages/ScriptViewer");
+    import("./pages/ClientScripts");
+    import("./pages/CreateClient");
+    import("./pages/EditClient");
+    import("./pages/Templates");
+    import("./pages/Training");
+    import("./pages/CallAgents");
+  };
+  if ("requestIdleCallback" in window) {
+    window.requestIdleCallback(warmRoutes, { timeout: 4000 });
+  } else {
+    setTimeout(warmRoutes, 1500);
+  }
+}
 const Templates = lazy(() => import("./pages/Templates"));
 const ServiceTypes = lazy(() => import("./pages/ServiceTypes"));
 const TeamManagement = lazy(() => import("./pages/TeamManagement"));
