@@ -809,7 +809,7 @@ export default function Dashboard() {
 
         {/* Loading State */}
         {loading ? (
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+          <div className="grid grid-cols-1 gap-0 rounded-xl border overflow-hidden divide-y divide-border bg-card">
             {[1, 2, 3, 4, 5, 6].map((i) => (
               <Card key={i} className="animate-pulse border-border/50 shadow-sm">
                 <CardHeader className="pb-4">
@@ -878,129 +878,60 @@ export default function Dashboard() {
             </CardContent>
           </Card>
         ) : displayMode === 'grid' ? (
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+          <div className="rounded-xl border bg-card shadow-sm overflow-hidden divide-y divide-border">
             {filteredClients.map((client) => (
-              <Card 
-                key={client.id} 
-                className="group relative overflow-hidden border-border/50 bg-card shadow-sm hover:shadow-md transition-all duration-300 hover:border-primary/20 cursor-pointer"
+              <div
+                key={client.id}
+                className="group flex items-center gap-4 px-4 py-3.5 cursor-pointer hover:bg-muted/40 transition-colors"
                 onMouseEnter={() => prefetchClient(client.id)}
                 onClick={() => openClient(client.id)}
               >
-                {/* Subtle gradient overlay on hover */}
-                <div className="absolute inset-0 bg-gradient-to-br from-primary/5 to-accent/5 opacity-0 group-hover:opacity-100 transition-opacity duration-300" />
-                
-                <CardHeader className="pb-4 relative z-10">
-                  <div className="flex items-start gap-4">
-                    <Link to={`/client/${client.id}`} className="relative" onClick={(e) => e.stopPropagation()}>
-                      <div className="h-14 w-14 rounded-xl overflow-hidden bg-muted ring-2 ring-border/50 group-hover:ring-primary/30 transition-all duration-300 shadow-sm">
-                        <img 
-                          src={getClientLogo(client.service_type, client.logo_url)} 
-                          alt={`${client.name} logo`}
-                          className="h-full w-full object-cover"
-                        />
-                      </div>
-                    </Link>
-                    
-                    <div className="flex-1 min-w-0">
-                      <CardTitle className="text-base font-semibold line-clamp-1 mb-1">
-                        {client.business_name || client.name}
-                      </CardTitle>
-                      <CardDescription className="text-sm">
-                        {client.owners_name && (
-                          <span className="block mb-1 font-medium">{client.owners_name}</span>
-                        )}
-                        <span className="text-xs flex items-center gap-2">
-                          {client.city && (
-                            <span className="text-muted-foreground">{client.city}</span>
-                          )}
-                        </span>
-                      </CardDescription>
-                    </div>
-                    
-                    <div className="flex items-center gap-1">
-                      <Button
-                        variant="ghost"
-                        size="icon"
-                        className="h-8 w-8 opacity-0 group-hover:opacity-100 transition-opacity duration-200 hover:bg-primary/10 hover:text-primary"
-                        onClick={(e) => {
-                          e.preventDefault();
-                          e.stopPropagation();
-                          handleArchiveToggle(client.id, client.archived || false);
-                        }}
-                        title={client.archived ? "Restore company" : "Archive company"}
-                      >
-                        {client.archived ? (
-                          <ArchiveRestore className="h-4 w-4" />
+                <Link to={`/client/${client.id}`} onClick={(e) => e.stopPropagation()} className="shrink-0">
+                  <div className="h-10 w-10 rounded-[10px] overflow-hidden bg-muted ring-1 ring-border">
+                    <img src={getClientLogo(client.service_type, client.logo_url)} alt="" className="h-full w-full object-cover" />
+                  </div>
+                </Link>
+                <div className="min-w-0 w-56 shrink-0">
+                  <div className="text-[13.5px] font-semibold text-foreground truncate">{client.business_name || client.name}</div>
+                  <div className="text-xs text-muted-foreground truncate">
+                    {client.owners_name || ""}{client.owners_name && client.city ? " · " : ""}{client.city || ""}
+                  </div>
+                </div>
+                <div className="flex-1 min-w-0 flex items-center gap-1.5 overflow-hidden">
+                  {client.scripts.slice(0, 4).map((script: ScriptWithType) => (
+                    <Link key={script.id} to={`/script/${script.id}`} onClick={(e) => e.stopPropagation()} className="shrink-0">
+                      <span className="inline-flex items-center gap-1.5 h-7 px-2.5 rounded-full border bg-background text-xs font-medium text-foreground hover:border-primary/40 hover:bg-primary/5 transition-colors">
+                        {script.service_type?.icon_url || script.image_url ? (
+                          <img src={script.service_type?.icon_url || script.image_url!} alt="" className="h-4 w-4 rounded-[4px] object-cover" />
                         ) : (
-                          <Archive className="h-4 w-4" />
+                          <FileText className="h-3.5 w-3.5 text-muted-foreground" />
                         )}
-                      </Button>
-                      <Button
-                        variant="ghost"
-                        size="icon"
-                        className="h-8 w-8 opacity-0 group-hover:opacity-100 transition-opacity duration-200 hover:bg-destructive/10 hover:text-destructive"
-                        onClick={(e) => {
-                          e.preventDefault();
-                          e.stopPropagation();
-                          openDeleteDialog(client.id, client.business_name || client.name);
-                        }}
-                      >
-                        <Trash2 className="h-4 w-4" />
-                      </Button>
-                    </div>
-                  </div>
-                </CardHeader>
-                
-                <CardContent className="pt-0 relative z-10">
-                  <div className="flex items-center gap-2 text-xs text-muted-foreground mb-4 pb-4 border-b border-border/50">
-                    <Calendar className="h-3.5 w-3.5" />
-                    <span>{format(new Date(client.created_at), "MMM d, yyyy")}</span>
-                  </div>
-                  
-                  <div className="space-y-4">
-                    {client.scripts.length > 0 && (
-                      <div>
-                        <div className="text-xs font-medium text-muted-foreground mb-3 uppercase tracking-wide">
-                          Scripts ({client.scripts.length})
-                        </div>
-                        <div className="flex flex-wrap gap-2">
-                          {client.scripts.map((script: ScriptWithType) => (
-                            <Link key={script.id} to={`/script/${script.id}`} onClick={(e) => e.stopPropagation()}>
-                              <Button
-                                variant="outline" 
-                                size="sm" 
-                                className="h-10 text-xs px-3 gap-2.5 hover:bg-primary/5 hover:border-primary/30 transition-colors shadow-sm group/script"
-                                onClick={(e) => e.stopPropagation()}
-                              >
-                                {script.service_type?.icon_url ? (
-                                  <div className="h-6 w-6 rounded-md overflow-hidden flex-shrink-0 bg-muted/50 ring-1 ring-border/50 group-hover/script:ring-primary/30 transition-all p-0.5">
-                                    <img 
-                                      src={script.service_type.icon_url} 
-                                      alt=""
-                                      className="h-full w-full object-contain"
-                                    />
-                                  </div>
-                                ) : script.image_url ? (
-                                  <div className="h-6 w-6 rounded-md overflow-hidden flex-shrink-0 bg-muted ring-1 ring-border/50 group-hover/script:ring-primary/30 transition-all">
-                                    <img 
-                                      src={script.image_url} 
-                                      alt=""
-                                      className="h-full w-full object-cover"
-                                    />
-                                  </div>
-                                ) : (
-                                  <FileText className="h-4 w-4 flex-shrink-0 text-muted-foreground" />
-                                )}
-                                <span className="truncate max-w-[100px] font-medium">{script.service_name}</span>
-                              </Button>
-                            </Link>
-                          ))}
-                        </div>
-                      </div>
-                    )}
-                  </div>
-                </CardContent>
-              </Card>
+                        <span className="truncate max-w-[110px]">{script.service_name}</span>
+                      </span>
+                    </Link>
+                  ))}
+                  {client.scripts.length > 4 && (
+                    <span className="text-xs text-muted-foreground shrink-0">+{client.scripts.length - 4} more</span>
+                  )}
+                  {client.scripts.length === 0 && (
+                    <span className="text-xs text-muted-foreground/70 italic">No scripts yet</span>
+                  )}
+                </div>
+                <div className="hidden md:block text-xs text-muted-foreground tabular-nums shrink-0">
+                  {format(new Date(client.created_at), "MMM d, yyyy")}
+                </div>
+                <div className="flex items-center gap-0.5 shrink-0 opacity-60 group-hover:opacity-100 transition-opacity">
+                  <Button variant="ghost" size="icon" className="h-8 w-8 hover:bg-primary/10 hover:text-primary"
+                    onClick={(e) => { e.preventDefault(); e.stopPropagation(); handleArchiveToggle(client.id, client.archived || false); }}
+                    title={client.archived ? "Restore company" : "Archive company"}>
+                    {client.archived ? <ArchiveRestore className="h-4 w-4" /> : <Archive className="h-4 w-4" />}
+                  </Button>
+                  <Button variant="ghost" size="icon" className="h-8 w-8 hover:bg-destructive/10 hover:text-destructive"
+                    onClick={(e) => { e.preventDefault(); e.stopPropagation(); openDeleteDialog(client.id, client.business_name || client.name); }}>
+                    <Trash2 className="h-4 w-4" />
+                  </Button>
+                </div>
+              </div>
             ))}
           </div>
         ) : (
