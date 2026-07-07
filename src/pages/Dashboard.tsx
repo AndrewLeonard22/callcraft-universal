@@ -495,17 +495,17 @@ export default function Dashboard() {
     <div className="min-h-screen bg-background">
       {/* Clean SaaS Header */}
       <div className="border-b border-border bg-card sticky top-0 z-50">
-        <div className="container mx-auto px-4 sm:px-6 py-4 max-w-7xl">
+        <div className="container mx-auto px-4 sm:px-6 py-2.5 max-w-7xl">
           <div className="flex items-center justify-between gap-2">
             <div className="flex items-center gap-3 sm:gap-4 min-w-0">
               <img 
                 src={profile?.company_logo_url || agentIqLogo} 
                 alt="Agent IQ" 
-                className="h-10 sm:h-12 w-auto flex-shrink-0"
+                className="h-7 w-auto flex-shrink-0"
               />
               <div className="h-6 w-px bg-border hidden sm:block" />
               <div className="min-w-0">
-                <h1 className="text-xl sm:text-2xl font-semibold truncate">Companies</h1>
+                <h1 className="text-[15px] font-semibold truncate leading-tight">Companies</h1>
                 <p className="text-xs text-muted-foreground hidden sm:block">
                   {clients.length} {clients.length === 1 ? 'company' : 'companies'} total
                 </p>
@@ -656,16 +656,16 @@ export default function Dashboard() {
         </div>
       </div>
 
-      <div className="container mx-auto px-4 sm:px-6 py-6 sm:py-8 max-w-7xl">
+      <div className="container mx-auto px-4 sm:px-6 py-5 max-w-7xl">
         {/* View Mode Tabs + Search Toolbar */}
         {!loading && clients.length > 0 && (
-          <div className="mb-6 sm:mb-8 space-y-4">
+          <div className="mb-4 space-y-3">
             {/* Tab row with underline style */}
             <div className="flex items-end justify-between border-b border-border">
               <div className="flex items-center">
                 <button
                   onClick={() => setViewMode('live')}
-                  className={`relative flex items-center gap-2 px-1 pb-3 mr-6 text-sm font-medium transition-colors ${
+                  className={`relative flex items-center gap-2 px-1 pb-2.5 mr-5 text-[13px] font-medium transition-colors ${
                     viewMode === 'live' ? 'text-foreground' : 'text-muted-foreground hover:text-foreground'
                   }`}
                 >
@@ -688,7 +688,7 @@ export default function Dashboard() {
 
                 <button
                   onClick={() => setViewMode('archived')}
-                  className={`relative flex items-center gap-2 px-1 pb-3 text-sm font-medium transition-colors ${
+                  className={`relative flex items-center gap-2 px-1 pb-2.5 text-[13px] font-medium transition-colors ${
                     viewMode === 'archived' ? 'text-foreground' : 'text-muted-foreground hover:text-foreground'
                   }`}
                 >
@@ -705,7 +705,7 @@ export default function Dashboard() {
                 </button>
               </div>
 
-              <p className="text-xs text-muted-foreground pb-3 hidden sm:block">
+              <p className="text-xs text-muted-foreground pb-2.5 hidden sm:block">
                 {filteredClients.length} {filteredClients.length === 1 ? 'company' : 'companies'} {viewMode === 'live' ? 'active' : 'archived'}
               </p>
             </div>

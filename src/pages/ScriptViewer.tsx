@@ -732,7 +732,7 @@ function selectDQChip(widget,key,btn,isDQ){
 
             {/* SCRIPT */}
             {centerTab === "script" && (
-              <div className="px-8 py-6">
+              <div className="px-6 py-5">
                 {isEditing ? (
                   <div className="space-y-3">
                     <p className="text-[12px] text-muted-foreground">Editing — save with the button in the top bar.</p>
@@ -746,7 +746,7 @@ function selectDQChip(widget,key,btn,isDQ){
 
             {/* OBJECTIONS */}
             {centerTab === "objections" && (
-              <div className="px-6 py-5 max-w-2xl">
+              <div className="px-6 py-4 max-w-2xl">
                 {objectionTemplates.length === 0 ? (
                   <div className="flex flex-col items-center py-16 text-center gap-2">
                     <MessageSquare className="h-8 w-8 text-muted-foreground/30" />
@@ -778,7 +778,7 @@ function selectDQChip(widget,key,btn,isDQ){
 
             {/* FAQ */}
             {centerTab === "faq" && (
-              <div className="px-6 py-5 max-w-2xl">
+              <div className="px-6 py-4 max-w-2xl">
                 {faqs.length === 0 ? (
                   <div className="flex flex-col items-center py-16 text-center gap-2">
                     <MessageSquare className="h-8 w-8 text-muted-foreground/30" />
@@ -810,7 +810,7 @@ function selectDQChip(widget,key,btn,isDQ){
 
             {/* QUALIFICATION */}
             {centerTab === "qualification" && (
-              <div className="px-6 py-5 max-w-2xl">
+              <div className="px-6 py-4 max-w-2xl">
                 {qualificationQuestions.length === 0 ? (
                   <div className="flex flex-col items-center py-16 text-center gap-2">
                     <ClipboardCheck className="h-8 w-8 text-muted-foreground/30" />
