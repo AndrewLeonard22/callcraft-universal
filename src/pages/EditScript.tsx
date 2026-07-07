@@ -10,6 +10,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
 import { logger } from "@/utils/logger";
+import { getPage, setPage } from "@/utils/sessionCache";
 
 interface Client {
   id: string;
@@ -44,28 +45,38 @@ interface ServiceType {
 export default function EditScript() {
   const navigate = useNavigate();
   const { scriptId } = useParams();
-  const [client, setClient] = useState<Client | null>(null);
-  const [script, setScript] = useState<Script | null>(null);
+  // Seed from the session cache so a revisit paints instantly (no full-screen spinner) —
+  // the "as fast as Relay" pattern; refreshes quietly behind. Keyed per script.
+  const seed = getPage<{
+    client: Client | null; script: Script | null; selectedServiceTypeId: string;
+    projectMinPrice: string; projectMinSize: string; pricePerSqFt: string;
+    pricePerSqFtAluminum: string; pricePerSqFtWood: string; warranties: string;
+    financingOptions: string; videoOfService: string; avgInstallTime: string;
+    appointmentCalendar: string; rescheduleCalendar: string; callbackCalendar: string;
+  }>(`editScript:${scriptId}`);
+
+  const [client, setClient] = useState<Client | null>(() => seed?.client ?? null);
+  const [script, setScript] = useState<Script | null>(() => seed?.script ?? null);
   const [templates, setTemplates] = useState<Template[]>([]);
   const [serviceTypes, setServiceTypes] = useState<ServiceType[]>([]);
   const [selectedTemplateId, setSelectedTemplateId] = useState<string>("");
-  const [selectedServiceTypeId, setSelectedServiceTypeId] = useState<string>("");
-  const [loading, setLoading] = useState(true);
+  const [selectedServiceTypeId, setSelectedServiceTypeId] = useState<string>(() => seed?.selectedServiceTypeId ?? "");
+  const [loading, setLoading] = useState(() => !seed); // spinner only on true-first-visit
   const [saving, setSaving] = useState(false);
-  
+
   // Service-specific fields
-  const [projectMinPrice, setProjectMinPrice] = useState("");
-  const [projectMinSize, setProjectMinSize] = useState("");
-  const [pricePerSqFt, setPricePerSqFt] = useState("");
-  const [pricePerSqFtAluminum, setPricePerSqFtAluminum] = useState("");
-  const [pricePerSqFtWood, setPricePerSqFtWood] = useState("");
-  const [warranties, setWarranties] = useState("");
-  const [financingOptions, setFinancingOptions] = useState("");
-  const [videoOfService, setVideoOfService] = useState("");
-  const [avgInstallTime, setAvgInstallTime] = useState("");
-  const [appointmentCalendar, setAppointmentCalendar] = useState("");
-  const [rescheduleCalendar, setRescheduleCalendar] = useState("");
-  const [callbackCalendar, setCallbackCalendar] = useState("");
+  const [projectMinPrice, setProjectMinPrice] = useState(() => seed?.projectMinPrice ?? "");
+  const [projectMinSize, setProjectMinSize] = useState(() => seed?.projectMinSize ?? "");
+  const [pricePerSqFt, setPricePerSqFt] = useState(() => seed?.pricePerSqFt ?? "");
+  const [pricePerSqFtAluminum, setPricePerSqFtAluminum] = useState(() => seed?.pricePerSqFtAluminum ?? "");
+  const [pricePerSqFtWood, setPricePerSqFtWood] = useState(() => seed?.pricePerSqFtWood ?? "");
+  const [warranties, setWarranties] = useState(() => seed?.warranties ?? "");
+  const [financingOptions, setFinancingOptions] = useState(() => seed?.financingOptions ?? "");
+  const [videoOfService, setVideoOfService] = useState(() => seed?.videoOfService ?? "");
+  const [avgInstallTime, setAvgInstallTime] = useState(() => seed?.avgInstallTime ?? "");
+  const [appointmentCalendar, setAppointmentCalendar] = useState(() => seed?.appointmentCalendar ?? "");
+  const [rescheduleCalendar, setRescheduleCalendar] = useState(() => seed?.rescheduleCalendar ?? "");
+  const [callbackCalendar, setCallbackCalendar] = useState(() => seed?.callbackCalendar ?? "");
 
   useEffect(() => {
     loadScriptData();
@@ -134,47 +145,45 @@ export default function EditScript() {
 
       if (details) {
         const scriptPrefix = `script_${scriptId}_`;
-        details.forEach((detail) => {
-          const fieldName = detail.field_name;
-          const fieldValue = detail.field_value || "";
-          
-          // Check for script-specific details first, then fall back to general
-          if (fieldName === `${scriptPrefix}project_min_price` || fieldName === "project_min_price") {
-            if (!projectMinPrice) setProjectMinPrice(fieldValue);
-          }
-          if (fieldName === `${scriptPrefix}project_min_size` || fieldName === "project_min_size") {
-            if (!projectMinSize) setProjectMinSize(fieldValue);
-          }
-          if (fieldName === `${scriptPrefix}price_per_sq_ft` || fieldName === "price_per_sq_ft") {
-            if (!pricePerSqFt) setPricePerSqFt(fieldValue);
-          }
-          if (fieldName === `${scriptPrefix}price_per_sq_ft_aluminum` || fieldName === "price_per_sq_ft_aluminum") {
-            if (!pricePerSqFtAluminum) setPricePerSqFtAluminum(fieldValue);
-          }
-          if (fieldName === `${scriptPrefix}price_per_sq_ft_wood` || fieldName === "price_per_sq_ft_wood") {
-            if (!pricePerSqFtWood) setPricePerSqFtWood(fieldValue);
-          }
-          if (fieldName === `${scriptPrefix}warranties` || fieldName === "warranties") {
-            if (!warranties) setWarranties(fieldValue);
-          }
-          if (fieldName === `${scriptPrefix}financing_options` || fieldName === "financing_options") {
-            if (!financingOptions) setFinancingOptions(fieldValue);
-          }
-          if (fieldName === `${scriptPrefix}video_of_service` || fieldName === "video_of_service") {
-            if (!videoOfService) setVideoOfService(fieldValue);
-          }
-          if (fieldName === `${scriptPrefix}avg_install_time` || fieldName === "avg_install_time") {
-            if (!avgInstallTime) setAvgInstallTime(fieldValue);
-          }
-          if (fieldName === `${scriptPrefix}appointment_calendar` || fieldName === "appointment_calendar") {
-            if (!appointmentCalendar) setAppointmentCalendar(fieldValue);
-          }
-          if (fieldName === `${scriptPrefix}reschedule_calendar` || fieldName === "reschedule_calendar") {
-            if (!rescheduleCalendar) setRescheduleCalendar(fieldValue);
-          }
-          if (fieldName === `${scriptPrefix}callback_calendar` || fieldName === "callback_calendar") {
-            if (!callbackCalendar) setCallbackCalendar(fieldValue);
-          }
+        // Script-specific value wins over the general one; fresh data is authoritative
+        // (unconditional set) so the background refresh updates the seeded fields.
+        const detailVal = (name: string): string => {
+          const spec = details.find((d) => d.field_name === `${scriptPrefix}${name}`);
+          if (spec?.field_value) return spec.field_value;
+          return details.find((d) => d.field_name === name)?.field_value || "";
+        };
+        const next = {
+          projectMinPrice: detailVal("project_min_price"),
+          projectMinSize: detailVal("project_min_size"),
+          pricePerSqFt: detailVal("price_per_sq_ft"),
+          pricePerSqFtAluminum: detailVal("price_per_sq_ft_aluminum"),
+          pricePerSqFtWood: detailVal("price_per_sq_ft_wood"),
+          warranties: detailVal("warranties"),
+          financingOptions: detailVal("financing_options"),
+          videoOfService: detailVal("video_of_service"),
+          avgInstallTime: detailVal("avg_install_time"),
+          appointmentCalendar: detailVal("appointment_calendar"),
+          rescheduleCalendar: detailVal("reschedule_calendar"),
+          callbackCalendar: detailVal("callback_calendar"),
+        };
+        setProjectMinPrice(next.projectMinPrice);
+        setProjectMinSize(next.projectMinSize);
+        setPricePerSqFt(next.pricePerSqFt);
+        setPricePerSqFtAluminum(next.pricePerSqFtAluminum);
+        setPricePerSqFtWood(next.pricePerSqFtWood);
+        setWarranties(next.warranties);
+        setFinancingOptions(next.financingOptions);
+        setVideoOfService(next.videoOfService);
+        setAvgInstallTime(next.avgInstallTime);
+        setAppointmentCalendar(next.appointmentCalendar);
+        setRescheduleCalendar(next.rescheduleCalendar);
+        setCallbackCalendar(next.callbackCalendar);
+        // Cache the fully-loaded script so the NEXT open paints instantly (no spinner).
+        setPage(`editScript:${scriptId}`, {
+          client: clientData,
+          script: scriptData,
+          selectedServiceTypeId: scriptData.service_type_id || "",
+          ...next,
         });
       }
     } catch (error) {
