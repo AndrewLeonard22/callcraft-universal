@@ -127,7 +127,7 @@ export function TagInput({
             <CommandEmpty>
               {inputValue.trim() ? (
                 <button
-                  className="w-full text-left px-3 py-2 text-sm text-muted-foreground hover:bg-accent"
+                  className="w-full text-left px-3 py-2 text-sm text-muted-foreground hover:bg-muted/60"
                   onMouseDown={(e) => {
                     e.preventDefault();
                     addTag(inputValue);

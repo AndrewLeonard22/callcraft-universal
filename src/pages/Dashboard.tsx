@@ -996,7 +996,7 @@ export default function Dashboard() {
                               <Badge 
                                 key={script.id} 
                                 variant="outline"
-                                className="cursor-pointer hover:bg-accent whitespace-nowrap flex items-center gap-1.5 px-2 py-1"
+                                className="cursor-pointer hover:bg-muted/60 whitespace-nowrap flex items-center gap-1.5 px-2 py-1"
                                 onClick={(e) => {
                                   e.stopPropagation();
                                   navigate(`/script/${script.id}`);
