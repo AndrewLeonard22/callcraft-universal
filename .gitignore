@@ -22,3 +22,8 @@ dist-ssr
 *.njsproj
 *.sln
 *.sw?
+
+# env files — NEVER commit (public repo; Maps key lives in deploy-time env)
+.env
+.env.*
+!.env.example
