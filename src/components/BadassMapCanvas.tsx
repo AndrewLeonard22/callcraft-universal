@@ -280,6 +280,23 @@ function InteractiveMap({ searchedQuery, hqAddress, hqLat, hqLng, serviceRadiusM
         });
         mapRef.current = map;
 
+        // The qualifier's anchor: HQ pin + the service-radius ring so setters
+        // SEE the boundary, not just read a verdict.
+        if (hasHq) {
+          new google.maps.Circle({
+            map,
+            center,
+            radius: (serviceRadiusMiles || 30) * 1609.34,
+            strokeColor: "#22C55E",
+            strokeOpacity: 0.8,
+            strokeWeight: 2,
+            fillColor: "#22C55E",
+            fillOpacity: 0.05,
+            clickable: false,
+          });
+          new AdvancedMarkerElement({ map, position: center, title: "HQ" });
+        }
+
         if (svDiv.current) {
           const pano = new StreetViewPanorama(svDiv.current, {
             visible: false,
@@ -503,34 +520,12 @@ function InteractiveMap({ searchedQuery, hqAddress, hqLat, hqLng, serviceRadiusM
       )}
 
       {/* Address search (Places autocomplete) + in-range verdict */}
-      <div className="absolute top-3 left-3 z-10 w-72 max-w-[70%] space-y-1.5">
+      <div className="absolute top-3 left-3 z-10 w-80 max-w-[75%] space-y-1.5">
         <div
           ref={acHost}
           className="rounded-lg bg-background/95 shadow-md border border-border [&_gmp-place-autocomplete]:w-full"
         />
-        {verdict && (
-          <div
-            className={`rounded-lg border px-3 py-1.5 text-[12.5px] font-semibold shadow-md backdrop-blur ${
-              verdict.inRange
-                ? "border-green-200 bg-green-50/95 text-green-800"
-                : "border-red-200 bg-red-50/95 text-red-700"
-            }`}
-          >
-            {verdict.miles < 1 ? "<1" : Math.round(verdict.miles)} mi from HQ ·{" "}
-            {verdict.inRange ? "inside" : "OUTSIDE"}
-            {serviceRadiusMiles ? ` ${serviceRadiusMiles} mi radius` : " service area"}
-          </div>
-        )}
-        {homeValue && (
-          <div className="rounded-lg border border-border bg-background/95 px-3 py-1.5 text-[12.5px] font-semibold text-foreground shadow-md backdrop-blur">
-            Est. home value ~${Math.round(homeValue.value / 1000)}K
-            {homeValue.low && homeValue.high && (
-              <span className="ml-1 font-normal text-muted-foreground">
-                (${Math.round(homeValue.low / 1000)}K–${Math.round(homeValue.high / 1000)}K)
-              </span>
-            )}
-          </div>
-        )}
+
       </div>
 
       {/* Controls */}
@@ -587,14 +582,39 @@ function InteractiveMap({ searchedQuery, hqAddress, hqLat, hqLng, serviceRadiusM
       {!streetOpen && (focusLabel || route || measuring) && (
         <div className="absolute bottom-3 left-3 z-10 flex flex-col gap-1.5 max-w-[75%]">
           {focusLabel && (
-            <div className="bg-background/95 border border-border rounded-lg px-3 py-1.5 text-[11px] font-medium shadow-md truncate">
-              📍 {focusLabel}
-            </div>
-          )}
-          {route && (
-            <div className="bg-background/95 border border-border rounded-lg px-3 py-1.5 text-[11px] font-medium shadow-md flex items-center gap-1.5">
-              <Navigation className="h-3.5 w-3.5 text-red-500 shrink-0" />
-              {route.miles.toFixed(1)} mi from HQ · {Math.round(route.mins)} min drive
+            <div
+              className={`space-y-1 rounded-xl border px-3.5 py-2.5 text-[12px] font-medium shadow-lg backdrop-blur ${
+                verdict
+                  ? verdict.inRange
+                    ? "border-green-300 bg-green-50/95"
+                    : "border-red-300 bg-red-50/95"
+                  : "border-border bg-background/95"
+              }`}
+            >
+              <div className="truncate text-[12.5px] font-semibold text-foreground">📍 {focusLabel}</div>
+              {verdict && (
+                <div className={`text-[13px] font-bold ${verdict.inRange ? "text-green-700" : "text-red-700"}`}>
+                  {verdict.inRange ? "✓ IN SERVICE AREA" : "✗ OUTSIDE SERVICE AREA"}
+                  <span className="font-medium text-muted-foreground">
+                    {" "}· {verdict.miles < 1 ? "<1" : Math.round(verdict.miles)} mi
+                    {serviceRadiusMiles ? ` of ${serviceRadiusMiles}` : ""}
+                  </span>
+                </div>
+              )}
+              {route && (
+                <div className="flex items-center gap-1.5 text-muted-foreground">
+                  <Navigation className="h-3.5 w-3.5 shrink-0 text-red-500" />
+                  {route.miles.toFixed(1)} mi drive · {Math.round(route.mins)} min
+                </div>
+              )}
+              {homeValue && (
+                <div className="text-foreground">
+                  🏠 Est. value ~${Math.round(homeValue.value / 1000)}K
+                  {homeValue.low && homeValue.high && (
+                    <span className="text-muted-foreground"> (${Math.round(homeValue.low / 1000)}K–${Math.round(homeValue.high / 1000)}K)</span>
+                  )}
+                </div>
+              )}
             </div>
           )}
           {measuring && (
