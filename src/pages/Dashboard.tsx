@@ -26,6 +26,7 @@ import {
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
+import { AppShell } from "@/components/AppShell";
 import { supabase } from "@/integrations/supabase/client";
 import { format } from "date-fns";
 import { useToast } from "@/hooks/use-toast";
@@ -494,170 +495,54 @@ export default function Dashboard() {
   }, [profile, user]);
 
   return (
-    <div className="min-h-screen bg-background">
-      {/* Clean SaaS Header */}
-      <div className="border-b border-border bg-card sticky top-0 z-50">
-        <div className="container mx-auto px-4 sm:px-6 py-2.5 max-w-7xl">
-          <div className="flex items-center justify-between gap-2">
-            <div className="flex items-center gap-3 sm:gap-4 min-w-0">
-              <img 
-                src={profile?.company_logo_url || agentIqLogo} 
-                alt="Agent IQ" 
-                className="h-7 w-auto flex-shrink-0"
-              />
-              <div className="h-6 w-px bg-border hidden sm:block" />
-              <div className="min-w-0">
-                <h1 className="text-[15px] font-semibold truncate leading-tight">Companies</h1>
-                <p className="text-xs text-muted-foreground hidden sm:block">
-                  {clients.length} {clients.length === 1 ? 'company' : 'companies'} total
-                </p>
-              </div>
-            </div>
-            
-            <div className="flex items-center gap-2 flex-shrink-0">
-              {/* Desktop Navigation */}
-              <div className="hidden lg:flex items-center gap-1">
-                <Link to="/training">
-                  <Button variant="ghost" size="sm" className="gap-2 h-9 px-3 text-sm">
-                    <GraduationCap className="h-4 w-4" />
-                    Training
-                  </Button>
-                </Link>
-                <DropdownMenu>
-                  <DropdownMenuTrigger asChild>
-                    <Button variant="ghost" size="sm" className="gap-1.5 h-9 px-3 text-sm">
-                      <Settings className="h-4 w-4" />
-                      Manage
-                      <ChevronDown className="h-3 w-3 opacity-60" />
-                    </Button>
-                  </DropdownMenuTrigger>
-                  <DropdownMenuContent align="end" className="w-48">
-                    <DropdownMenuLabel className="text-xs font-medium text-muted-foreground uppercase tracking-wide">Management</DropdownMenuLabel>
-                    <DropdownMenuSeparator />
-                    <DropdownMenuItem asChild>
-                      <Link to="/call-agents" className="flex items-center cursor-pointer">
-                        <Phone className="mr-2 h-4 w-4" />
-                        <span>Call Agents</span>
-                      </Link>
-                    </DropdownMenuItem>
-                    <DropdownMenuItem asChild>
-                      <Link to="/team" className="flex items-center cursor-pointer">
-                        <Users className="mr-2 h-4 w-4" />
-                        <span>Team</span>
-                      </Link>
-                    </DropdownMenuItem>
-                    <DropdownMenuSeparator />
-                    <DropdownMenuItem asChild>
-                      <Link to="/service-types" className="flex items-center cursor-pointer">
-                        <Building2 className="mr-2 h-4 w-4" />
-                        <span>Services</span>
-                      </Link>
-                    </DropdownMenuItem>
-                    <DropdownMenuItem asChild>
-                      <Link to="/templates" className="flex items-center cursor-pointer">
-                        <FileText className="mr-2 h-4 w-4" />
-                        <span>Templates</span>
-                      </Link>
-                    </DropdownMenuItem>
-                  </DropdownMenuContent>
-                </DropdownMenu>
-              </div>
-              
-              <div className="h-6 w-px bg-border hidden lg:block" />
-              
-              {/* Mobile Menu */}
-              <DropdownMenu>
-                <DropdownMenuTrigger asChild className="lg:hidden">
-                  <Button variant="outline" size="icon" className="h-9 w-9">
-                    <Settings className="h-4 w-4" />
-                  </Button>
-                </DropdownMenuTrigger>
-                <DropdownMenuContent align="end" className="w-52">
-                  <DropdownMenuLabel className="text-xs font-medium text-muted-foreground uppercase tracking-wide">Navigation</DropdownMenuLabel>
-                  <DropdownMenuSeparator />
-                  <DropdownMenuItem asChild>
-                    <Link to="/training" className="flex items-center cursor-pointer">
-                      <GraduationCap className="mr-2 h-4 w-4" />
-                      <span>Training</span>
-                    </Link>
-                  </DropdownMenuItem>
-                  <DropdownMenuSeparator />
-                  <DropdownMenuItem asChild>
-                    <Link to="/team" className="flex items-center cursor-pointer">
-                      <Users className="mr-2 h-4 w-4" />
-                      <span>Team</span>
-                    </Link>
-                  </DropdownMenuItem>
-                  <DropdownMenuItem asChild>
-                    <Link to="/call-agents" className="flex items-center cursor-pointer">
-                      <Phone className="mr-2 h-4 w-4" />
-                      <span>Call Agents</span>
-                    </Link>
-                  </DropdownMenuItem>
-                  <DropdownMenuItem asChild>
-                    <Link to="/service-types" className="flex items-center cursor-pointer">
-                      <Building2 className="mr-2 h-4 w-4" />
-                      <span>Services</span>
-                    </Link>
-                  </DropdownMenuItem>
-                  <DropdownMenuItem asChild>
-                    <Link to="/templates" className="flex items-center cursor-pointer">
-                      <FileText className="mr-2 h-4 w-4" />
-                      <span>Templates</span>
-                    </Link>
-                  </DropdownMenuItem>
-                </DropdownMenuContent>
-              </DropdownMenu>
-              
-              <Link to="/create">
-                <Button size="sm" className="gap-2 h-9 px-4">
-                  <Plus className="h-4 w-4" />
-                  <span className="hidden sm:inline">New Company</span>
+    <AppShell
+      title="Companies"
+      subtitle={`${clients.length} ${clients.length === 1 ? "company" : "companies"} total`}
+      actions={<>
+            <Link to="/create">
+              <Button size="sm" className="gap-2 h-9 px-4">
+                <Plus className="h-4 w-4" />
+                <span className="hidden sm:inline">New Company</span>
+              </Button>
+            </Link>
+            <DropdownMenu>
+              <DropdownMenuTrigger asChild>
+                <Button variant="ghost" size="icon" className="relative h-9 w-9 rounded-full">
+                  <Avatar className="h-9 w-9 ring-2 ring-border ring-offset-1 ring-offset-background">
+                    <AvatarImage src={profile?.avatar_url} alt={profile?.display_name || "User"} />
+                    <AvatarFallback className="bg-primary/10 text-primary text-xs font-semibold">
+                      {getUserInitials()}
+                    </AvatarFallback>
+                  </Avatar>
                 </Button>
-              </Link>
-              
-              {/* User Menu */}
-              <DropdownMenu>
-                <DropdownMenuTrigger asChild>
-                  <Button variant="ghost" size="icon" className="relative h-9 w-9 rounded-full">
-                    <Avatar className="h-9 w-9 ring-2 ring-border ring-offset-1 ring-offset-background">
-                      <AvatarImage src={profile?.avatar_url} alt={profile?.display_name || "User"} />
-                      <AvatarFallback className="bg-primary/10 text-primary text-xs font-semibold">
-                        {getUserInitials()}
-                      </AvatarFallback>
-                    </Avatar>
-                  </Button>
-                </DropdownMenuTrigger>
-                <DropdownMenuContent className="w-56" align="end" forceMount>
-                  <DropdownMenuLabel className="font-normal">
-                    <div className="flex flex-col space-y-1">
-                      <p className="text-sm font-semibold leading-none truncate">{profile?.display_name || "User"}</p>
-                      <p className="text-xs leading-none text-muted-foreground truncate">
-                        {user?.email}
-                      </p>
-                    </div>
-                  </DropdownMenuLabel>
-                  <DropdownMenuSeparator />
-                  <DropdownMenuItem onClick={() => setLogoSettingsOpen(true)}>
-                    <Building2 className="mr-2 h-4 w-4" />
-                    <span>Company Logo</span>
-                  </DropdownMenuItem>
-                  <DropdownMenuItem onClick={() => navigate("/team")}>
-                    <Users className="mr-2 h-4 w-4" />
-                    <span>Team Management</span>
-                  </DropdownMenuItem>
-                  <DropdownMenuSeparator />
-                  <DropdownMenuItem onClick={handleLogout} className="text-destructive focus:text-destructive">
-                    <LogOut className="mr-2 h-4 w-4" />
-                    <span>Sign Out</span>
-                  </DropdownMenuItem>
-                </DropdownMenuContent>
-              </DropdownMenu>
-            </div>
-          </div>
-        </div>
-      </div>
-
+              </DropdownMenuTrigger>
+              <DropdownMenuContent className="w-56" align="end" forceMount>
+                <DropdownMenuLabel className="font-normal">
+                  <div className="flex flex-col space-y-1">
+                    <p className="text-sm font-semibold leading-none truncate">{profile?.display_name || "User"}</p>
+                    <p className="text-xs leading-none text-muted-foreground truncate">
+                      {user?.email}
+                    </p>
+                  </div>
+                </DropdownMenuLabel>
+                <DropdownMenuSeparator />
+                <DropdownMenuItem onClick={() => setLogoSettingsOpen(true)}>
+                  <Building2 className="mr-2 h-4 w-4" />
+                  <span>Company Logo</span>
+                </DropdownMenuItem>
+                <DropdownMenuItem onClick={() => navigate("/team")}>
+                  <Users className="mr-2 h-4 w-4" />
+                  <span>Team Management</span>
+                </DropdownMenuItem>
+                <DropdownMenuSeparator />
+                <DropdownMenuItem onClick={handleLogout} className="text-destructive focus:text-destructive">
+                  <LogOut className="mr-2 h-4 w-4" />
+                  <span>Sign Out</span>
+                </DropdownMenuItem>
+              </DropdownMenuContent>
+            </DropdownMenu>
+          </>}
+    >
       <div className="container mx-auto px-4 sm:px-6 py-5 max-w-7xl">
         {/* View Mode Tabs + Search Toolbar */}
         {!loading && clients.length > 0 && (
@@ -1102,6 +987,6 @@ export default function Dashboard() {
         currentLogoUrl={profile?.company_logo_url}
         onLogoUpdated={loadUser}
       />
-    </div>
+    </AppShell>
   );
 }
