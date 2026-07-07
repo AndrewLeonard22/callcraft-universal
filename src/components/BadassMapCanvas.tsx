@@ -109,6 +109,8 @@ export function BadassMapCanvas(props: BadassMapCanvasProps) {
 function InteractiveMap({ searchedQuery, hqAddress, hqLat, hqLng, serviceRadiusMiles }: BadassMapCanvasProps) {
   // In-range verdict for the focused address (the ZipChecker's one irreplaceable job, now native)
   const [verdict, setVerdict] = useState<{ miles: number; inRange: boolean } | null>(null);
+  // Est. home value (RentCast via /api/home-value — qualification gold next to a $25k minimum)
+  const [homeValue, setHomeValue] = useState<{ value: number; low: number | null; high: number | null } | null>(null);
   const mapDiv = useRef<HTMLDivElement>(null);
   const svDiv = useRef<HTMLDivElement>(null);
   const acHost = useRef<HTMLDivElement>(null);
@@ -219,6 +221,16 @@ function InteractiveMap({ searchedQuery, hqAddress, hqLat, hqLng, serviceRadiusM
         const a = Math.sin(dLat / 2) ** 2 + Math.cos((hqLat * Math.PI) / 180) * Math.cos((lat * Math.PI) / 180) * Math.sin(dLng / 2) ** 2;
         const miles = R * 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
         setVerdict({ miles, inRange: serviceRadiusMiles ? miles <= serviceRadiusMiles : true });
+      }
+      setHomeValue(null);
+      if (label) {
+        fetch(`/api/home-value?address=${encodeURIComponent(label)}`)
+          .then((r) => (r.ok ? r.json() : null))
+          .then((d) => {
+            if (reqId !== focusReqRef.current) return; // stale focus
+            if (d && typeof d.value === "number") setHomeValue({ value: d.value, low: d.low, high: d.high });
+          })
+          .catch(() => {});
       }
       // Keep the 3D view (if it exists) tracking the same address.
       if (map3dRef.current) map3dRef.current.center = { lat, lng, altitude: 0 };
@@ -507,6 +519,16 @@ function InteractiveMap({ searchedQuery, hqAddress, hqLat, hqLng, serviceRadiusM
             {verdict.miles < 1 ? "<1" : Math.round(verdict.miles)} mi from HQ ·{" "}
             {verdict.inRange ? "inside" : "OUTSIDE"}
             {serviceRadiusMiles ? ` ${serviceRadiusMiles} mi radius` : " service area"}
+          </div>
+        )}
+        {homeValue && (
+          <div className="rounded-lg border border-border bg-background/95 px-3 py-1.5 text-[12.5px] font-semibold text-foreground shadow-md backdrop-blur">
+            Est. home value ~${Math.round(homeValue.value / 1000)}K
+            {homeValue.low && homeValue.high && (
+              <span className="ml-1 font-normal text-muted-foreground">
+                (${Math.round(homeValue.low / 1000)}K–${Math.round(homeValue.high / 1000)}K)
+              </span>
+            )}
           </div>
         )}
       </div>
