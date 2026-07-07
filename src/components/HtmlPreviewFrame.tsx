@@ -37,7 +37,8 @@ img{max-width:100%;height:auto;display:block;}
 ol,ul{list-style:none;margin:0 0 1.1em;padding:0;}
 li{margin:0 0 .45em;}
 p{margin:0 0 .85em;}
-h1,h2,h3{font-size:12.5px;font-weight:700;letter-spacing:.07em;text-transform:uppercase;color:#8a90a3;margin:2.4em 0 1em;padding-top:1.5em;border-top:1px solid #eceef3;}
+h1,h2,h3{font-size:12.5px!important;font-weight:700!important;letter-spacing:.07em;text-transform:uppercase;color:#8a90a3!important;margin:2.4em 0 1em;padding-top:1.5em;border-top:1px solid #eceef3;}
+h1 *,h2 *,h3 *{font-size:inherit!important;font-weight:inherit!important;color:inherit!important;}
 h1:first-child,h2:first-child,h3:first-child{margin-top:0;padding-top:0;border-top:none;}
 p>strong:only-child{display:inline-block;font-size:11px;font-weight:700;letter-spacing:.09em;text-transform:uppercase;color:#9aa0b4;margin-top:.3em;}
 strong{font-weight:650;color:#15192a;}
@@ -46,7 +47,7 @@ em{color:#8a90a3;font-size:13px;}
 hr{border:none;border-top:1px solid #eceef3;margin:1.5em 0;}
 a{text-decoration:none;color:inherit;pointer-events:none;cursor:default;}
 </style></head><body style="margin:0;">
-      <div id="content">${html}</div>
+      <div id="content">${html.replace(/[\u{1F000}-\u{1FAFF}\u{2600}-\u{27BF}\u{FE0F}]/gu, "")}</div>
       <script>
         let lastHeight = 0;
         let resizeTimer;
