@@ -46,6 +46,12 @@ mark{display:inline-block;background:#eef4ff;color:#101828;padding:10px 14px;bor
 em{color:#8a90a3;font-size:13px;}
 hr{border:none;border-top:1px solid #eceef3;margin:1.5em 0;}
 a{text-decoration:none;color:inherit;pointer-events:none;cursor:default;}
+/* editor inline sizes lose everywhere, not just headers */
+#content p,#content li,#content div,#content span{font-size:14.5px!important;line-height:1.7!important;}
+#content strong{font-size:inherit!important;}
+#content mark,#content mark span,#content mark strong{font-size:16.5px!important;font-weight:500!important;line-height:1.6!important;}
+#content em,#content em span{font-size:13px!important;}
+#content p>strong:only-child{font-size:11px!important;}
 </style></head><body style="margin:0;">
       <div id="content">${html.replace(/[\u{1F000}-\u{1FAFF}\u{2600}-\u{27BF}\u{FE0F}]/gu, "")}</div>
       <script>
