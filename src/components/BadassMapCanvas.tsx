@@ -139,6 +139,7 @@ function InteractiveMap({ searchedQuery, hqAddress, hqLat, hqLng, serviceRadiusM
 
   const [ready, setReady] = useState(false);
   const [loadError, setLoadError] = useState(false);
+  const [failReason, setFailReason] = useState<string | null>(null);
   const [mapType, setMapType] = useState<"hybrid" | "roadmap">("hybrid");
   const [streetOpen, setStreetOpen] = useState(false);
   const [streetReady, setStreetReady] = useState(false);
@@ -260,6 +261,14 @@ function InteractiveMap({ searchedQuery, hqAddress, hqLat, hqLng, serviceRadiusM
     (async () => {
       try {
         const loader = getLoader();
+        // Google reports key problems (API-not-enabled, referer-blocked) via this
+        // global, async — NOT via the loader promise. Surface it or debug blind.
+        (window as unknown as { gm_authFailure?: () => void }).gm_authFailure = () => {
+          setFailReason(
+            "Google rejected the key at runtime (gm_authFailure). Usual causes: 'Maps JavaScript API' not enabled on the key's project, or this site missing from the key's website restrictions.",
+          );
+          setLoadError(true);
+        };
         const [{ Map }, { StreetViewPanorama }, { AdvancedMarkerElement }] = await Promise.all([
           loader.importLibrary("maps"),
           loader.importLibrary("streetView"),
@@ -318,8 +327,11 @@ function InteractiveMap({ searchedQuery, hqAddress, hqLat, hqLng, serviceRadiusM
           }
         }
         setReady(true);
-      } catch {
-        if (!cancelled) setLoadError(true);
+      } catch (e) {
+        if (!cancelled) {
+          setFailReason(`Maps JS failed to load: ${String(e).slice(0, 180)}`);
+          setLoadError(true);
+        }
       }
     })();
     return () => {
@@ -522,12 +534,17 @@ function InteractiveMap({ searchedQuery, hqAddress, hqLat, hqLng, serviceRadiusM
 
   if (loadError) {
     return (
-      <IframeFallback
-        searchedQuery={searchedQuery}
-        hqAddress={hqAddress}
-        hqLat={hqLat}
-        hqLng={hqLng}
-      />
+      <div className="relative h-full w-full">
+        <IframeFallback
+          searchedQuery={searchedQuery}
+          hqAddress={hqAddress}
+          hqLat={hqLat}
+          hqLng={hqLng}
+        />
+        <div className="absolute left-3 top-3 z-10 max-w-[520px] rounded-lg border border-red-300 bg-red-50/95 px-3 py-2 text-[12px] font-medium text-red-800 shadow-lg backdrop-blur">
+          ⚠️ Interactive map unavailable — basic view shown. {failReason || "Unknown load failure."}
+        </div>
+      </div>
     );
   }
 
