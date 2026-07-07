@@ -96,45 +96,44 @@ function InteractiveMap({ searchedQuery, hqAddress, hqLat, hqLng }: BadassMapCan
   const panoRef = useRef<google.maps.StreetViewPanorama | null>(null);
   const dirServiceRef = useRef<google.maps.DirectionsService | null>(null);
   const dirRendererRef = useRef<google.maps.DirectionsRenderer | null>(null);
-  // Loosely typed — drawing/marker classes come from importLibrary at runtime.
   const drawingRef = useRef<google.maps.drawing.DrawingManager | null>(null);
   const measurePolyRef = useRef<google.maps.Polygon | null>(null);
   const markerRef = useRef<google.maps.marker.AdvancedMarkerElement | null>(null);
-  const sphericalRef = useRef<typeof google.maps.geometry.spherical | null>(null);
   const advMarkerCtor = useRef<typeof google.maps.marker.AdvancedMarkerElement | null>(null);
+  // Monotonic focus token: the LATEST-initiated focus wins, whichever resolves last.
+  // Shared by both focus sources (rail geocode + in-map autocomplete) so intent order holds.
+  const focusReqRef = useRef(0);
+  // Coords of the current focus, so an HQ change can re-route from the new origin.
+  const lastFocusRef = useRef<google.maps.LatLngLiteral | null>(null);
 
   const [ready, setReady] = useState(false);
   const [loadError, setLoadError] = useState(false);
   const [mapType, setMapType] = useState<"hybrid" | "roadmap">("hybrid");
   const [streetOpen, setStreetOpen] = useState(false);
+  const [streetReady, setStreetReady] = useState(false);
   const [measuring, setMeasuring] = useState(false);
   const [areaSqFt, setAreaSqFt] = useState<number | null>(null);
   const [route, setRoute] = useState<{ miles: number; mins: number } | null>(null);
-  const [focusLabel, setFocusLabel] = useState<string | null>(searchedQuery ?? null);
+  // Starts null (not the raw query) so the pill only ever shows the resolved address.
+  const [focusLabel, setFocusLabel] = useState<string | null>(null);
 
   const hasHq = hqLat != null && hqLng != null;
 
-  // Center the map, drop a marker, wire street view, and (if HQ is known) draw the route.
-  const focusOn = useCallback(
-    (lat: number, lng: number, label: string | null) => {
-      const map = mapRef.current;
-      if (!map) return;
-      map.setCenter({ lat, lng });
-      map.setZoom(19);
-      setFocusLabel(label);
-      panoRef.current?.setPosition({ lat, lng });
+  // Wipe the rendered route + its readout (used before every new focus + on route failure).
+  const clearRoute = useCallback(() => {
+    dirRendererRef.current?.setDirections({ routes: [] } as unknown as google.maps.DirectionsResult);
+    setRoute(null);
+  }, []);
 
-      if (advMarkerCtor.current) {
-        if (markerRef.current) markerRef.current.map = null;
-        markerRef.current = new advMarkerCtor.current({ map, position: { lat, lng } });
-      }
-
-      if (hasHq) void drawRoute({ lat: hqLat as number, lng: hqLng as number }, { lat, lng });
-    },
-    // drawRoute is stable (defined below with empty deps); hq* are primitives.
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-    [hasHq, hqLat, hqLng],
-  );
+  // Exit measure mode entirely — the polygon + sq-ft belong to the previous property.
+  const exitMeasure = useCallback(() => {
+    drawingRef.current?.setMap(null);
+    drawingRef.current = null;
+    measurePolyRef.current?.setMap(null);
+    measurePolyRef.current = null;
+    setMeasuring(false);
+    setAreaSqFt(null);
+  }, []);
 
   const drawRoute = useCallback(
     async (origin: google.maps.LatLngLiteral, dest: google.maps.LatLngLiteral) => {
@@ -143,6 +142,7 @@ function InteractiveMap({ searchedQuery, hqAddress, hqLat, hqLng }: BadassMapCan
       const { DirectionsService, DirectionsRenderer } = (await getLoader().importLibrary(
         "routes",
       )) as google.maps.RoutesLibrary;
+      if (!mapRef.current) return; // unmounted during the await
       if (!dirServiceRef.current) dirServiceRef.current = new DirectionsService();
       if (!dirRendererRef.current) {
         dirRendererRef.current = new DirectionsRenderer({
@@ -164,10 +164,41 @@ function InteractiveMap({ searchedQuery, hqAddress, hqLat, hqLng }: BadassMapCan
           setRoute({ miles: leg.distance.value / 1609.34, mins: leg.duration.value / 60 });
         }
       } catch {
-        setRoute(null);
+        // Route couldn't be computed — clear it so no stale route lingers on the new house.
+        clearRoute();
       }
     },
-    [],
+    [clearRoute],
+  );
+
+  // Center on a resolved location: clear stale route/measurement, drop a marker, seed
+  // street view, and (if HQ is known) draw the route. Callers pass their focus token so
+  // an out-of-order async resolution can bail before touching the map.
+  const focusOn = useCallback(
+    (lat: number, lng: number, label: string | null, reqId: number) => {
+      if (reqId !== focusReqRef.current) return; // a newer focus superseded this one
+      const map = mapRef.current;
+      if (!map) return;
+
+      clearRoute();
+      if (measuring) exitMeasure();
+
+      map.setCenter({ lat, lng });
+      map.setZoom(19);
+      setFocusLabel(label);
+      lastFocusRef.current = { lat, lng };
+
+      panoRef.current?.setPosition({ lat, lng });
+      setStreetReady(true);
+
+      if (advMarkerCtor.current) {
+        if (markerRef.current) markerRef.current.map = null;
+        markerRef.current = new advMarkerCtor.current({ map, position: { lat, lng } });
+      }
+
+      if (hasHq) void drawRoute({ lat: hqLat as number, lng: hqLng as number }, { lat, lng });
+    },
+    [clearRoute, measuring, exitMeasure, hasHq, hqLat, hqLng, drawRoute],
   );
 
   // 1) Load the API + build the map once.
@@ -210,6 +241,11 @@ function InteractiveMap({ searchedQuery, hqAddress, hqLat, hqLng }: BadassMapCan
           });
           panoRef.current = pano;
           map.setStreetView(pano);
+          // Seed the pano at HQ so "Street" works before any search (else it opens blank).
+          if (hasHq) {
+            pano.setPosition({ lat: hqLat as number, lng: hqLng as number });
+            setStreetReady(true);
+          }
         }
         setReady(true);
       } catch {
@@ -218,6 +254,20 @@ function InteractiveMap({ searchedQuery, hqAddress, hqLat, hqLng }: BadassMapCan
     })();
     return () => {
       cancelled = true;
+      // Real teardown — Google Maps + WebGL contexts don't get GC'd on their own, so a
+      // repeatedly opened/closed tab would leak contexts until the map breaks.
+      dirRendererRef.current?.setMap(null);
+      dirRendererRef.current = null;
+      drawingRef.current?.setMap(null);
+      drawingRef.current = null;
+      measurePolyRef.current?.setMap(null);
+      measurePolyRef.current = null;
+      if (markerRef.current) markerRef.current.map = null;
+      markerRef.current = null;
+      if (mapRef.current) google.maps.event.clearInstanceListeners(mapRef.current);
+      if (panoRef.current) google.maps.event.clearInstanceListeners(panoRef.current);
+      mapRef.current = null;
+      panoRef.current = null;
     };
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
@@ -236,14 +286,15 @@ function InteractiveMap({ searchedQuery, hqAddress, hqLat, hqLng }: BadassMapCan
       el.style.width = "100%";
       acHost.current.appendChild(el);
       el.addEventListener("gmp-select", async (e: unknown) => {
-        // The event payload carries a placePrediction; resolve it to a Place and fetch fields.
+        // Claim the latest focus token BEFORE the await so the last pick wins the race.
+        const myReq = ++focusReqRef.current;
         const prediction = (e as { placePrediction?: { toPlace: () => google.maps.places.Place } })
           .placePrediction;
         if (!prediction) return;
         const place = prediction.toPlace();
         await place.fetchFields({ fields: ["formattedAddress", "location"] });
         const loc = place.location;
-        if (loc) focusOn(loc.lat(), loc.lng(), place.formattedAddress ?? null);
+        if (loc) focusOn(loc.lat(), loc.lng(), place.formattedAddress ?? null, myReq);
       });
     })();
     return () => {
@@ -257,6 +308,7 @@ function InteractiveMap({ searchedQuery, hqAddress, hqLat, hqLng }: BadassMapCan
   useEffect(() => {
     if (!ready || !searchedQuery?.trim()) return;
     let cancelled = false;
+    const myReq = ++focusReqRef.current;
     (async () => {
       const { Geocoder } = (await getLoader().importLibrary(
         "geocoding",
@@ -266,7 +318,7 @@ function InteractiveMap({ searchedQuery, hqAddress, hqLat, hqLng }: BadassMapCan
         const { results } = await geo.geocode({ address: searchedQuery });
         if (cancelled || !results?.[0]) return;
         const loc = results[0].geometry.location;
-        focusOn(loc.lat(), loc.lng(), results[0].formatted_address);
+        focusOn(loc.lat(), loc.lng(), results[0].formatted_address, myReq);
       } catch {
         /* geocode miss — leave the map where it is */
       }
@@ -277,6 +329,20 @@ function InteractiveMap({ searchedQuery, hqAddress, hqLat, hqLng }: BadassMapCan
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [ready, searchedQuery]);
 
+  // 4) HQ changed after mount (e.g. a realtime client update) → recenter / re-route so
+  //    the "mi from HQ" figure never goes stale.
+  useEffect(() => {
+    if (!ready) return;
+    const map = mapRef.current;
+    if (!map || !hasHq) return;
+    if (lastFocusRef.current) {
+      void drawRoute({ lat: hqLat as number, lng: hqLng as number }, lastFocusRef.current);
+    } else {
+      map.setCenter({ lat: hqLat as number, lng: hqLng as number });
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [ready, hqLat, hqLng]);
+
   // Map type toggle (hybrid satellite ↔ road).
   useEffect(() => {
     mapRef.current?.setMapTypeId(mapType);
@@ -284,7 +350,7 @@ function InteractiveMap({ searchedQuery, hqAddress, hqLat, hqLng }: BadassMapCan
 
   const toggleStreet = () => {
     const p = panoRef.current;
-    if (!p) return;
+    if (!p || !streetReady) return;
     const next = !streetOpen;
     p.setVisible(next);
     setStreetOpen(next);
@@ -294,19 +360,14 @@ function InteractiveMap({ searchedQuery, hqAddress, hqLat, hqLng }: BadassMapCan
     const map = mapRef.current;
     if (!map) return;
     if (measuring) {
-      drawingRef.current?.setMap(null);
-      drawingRef.current = null;
-      measurePolyRef.current?.setMap(null);
-      measurePolyRef.current = null;
-      setMeasuring(false);
-      setAreaSqFt(null);
+      exitMeasure();
       return;
     }
     const [{ DrawingManager, OverlayType }, { spherical }] = await Promise.all([
       getLoader().importLibrary("drawing") as Promise<google.maps.DrawingLibrary>,
       getLoader().importLibrary("geometry") as Promise<google.maps.GeometryLibrary>,
     ]);
-    sphericalRef.current = spherical;
+    if (!mapRef.current) return; // unmounted during the await
     const dm = new DrawingManager({
       drawingMode: OverlayType.POLYGON,
       drawingControl: false,
@@ -333,7 +394,7 @@ function InteractiveMap({ searchedQuery, hqAddress, hqLat, hqLng }: BadassMapCan
       path.addListener("insert_at", recompute);
       path.addListener("remove_at", recompute);
     });
-  }, [measuring]);
+  }, [measuring, exitMeasure]);
 
   if (loadError) {
     return (
@@ -354,7 +415,7 @@ function InteractiveMap({ searchedQuery, hqAddress, hqLat, hqLng }: BadassMapCan
       <div ref={svDiv} className={`absolute inset-0 ${streetOpen ? "" : "hidden"}`} />
 
       {!ready && (
-        <div className="absolute inset-0 flex items-center justify-center bg-muted/30">
+        <div className="absolute inset-0 z-20 flex items-center justify-center bg-muted/30">
           <Loader2 className="h-6 w-6 animate-spin text-muted-foreground" />
         </div>
       )}
@@ -378,7 +439,13 @@ function InteractiveMap({ searchedQuery, hqAddress, hqLat, hqLng }: BadassMapCan
           <Layers className="h-3.5 w-3.5" />
           {mapType === "hybrid" ? "Satellite" : "Road"}
         </Button>
-        <Button size="sm" variant={streetOpen ? "default" : "outline"} className={btn} onClick={toggleStreet}>
+        <Button
+          size="sm"
+          variant={streetOpen ? "default" : "outline"}
+          className={btn}
+          onClick={toggleStreet}
+          disabled={!streetReady}
+        >
           {streetOpen ? <X className="h-3.5 w-3.5" /> : <Eye className="h-3.5 w-3.5" />}
           Street
         </Button>
@@ -405,29 +472,29 @@ function InteractiveMap({ searchedQuery, hqAddress, hqLat, hqLng }: BadassMapCan
         )}
       </div>
 
-      {/* Route + distance readout */}
-      {route && !streetOpen && (
-        <div className="absolute bottom-3 right-3 z-10 bg-background/95 border border-border rounded-lg px-3 py-1.5 text-[11px] font-medium shadow-md flex items-center gap-1.5">
-          <Navigation className="h-3.5 w-3.5 text-red-500" />
-          {route.miles.toFixed(1)} mi from HQ · {Math.round(route.mins)} min drive
-        </div>
-      )}
-
-      {/* Measurement readout */}
-      {measuring && !streetOpen && (
-        <div className="absolute bottom-3 left-3 z-10 bg-background/95 border border-border rounded-lg px-3 py-1.5 text-[11px] font-medium shadow-md">
-          {areaSqFt != null ? (
-            <>📐 {Math.round(areaSqFt).toLocaleString()} sq ft</>
-          ) : (
-            <>Draw a shape on the yard to measure it</>
+      {/* Bottom overlays — stacked in one column so they never collide on a narrow pane. */}
+      {!streetOpen && (focusLabel || route || measuring) && (
+        <div className="absolute bottom-3 left-3 z-10 flex flex-col gap-1.5 max-w-[75%]">
+          {focusLabel && (
+            <div className="bg-background/95 border border-border rounded-lg px-3 py-1.5 text-[11px] font-medium shadow-md truncate">
+              📍 {focusLabel}
+            </div>
           )}
-        </div>
-      )}
-
-      {/* Focus label (when not measuring / no route panel below-left) */}
-      {focusLabel && !measuring && (
-        <div className="absolute bottom-3 left-3 z-10 bg-background/95 border border-border rounded-lg px-3 py-1.5 text-[11px] font-medium shadow-md max-w-[60%] truncate">
-          📍 {focusLabel}
+          {route && (
+            <div className="bg-background/95 border border-border rounded-lg px-3 py-1.5 text-[11px] font-medium shadow-md flex items-center gap-1.5">
+              <Navigation className="h-3.5 w-3.5 text-red-500 shrink-0" />
+              {route.miles.toFixed(1)} mi from HQ · {Math.round(route.mins)} min drive
+            </div>
+          )}
+          {measuring && (
+            <div className="bg-background/95 border border-border rounded-lg px-3 py-1.5 text-[11px] font-medium shadow-md">
+              {areaSqFt != null ? (
+                <>📐 {Math.round(areaSqFt).toLocaleString()} sq ft</>
+              ) : (
+                <>Draw a shape on the yard to measure it</>
+              )}
+            </div>
+          )}
         </div>
       )}
     </div>
