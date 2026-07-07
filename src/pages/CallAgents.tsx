@@ -1,3 +1,4 @@
+import { AppShell } from "@/components/AppShell";
 import { useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { Plus, Pencil, Trash2, Phone, Mail, ArrowLeft, Building2, X } from "lucide-react";
@@ -357,32 +358,21 @@ export default function CallAgents() {
   };
 
   return (
-    <div className="min-h-screen bg-background">
+    <AppShell
+      title="Call Agents"
+      subtitle="Manage your sales team"
+      actions={
+        <Button size="sm" onClick={() => {
+          setEditingAgent(null);
+          setFormData({ name: "", email: "", phone: "" });
+          setDialogOpen(true);
+        }}>
+          <Plus className="h-4 w-4 mr-2" />
+          Add Agent
+        </Button>
+      }
+    >
       <div className="container mx-auto px-4 py-8">
-        {/* Header */}
-        <div className="flex items-center justify-between mb-8">
-          <div className="flex items-center gap-4">
-            <Button
-              variant="ghost"
-              size="icon"
-              onClick={() => navigate('/')}
-            >
-              <ArrowLeft className="h-5 w-5" />
-            </Button>
-            <div>
-              <h1 className="text-lg font-semibold">Call Agents</h1>
-              <p className="text-sm text-muted-foreground">Manage your sales team</p>
-            </div>
-          </div>
-          <Button onClick={() => {
-            setEditingAgent(null);
-            setFormData({ name: "", email: "", phone: "" });
-            setDialogOpen(true);
-          }}>
-            <Plus className="h-4 w-4 mr-2" />
-            Add Agent
-          </Button>
-        </div>
 
         {/* Agents List */}
         {loading ? (
@@ -657,6 +647,6 @@ export default function CallAgents() {
           </DialogFooter>
         </DialogContent>
       </Dialog>
-    </div>
+    </AppShell>
   );
 }

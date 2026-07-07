@@ -1,3 +1,4 @@
+import { AppShell } from "@/components/AppShell";
 import { useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
@@ -442,24 +443,8 @@ export default function TeamManagement() {
   }
 
   return (
-    <div className="min-h-screen bg-background p-4 sm:p-6">
-      <div className="max-w-5xl mx-auto space-y-4 sm:space-y-6">
-        <div className="flex items-center justify-between border-b border-border pb-4">
-          <div className="flex items-center gap-3 sm:gap-4">
-            <Button
-              variant="outline"
-              size="icon"
-              onClick={() => navigate("/")}
-              className="flex-shrink-0"
-            >
-              <ArrowLeft className="h-4 w-4" />
-            </Button>
-            <div className="min-w-0">
-              <h1 className="text-lg font-semibold truncate">Team Management</h1>
-              <p className="text-sm text-muted-foreground truncate">{organization?.name}</p>
-            </div>
-          </div>
-        </div>
+    <AppShell title="Team Management" subtitle={organization?.name}>
+      <div className="max-w-5xl mx-auto space-y-4 sm:space-y-6 p-4 sm:p-6">
 
         {/* Invite New Member */}
         <Card className="shadow-medium">
@@ -715,6 +700,6 @@ export default function TeamManagement() {
           </AlertDialogFooter>
         </AlertDialogContent>
       </AlertDialog>
-    </div>
+    </AppShell>
   );
 }
