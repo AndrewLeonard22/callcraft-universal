@@ -32,12 +32,12 @@ function HtmlPreviewFrame({ html, className }: HtmlPreviewFrameProps) {
 /* Teleprompter v2 (Dash): structure-aware. decorate() tags .lbl/.rule/.say —
    the PARAGRAPH is the say-card (multi-mark sentences = ONE card, no mid-line
    bars); rules sit smaller+muted; labels are small-caps captions. */
-html,body{margin:0;padding:0;overflow-x:hidden;font-family:Inter,system-ui,-apple-system,sans-serif;font-size:14.5px;line-height:1.7;color:#3f4354;-webkit-font-smoothing:antialiased;}
+html,body{margin:0;padding:0;overflow-x:hidden;font-family:Inter,system-ui,-apple-system,sans-serif;font-size:13.5px;line-height:1.65;color:#3f4354;-webkit-font-smoothing:antialiased;}
 img{max-width:100%;height:auto;display:block;}
 ol,ul{list-style:none;margin:0 0 1.1em;padding:0;}
 li{margin:0 0 .45em;}
 p{margin:0 0 .85em;}
-h1,h2,h3{font-size:17px!important;font-weight:700!important;letter-spacing:-0.01em;text-transform:none;color:#15192a!important;margin:2.2em 0 .9em;padding-top:1.4em;border-top:1px solid #eceef3;}
+h1,h2,h3{font-size:15.5px!important;font-weight:700!important;letter-spacing:-0.01em;text-transform:none;color:#15192a!important;margin:2.2em 0 .9em;padding-top:1.4em;border-top:1px solid #eceef3;}
 h1 *,h2 *,h3 *{font-size:inherit!important;font-weight:inherit!important;color:inherit!important;}
 h1:first-child,h2:first-child,h3:first-child{margin-top:0;padding-top:0;border-top:none;}
 strong{font-weight:650;color:#15192a;}
@@ -47,10 +47,10 @@ a{text-decoration:none;color:inherit;pointer-events:none;cursor:default;}
 mark{background:transparent!important;color:inherit;padding:0;font-weight:inherit;}
 .lbl,.lbl *{font-size:11px!important;font-weight:700!important;letter-spacing:.09em;text-transform:uppercase;color:#9aa0b4!important;}
 .lbl{margin:1.6em 0 .7em;}
-.rule,.rule span{font-size:13px!important;line-height:1.65!important;color:#6f7488!important;}
+.rule,.rule span{font-size:12.5px!important;line-height:1.65!important;color:#6f7488!important;}
 .rule strong,.rule b{color:#3f4354!important;font-weight:650!important;}
 .say{background:#eef4ff;border-left:3px solid #2f6bff;border-radius:10px;padding:12px 16px;margin:.3em 0 .9em;}
-.say,.say *{font-size:16.5px!important;font-weight:500!important;line-height:1.6!important;color:#101828!important;}
+.say,.say *{font-size:15px!important;font-weight:500!important;line-height:1.6!important;color:#101828!important;}
 </style></head><body style="margin:0;">
       <div id="content">${html.replace(/[\u{1F000}-\u{1FAFF}\u{2600}-\u{27BF}\u{FE0F}]/gu, "")}</div>
       <script>

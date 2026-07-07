@@ -459,10 +459,10 @@ function selectDQChip(widget,key,btn,isDQ){
 
   const centerTabs: { id: CenterTab; label: string; icon?: string }[] = [
     { id: "script",         label: "Script" },
+    { id: "area",           label: "Area" },
     { id: "objections",     label: `Objections${objectionTemplates.length > 0 ? ` (${objectionTemplates.length})` : ""}` },
     { id: "faq",            label: `FAQ${faqs.length > 0 ? ` (${faqs.length})` : ""}` },
     { id: "qualification",  label: "Qualification" },
-    { id: "area",           label: "Area" },
   ];
 
   return (
@@ -730,8 +730,10 @@ function selectDQChip(widget,key,btn,isDQ){
           </div>
 
           {/* Tab content — Area tab gets full-height flex treatment; others scroll */}
-          {centerTab === "area" ? (
-            <div className="relative flex-1 min-h-0">
+          {/* Area stays mounted — unmount-per-switch reset the map every time
+              (Andrew: 'every time I click on area again, it resets'). */}
+          {(
+            <div className={centerTab === "area" ? "relative flex-1 min-h-0" : "hidden"}>
               {/* FULL-SCREEN map (Andrew's verdict): the canvas IS the tab —
                   edge to edge, booting on the client's HQ so it's never blank —
                   with the address-check floating over it as a glass card
@@ -747,7 +749,8 @@ function selectDQChip(widget,key,btn,isDQ){
                 />
               </div>
             </div>
-          ) : (
+          )}
+          {centerTab !== "area" && (
           <div className="flex-1 overflow-y-auto">
 
             {/* SCRIPT */}
