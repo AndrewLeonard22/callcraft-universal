@@ -43,17 +43,30 @@ const haversineDistance = (
 // in-range/out-of-range VERDICT is the decision info and lives in the badges above.
 function MiniMap({ center }: { center: [number, number] }) {
   const [lng, lat] = center;
-  const src = `https://maps.google.com/maps?q=${lat},${lng}&t=k&z=15&output=embed`;
+  // z18 = rooftop scale — the setter needs to SEE the yard, not the zip code.
+  const src = `https://maps.google.com/maps?q=${lat},${lng}&t=k&z=18&output=embed`;
   return (
-    <div className="mt-2.5 h-[220px] w-full rounded-lg overflow-hidden border border-border shadow-sm">
+    <div className="mt-2.5 rounded-lg overflow-hidden border border-border shadow-sm">
       <iframe
         key={src}
         title="Location satellite view"
         src={src}
-        className="h-full w-full border-0"
+        className="h-[240px] w-full border-0 block"
         loading="lazy"
         referrerPolicy="no-referrer-when-downgrade"
       />
+      <div className="flex items-center justify-between px-2.5 py-1.5 bg-card">
+        <a
+          href={`https://www.google.com/maps/@?api=1&map_action=pano&viewpoint=${lat},${lng}`}
+          target="_blank" rel="noopener noreferrer"
+          className="text-[11px] font-medium text-primary hover:underline"
+        >Street View</a>
+        <a
+          href={`https://www.google.com/maps/search/?api=1&query=${lat},${lng}`}
+          target="_blank" rel="noopener noreferrer"
+          className="text-[11px] font-medium text-muted-foreground hover:text-foreground"
+        >Open in Google Maps</a>
+      </div>
     </div>
   );
 }

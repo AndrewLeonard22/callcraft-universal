@@ -583,6 +583,38 @@ function selectDQChip(widget,key,btn,isDQ){
             </div>
           )}
 
+          {/* Area Check — ALWAYS rendered: the checker geocodes keylessly and
+              shows the satellite view even when the client profile has no HQ
+              coords yet (it just skips the distance verdict). Gating this on
+              profile completeness hid the setter's #1 mid-call tool exactly for
+              the clients with thin profiles. */}
+          {(
+            <div className="px-4 pt-4 pb-4 border-b border-border/60">
+              <div className="text-[11px] font-semibold uppercase tracking-[0.1em] text-muted-foreground mb-2">Service Area</div>
+              {getDetailValue("address") && (
+                <div className="flex items-start gap-1.5 mb-2">
+                  <MapPin className="h-3.5 w-3.5 text-muted-foreground mt-0.5 shrink-0" />
+                  <span className="text-sm text-foreground">{getDetailValue("address")}</span>
+                </div>
+              )}
+              {client.excluded_zips?.length > 0 && (
+                <div className="mb-2 flex flex-wrap gap-1">
+                  {client.excluded_zips.map(z => (
+                    <span key={z} className="px-2 py-0.5 bg-red-50 border border-red-200 text-red-700 text-xs font-medium rounded">{z}</span>
+                  ))}
+                </div>
+              )}
+              <ZipChecker
+                excludedZips={client.excluded_zips ?? []}
+                clientCity={client.city ?? undefined}
+                clientAddress={getDetailValue("address") || undefined}
+                serviceRadiusMiles={Number(getDetailValue("service_radius_miles")) || 30}
+                hqLat={client.hq_lat ?? undefined}
+                hqLng={client.hq_lng ?? undefined}
+              />
+            </div>
+          )}
+
           {/* Project Parameters */}
           {projectRows.length > 0 && (
             <div className="px-4 pt-4 pb-4 border-b border-border/60">
@@ -624,38 +656,6 @@ function selectDQChip(widget,key,btn,isDQ){
                   </li>
                 ))}
               </ul>
-            </div>
-          )}
-
-          {/* Area Check — ALWAYS rendered: the checker geocodes keylessly and
-              shows the satellite view even when the client profile has no HQ
-              coords yet (it just skips the distance verdict). Gating this on
-              profile completeness hid the setter's #1 mid-call tool exactly for
-              the clients with thin profiles. */}
-          {(
-            <div className="px-4 pt-4 pb-4 border-b border-border/60">
-              <div className="text-[11px] font-semibold uppercase tracking-[0.1em] text-muted-foreground mb-2">Service Area</div>
-              {getDetailValue("address") && (
-                <div className="flex items-start gap-1.5 mb-2">
-                  <MapPin className="h-3.5 w-3.5 text-muted-foreground mt-0.5 shrink-0" />
-                  <span className="text-sm text-foreground">{getDetailValue("address")}</span>
-                </div>
-              )}
-              {client.excluded_zips?.length > 0 && (
-                <div className="mb-2 flex flex-wrap gap-1">
-                  {client.excluded_zips.map(z => (
-                    <span key={z} className="px-2 py-0.5 bg-red-50 border border-red-200 text-red-700 text-xs font-medium rounded">{z}</span>
-                  ))}
-                </div>
-              )}
-              <ZipChecker
-                excludedZips={client.excluded_zips ?? []}
-                clientCity={client.city ?? undefined}
-                clientAddress={getDetailValue("address") || undefined}
-                serviceRadiusMiles={Number(getDetailValue("service_radius_miles")) || 30}
-                hqLat={client.hq_lat ?? undefined}
-                hqLng={client.hq_lng ?? undefined}
-              />
             </div>
           )}
 
