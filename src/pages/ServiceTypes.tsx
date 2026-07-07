@@ -91,8 +91,14 @@ export default function ServiceTypes() {
 
       if (error) throw error;
       setUserOrganizationId(data?.organization_id || null);
+      // A user with NO org would leave the org-gated effect early-returning forever,
+      // so loadServiceTypes (which owns setLoading(false)) never runs → skeleton hangs.
+      // Stop the skeleton here for the no-org case; the org-present case resets it in
+      // loadServiceTypes.finally.
+      if (!data?.organization_id) setLoading(false);
     } catch (error) {
       console.error('Error loading user organization:', error);
+      setLoading(false);
     }
   };
 
@@ -131,9 +137,23 @@ export default function ServiceTypes() {
       if (error) throw error;
       setServiceTypes(data || []);
       
-      // Load fields for all service types
-      if (data) {
-        data.forEach(st => loadServiceFields(st.id));
+      // Load fields for ALL service types in ONE query (was one query per service
+      // type — an N+1 fan-out that fired again on every realtime event). Fields are
+      // org-scoped; fetch by service_type_id set, then group client-side.
+      if (data && data.length) {
+        const { data: allFields, error: fErr } = await supabase
+          .from("service_detail_fields")
+          .select("*")
+          .eq("organization_id", userOrganizationId)
+          .in("service_type_id", data.map(st => st.id))
+          .order("display_order");
+        if (fErr) throw fErr;
+        const grouped: Record<string, any[]> = {};
+        for (const st of data) grouped[st.id] = [];
+        for (const f of (allFields || [])) (grouped[f.service_type_id] ??= []).push(f);
+        setServiceFields(grouped);
+      } else {
+        setServiceFields({});
       }
     } catch (error) {
       console.error("Error loading service types:", error);
@@ -400,7 +420,9 @@ export default function ServiceTypes() {
             field_type: fieldType,
             is_required: isRequired,
             placeholder: placeholder || null,
-            display_order: fields.length,
+            // max+1, not fields.length: existing orders aren't guaranteed contiguous
+            // 0..n (defaults can be offset/gapped), so length collided with a live row.
+            display_order: fields.length ? Math.max(...fields.map((f: any) => f.display_order ?? 0)) + 1 : 0,
           });
 
         if (error) throw error;
