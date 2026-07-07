@@ -14,6 +14,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
 import { ZipChecker } from "@/components/ZipChecker";
 import { RichTextEditor } from "@/components/RichTextEditor";
+import { BadassMapCanvas } from "@/components/BadassMapCanvas";
 import { FormattedScript } from "@/components/FormattedScript";
 import { ScriptActions } from "@/components/ScriptActions";
 import { ProjectEstimatePanel } from "@/components/ProjectEstimatePanel";
@@ -721,19 +722,25 @@ function selectDQChip(widget,key,btn,isDQ){
 
           {/* Tab content — Area tab gets full-height flex treatment; others scroll */}
           {centerTab === "area" ? (
-            <div className="flex-1 overflow-y-auto">
-              {/* Scope-back (Fable ruling off Andrew's screenshots): the call
-                  cockpit's Area surface is address-in -> house + verdict, nothing
-                  else. The full interactive canvas lives on for a dedicated map
-                  view — not here. */}
-              <div className="px-8 py-6 max-w-xl mx-auto">
-                <h2 className="text-[15px] font-semibold mb-1">Address check</h2>
-                <p className="text-xs text-muted-foreground mb-4">Type the prospect's address — see the home and whether it's in range.</p>
+            <div className="flex-1 min-h-0 flex flex-col">
+              {/* Andrew's actual verdict: the badass 3D + measurements IS the
+                  want — the earlier scope-back killed a bad execution, not the
+                  ambition. BadassMapCanvas is graceful keyless (renders its
+                  iframe fallback until VITE_GOOGLE_MAPS_API_KEY is injected);
+                  the keyless address-check rides above it as the quick verdict. */}
+              <div className="border-b border-border px-6 py-4">
                 <ZipChecker
                   excludedZips={client.excluded_zips ?? []}
                   clientCity={client.city ?? undefined}
                   clientAddress={getDetailValue("address") || undefined}
                   serviceRadiusMiles={Number(getDetailValue("service_radius_miles")) || 30}
+                  hqLat={client.hq_lat ?? undefined}
+                  hqLng={client.hq_lng ?? undefined}
+                />
+              </div>
+              <div className="flex-1 min-h-0">
+                <BadassMapCanvas
+                  hqAddress={getDetailValue("address") || undefined}
                   hqLat={client.hq_lat ?? undefined}
                   hqLng={client.hq_lng ?? undefined}
                 />
