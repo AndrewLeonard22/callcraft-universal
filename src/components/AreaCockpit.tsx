@@ -18,8 +18,8 @@ export interface AreaCockpitProps {
   serviceRadiusMiles?: number;
 }
 
-export function AreaCockpit({ hqLat, hqLng, serviceRadiusMiles }: AreaCockpitProps) {
-  const m = useAreaMap({ hqLat, hqLng, serviceRadiusMiles });
+export function AreaCockpit({ hqAddress, hqLat, hqLng, serviceRadiusMiles }: AreaCockpitProps) {
+  const m = useAreaMap({ hqAddress, hqLat, hqLng, serviceRadiusMiles });
 
   const [vizOpen, setVizOpen] = useState(false);
   const [vizPrompt, setVizPrompt] = useState("");
@@ -122,7 +122,7 @@ export function AreaCockpit({ hqLat, hqLng, serviceRadiusMiles }: AreaCockpitPro
       <div className="absolute right-3 top-3 z-10 flex flex-wrap justify-end gap-1.5">
         {modeBtn("map", "Map")}
         {modeBtn("3d", "3D", !m.threeDAvailable)}
-        {modeBtn("street", "Street", !m.focus && hqLat == null)}
+        {modeBtn("street", "Street")}
         <Button
           size="sm"
           variant={m.measuring ? "default" : "outline"}
@@ -137,7 +137,7 @@ export function AreaCockpit({ hqLat, hqLng, serviceRadiusMiles }: AreaCockpitPro
       {/* bottom-center: measure readout */}
       {m.measuring && (
         <div className={`absolute bottom-3 left-1/2 z-10 -translate-x-1/2 px-3 py-1.5 text-[12px] font-semibold ${GLASS}`}>
-          {m.areaSqFt != null ? <>📐 {Math.round(m.areaSqFt).toLocaleString()} sq ft — click the shape to clear</> : <>Draw the yard to measure it</>}
+          {m.areaSqFt != null ? <>📐 {Math.round(m.areaSqFt).toLocaleString()} sq ft · Measure again to reset</> : <>👆 Click each corner of the yard — area tallies as you go</>}
         </div>
       )}
 

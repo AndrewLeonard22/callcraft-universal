@@ -30,13 +30,20 @@ interface Map3DEl extends HTMLElement {
 }
 
 export interface AreaMapOptions {
+  hqAddress?: string;
   hqLat?: number | null;
   hqLng?: number | null;
   serviceRadiusMiles?: number;
 }
 
-export function useAreaMap({ hqLat, hqLng, serviceRadiusMiles }: AreaMapOptions) {
-  const hasHq = hqLat != null && hqLng != null;
+export function useAreaMap({ hqAddress, hqLat, hqLng, serviceRadiusMiles }: AreaMapOptions) {
+  // Resolved HQ origin — from stored coords, else geocoded from the address at
+  // boot (Bird's find: companies have an HQ address but often no lat/lng, so
+  // radius/route/territory silently never drew). Resolve it once, everything
+  // downstream keys off origin.current, not the raw props.
+  const origin = useRef<{ lat: number; lng: number } | null>(
+    hqLat != null && hqLng != null ? { lat: hqLat, lng: hqLng } : null,
+  );
 
   const mapHost = useRef<HTMLDivElement>(null);
   const streetHost = useRef<HTMLDivElement>(null);
@@ -90,13 +97,13 @@ export function useAreaMap({ hqLat, hqLng, serviceRadiusMiles }: AreaMapOptions)
   const setMode = useCallback(
     async (next: AreaMode) => {
       if (next === "3d") {
-        const at = focus ?? (hasHq ? { lat: hqLat as number, lng: hqLng as number } : null);
+        const at = focus ?? origin.current;
         if (!at) return;
         const ok = await show3d(at);
         if (!ok) return;
       }
       if (next === "street") {
-        const at = focus ?? (hasHq ? { lat: hqLat as number, lng: hqLng as number } : null);
+        const at = focus ?? origin.current;
         if (!at || !panoRef.current) return;
         panoRef.current.setPosition(at);
         panoRef.current.setPov({ heading: 0, pitch: 0 });
@@ -113,7 +120,7 @@ export function useAreaMap({ hqLat, hqLng, serviceRadiusMiles }: AreaMapOptions)
       }
       setModeState(next);
     },
-    [focus, hasHq, hqLat, hqLng, show3d],
+    [focus, show3d],
   );
 
   /* ── the focus pipeline: ONE way an address becomes qualified ─── */
@@ -128,7 +135,8 @@ export function useAreaMap({ hqLat, hqLng, serviceRadiusMiles }: AreaMapOptions)
       setAreaSqFt(null);
       setHomeValue(null);
       setRoute(null);
-      setVerdict(hasHq ? qualify(hqLat as number, hqLng as number, lat, lng, serviceRadiusMiles) : null);
+      const o = origin.current;
+      setVerdict(o ? qualify(o.lat, o.lng, lat, lng, serviceRadiusMiles) : null);
 
       // qualification happens on the MAP — route, ring and pins live there
       setModeState("map");
@@ -144,7 +152,7 @@ export function useAreaMap({ hqLat, hqLng, serviceRadiusMiles }: AreaMapOptions)
       panoRef.current?.setPosition({ lat, lng });
 
       // the red drive, framed whole
-      if (hasHq) {
+      if (o) {
         void (async () => {
           try {
             const { DirectionsService, DirectionsRenderer } = await importLibrary<google.maps.RoutesLibrary>("routes");
@@ -157,7 +165,7 @@ export function useAreaMap({ hqLat, hqLng, serviceRadiusMiles }: AreaMapOptions)
               });
             }
             const res = await new DirectionsService().route({
-              origin: { lat: hqLat as number, lng: hqLng as number },
+              origin: { lat: o.lat, lng: o.lng },
               destination: { lat, lng },
               travelMode: google.maps.TravelMode.DRIVING,
             });
@@ -186,7 +194,7 @@ export function useAreaMap({ hqLat, hqLng, serviceRadiusMiles }: AreaMapOptions)
           .catch(() => {});
       }
     },
-    [hasHq, hqLat, hqLng, serviceRadiusMiles],
+    [serviceRadiusMiles],
   );
 
   /* ── measure: draw a polygon, read square feet (map mode only) ── */
@@ -275,6 +283,19 @@ export function useAreaMap({ hqLat, hqLng, serviceRadiusMiles }: AreaMapOptions)
         // StreetViewPanorama lives in the "streetView" library, NOT "maps"
         // (new functional API — verified live). Pulling it from maps = undefined
         // = "C is not a constructor". One import per home library.
+        // Resolve the HQ origin first — geocode the address if coords are absent.
+        if (!origin.current && hqAddress?.trim()) {
+          try {
+            const { Geocoder } = await importLibrary<google.maps.GeocodingLibrary>("geocoding");
+            const { results } = await new Geocoder().geocode({ address: hqAddress });
+            const loc = results?.[0]?.geometry?.location;
+            if (loc) origin.current = { lat: loc.lat(), lng: loc.lng() };
+          } catch { /* stays null → still renders, just no ring/route */ }
+        }
+        const hasHq = origin.current != null;
+        const hqLatR = origin.current?.lat;
+        const hqLngR = origin.current?.lng;
+
         const [{ Map }, { StreetViewPanorama }, { AdvancedMarkerElement }] = await Promise.all([
           importLibrary<google.maps.MapsLibrary>("maps"),
           importLibrary<google.maps.StreetViewLibrary>("streetView"),
@@ -283,7 +304,7 @@ export function useAreaMap({ hqLat, hqLng, serviceRadiusMiles }: AreaMapOptions)
         if (cancelled || !mapHost.current) return;
         markerCtor.current = AdvancedMarkerElement;
 
-        const center = hasHq ? { lat: hqLat as number, lng: hqLng as number } : { lat: 39.5, lng: -98.35 };
+        const center = hasHq ? { lat: hqLatR as number, lng: hqLngR as number } : { lat: 39.5, lng: -98.35 };
         const map = new Map(mapHost.current, {
           center,
           zoom: hasHq ? 12 : 4,
