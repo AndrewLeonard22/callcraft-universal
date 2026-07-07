@@ -29,9 +29,9 @@ function HtmlPreviewFrame({ html, className }: HtmlPreviewFrameProps) {
     // Write a minimal HTML document; do NOT inject app styles
     doc.open();
     doc.write(`<!doctype html><html><head><meta charset="utf-8"/><meta name="viewport" content="width=device-width, initial-scale=1"/><style>
-/* Teleprompter typography (Fable 2026-07-06): the setter reads this MID-CALL.
-   Say-this lines (mark) are the star; module headers demote to step markers;
-   Rules:/Script: labels go small-caps; browser-default doc look is dead. */
+/* Teleprompter v2 (Dash): structure-aware. decorate() tags .lbl/.rule/.say —
+   the PARAGRAPH is the say-card (multi-mark sentences = ONE card, no mid-line
+   bars); rules sit smaller+muted; labels are small-caps captions. */
 html,body{margin:0;padding:0;overflow-x:hidden;font-family:Inter,system-ui,-apple-system,sans-serif;font-size:14.5px;line-height:1.7;color:#3f4354;-webkit-font-smoothing:antialiased;}
 img{max-width:100%;height:auto;display:block;}
 ol,ul{list-style:none;margin:0 0 1.1em;padding:0;}
@@ -40,21 +40,34 @@ p{margin:0 0 .85em;}
 h1,h2,h3{font-size:12.5px!important;font-weight:700!important;letter-spacing:.07em;text-transform:uppercase;color:#8a90a3!important;margin:2.4em 0 1em;padding-top:1.5em;border-top:1px solid #eceef3;}
 h1 *,h2 *,h3 *{font-size:inherit!important;font-weight:inherit!important;color:inherit!important;}
 h1:first-child,h2:first-child,h3:first-child{margin-top:0;padding-top:0;border-top:none;}
-p>strong:only-child{display:inline-block;font-size:11px;font-weight:700;letter-spacing:.09em;text-transform:uppercase;color:#9aa0b4;margin-top:.3em;}
 strong{font-weight:650;color:#15192a;}
-mark{display:inline-block;background:#eef4ff;color:#101828;padding:10px 14px;border-radius:10px;border-left:3px solid #2f6bff;font-weight:500;font-size:16.5px;line-height:1.6;margin:2px 0 4px;}
-em{color:#8a90a3;font-size:13px;}
+em{color:#8a90a3;}
 hr{border:none;border-top:1px solid #eceef3;margin:1.5em 0;}
 a{text-decoration:none;color:inherit;pointer-events:none;cursor:default;}
-/* editor inline sizes lose everywhere, not just headers */
-#content p,#content li,#content div,#content span{font-size:14.5px!important;line-height:1.7!important;}
-#content strong{font-size:inherit!important;}
-#content mark,#content mark span,#content mark strong{font-size:16.5px!important;font-weight:500!important;line-height:1.6!important;}
-#content em,#content em span{font-size:13px!important;}
-#content p>strong:only-child{font-size:11px!important;}
+mark{background:transparent!important;color:inherit;padding:0;font-weight:inherit;}
+.lbl,.lbl *{font-size:11px!important;font-weight:700!important;letter-spacing:.09em;text-transform:uppercase;color:#9aa0b4!important;}
+.lbl{margin:1.6em 0 .7em;}
+.rule,.rule span{font-size:13px!important;line-height:1.65!important;color:#6f7488!important;}
+.rule strong,.rule b{color:#3f4354!important;font-weight:650!important;}
+.say{background:#eef4ff;border-left:3px solid #2f6bff;border-radius:10px;padding:12px 16px;margin:.3em 0 .9em;}
+.say,.say *{font-size:16.5px!important;font-weight:500!important;line-height:1.6!important;color:#101828!important;}
 </style></head><body style="margin:0;">
       <div id="content">${html.replace(/[\u{1F000}-\u{1FAFF}\u{2600}-\u{27BF}\u{FE0F}]/gu, "")}</div>
       <script>
+        (function decorate(){
+          const c = document.getElementById('content');
+          if (!c) return;
+          let mode = null;
+          for (const el of Array.from(c.querySelectorAll(':scope > *'))) {
+            const tag = el.tagName;
+            if (/^H[1-4]$/.test(tag)) { mode = null; continue; }
+            const txt = (el.textContent || '').trim().toUpperCase();
+            if (/^RULES\b/.test(txt) && txt.length < 40) { el.classList.add('lbl'); mode = 'rules'; continue; }
+            if (/^SCRIPT\b/.test(txt) && txt.length < 60) { el.classList.add('lbl'); mode = 'script'; continue; }
+            if (el.querySelector && el.querySelector('mark')) { el.classList.add('say'); continue; }
+            if (mode === 'rules') el.classList.add('rule');
+          }
+        })();
         let lastHeight = 0;
         let resizeTimer;
         let isScrolling = false;
