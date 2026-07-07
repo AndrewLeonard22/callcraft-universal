@@ -241,8 +241,12 @@ export function useAreaMap({ hqLat, hqLng, serviceRadiusMiles }: AreaMapOptions)
             "Google rejected the key at runtime (gm_authFailure) — usually 'Maps JavaScript API' not enabled on the key's project, or this site missing from the key's website restrictions.",
           );
         };
-        const [{ Map, StreetViewPanorama }, { AdvancedMarkerElement }] = await Promise.all([
+        // StreetViewPanorama lives in the "streetView" library, NOT "maps"
+        // (new functional API — verified live). Pulling it from maps = undefined
+        // = "C is not a constructor". One import per home library.
+        const [{ Map }, { StreetViewPanorama }, { AdvancedMarkerElement }] = await Promise.all([
           importLibrary<google.maps.MapsLibrary>("maps"),
+          importLibrary<google.maps.StreetViewLibrary>("streetView"),
           importLibrary<google.maps.MarkerLibrary>("marker"),
         ]);
         if (cancelled || !mapHost.current) return;

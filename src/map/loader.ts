@@ -28,6 +28,7 @@ export function preloadMapLibraries(): void {
   const idle = (window as Window & { requestIdleCallback?: (cb: () => void) => void }).requestIdleCallback ?? ((cb: () => void) => setTimeout(cb, 1200));
   idle(() => {
     void importLibrary("maps").catch(() => {});
+    void importLibrary("streetView").catch(() => {});
     void importLibrary("places").catch(() => {});
     void importLibrary("maps3d").catch(() => {});
   });
