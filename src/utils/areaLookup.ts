@@ -68,6 +68,15 @@ async function geocode(
   return { lng: parseFloat(hit.lon), lat: parseFloat(hit.lat), label: hit.display_name as string };
 }
 
+// Keyless single-result geocode, exported for the ZipChecker rail (replaces its
+// dead Mapbox geocoding call). Returns {lng, lat, label} or null.
+export async function geocodeOne(
+  input: string
+): Promise<{ lng: number; lat: number; label: string } | null> {
+  if (!input.trim()) return null;
+  return geocode(input);
+}
+
 export async function lookupArea(
   input: string,
   config: ClientAreaConfig,
