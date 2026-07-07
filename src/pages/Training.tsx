@@ -161,51 +161,52 @@ export default function Training() {
 
       if (modulesError) throw modulesError;
 
-      // Load sections for each module
-      const modulesWithSections = await Promise.all(
-        (modulesData || []).map(async (module) => {
-          const { data: sectionsData } = await supabase
+      // Batched: was 1 + N-sections + 3×M-nested queries (an N+1 fan-out that ran
+      // again on every realtime event). Now 4 flat queries — all sections for these
+      // modules, then all benefits/features/videos for those sections — reassembled
+      // client-side. display_order preserved (each query is ordered; grouping keeps
+      // that sub-order).
+      const moduleIds = (modulesData || []).map((m: any) => m.id);
+      const { data: sectionsData } = moduleIds.length
+        ? await supabase
             .from("training_sections")
             .select("*")
-            .eq("module_id", module.id)
-            .order("display_order");
+            .in("module_id", moduleIds)
+            .order("display_order")
+        : { data: [] as any[] };
+      const sectionIds = (sectionsData || []).map((s: any) => s.id);
 
-          // Load benefits, features, and videos for each section
-          const sectionsWithDetails = await Promise.all(
-            (sectionsData || []).map(async (section) => {
-              const [benefitsRes, featuresRes, videosRes] = await Promise.all([
-                supabase
-                  .from("training_benefits")
-                  .select("*")
-                  .eq("section_id", section.id)
-                  .order("display_order"),
-                supabase
-                  .from("training_features")
-                  .select("*")
-                  .eq("section_id", section.id)
-                  .order("display_order"),
-                supabase
-                  .from("training_videos")
-                  .select("*")
-                  .eq("section_id", section.id)
-                  .order("display_order"),
-              ]);
+      const [benefitsRes, featuresRes, videosRes] = sectionIds.length
+        ? await Promise.all([
+            supabase.from("training_benefits").select("*").in("section_id", sectionIds).order("display_order"),
+            supabase.from("training_features").select("*").in("section_id", sectionIds).order("display_order"),
+            supabase.from("training_videos").select("*").in("section_id", sectionIds).order("display_order"),
+          ])
+        : [{ data: [] as any[] }, { data: [] as any[] }, { data: [] as any[] }];
 
-              return {
-                ...section,
-                benefits: benefitsRes.data || [],
-                features: featuresRes.data || [],
-                videos: videosRes.data || [],
-              };
-            })
-          );
+      const groupBySection = (rows: any[] | null) => {
+        const m: Record<string, any[]> = {};
+        for (const r of (rows || [])) (m[r.section_id] ??= []).push(r);
+        return m;
+      };
+      const benefitsBySection = groupBySection(benefitsRes.data as any[]);
+      const featuresBySection = groupBySection(featuresRes.data as any[]);
+      const videosBySection = groupBySection(videosRes.data as any[]);
 
-          return {
-            ...module,
-            sections: sectionsWithDetails,
-          };
-        })
-      );
+      const sectionsByModule: Record<string, any[]> = {};
+      for (const section of (sectionsData || [])) {
+        (sectionsByModule[section.module_id] ??= []).push({
+          ...section,
+          benefits: benefitsBySection[section.id] || [],
+          features: featuresBySection[section.id] || [],
+          videos: videosBySection[section.id] || [],
+        });
+      }
+
+      const modulesWithSections = (modulesData || []).map((module: any) => ({
+        ...module,
+        sections: sectionsByModule[module.id] || [],
+      }));
 
       setModules(modulesWithSections);
       mergePage("training", { modules: modulesWithSections });
