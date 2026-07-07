@@ -391,45 +391,11 @@ export function useAreaMap({ hqAddress, hqLat, hqLng, serviceRadiusMiles }: Area
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [ready]);
 
-  /* ── search: Places autocomplete mounts into the host ─────────── */
-
-  useEffect(() => {
-    if (!ready || !searchHost.current) return;
-    let el: HTMLElement | null = null;
-    let cancelled = false;
-    void (async () => {
-      try {
-        const { PlaceAutocompleteElement } = await importLibrary<google.maps.PlacesLibrary>("places");
-        if (cancelled || !searchHost.current) return;
-        el = new PlaceAutocompleteElement({ includedRegionCodes: ["us"] }) as unknown as HTMLElement;
-        el.style.width = "100%";
-        searchHost.current.appendChild(el);
-        // Typing opens Google's suggestion dropdown right where the verdict
-        // card sits — flag it so the card yields until a pick or blur.
-        const host = searchHost.current;
-        host.addEventListener("focusin", () => setSearchActive(true));
-        host.addEventListener("focusout", (e: FocusEvent) => {
-          if (!(e.relatedTarget instanceof Node) || !host.contains(e.relatedTarget)) setSearchActive(false);
-        });
-        el.addEventListener("gmp-select", async (e: unknown) => {
-          setSearchActive(false);
-          const prediction = (e as { placePrediction?: { toPlace: () => google.maps.places.Place } }).placePrediction;
-          if (!prediction) return;
-          const place = prediction.toPlace();
-          await place.fetchFields({ fields: ["formattedAddress", "location"] });
-          const loc = place.location;
-          if (loc) focusAddress(loc.lat(), loc.lng(), place.formattedAddress ?? null);
-        });
-      } catch (e) {
-        setFailReason(`Address search failed to mount: ${String(e).slice(0, 140)}`);
-      }
-    })();
-    return () => {
-      cancelled = true;
-      el?.remove();
-    };
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [ready]);
+  /* ── search: owned by the AddressAutocomplete module now (plain <input>
+     + own dropdown). The old PlaceAutocompleteElement web component had a
+     closed shadow DOM that rendered empty/un-typeable — the cockpit rebuild
+     had re-mounted it here, silently reverting the earlier fix. AreaCockpit
+     renders <AddressAutocomplete onPick={focusAddress} onActiveChange={setSearchActive}/>. ── */
 
   return {
     hosts: { mapHost, streetHost, threeHost, searchHost },
@@ -440,6 +406,7 @@ export function useAreaMap({ hqAddress, hqLat, hqLng, serviceRadiusMiles }: Area
     threeDAvailable,
     busy3d,
     searchActive,
+    setSearchActive,
     focus,
     verdict,
     route,

@@ -1,6 +1,7 @@
 import { Loader2, Ruler } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { useAreaMap, type AreaMode } from "@/map/useAreaMap";
+import { AddressAutocomplete } from "@/map/AddressAutocomplete";
 import { fmtK, fmtMiles } from "@/map/qualify";
 
 // The Area cockpit — first-principles rebuild (docs/AREA-REBUILD.md).
@@ -58,7 +59,7 @@ export function AreaCockpit({ hqAddress, hqLat, hqLng, serviceRadiusMiles }: Are
 
       {/* top-left: search + the qualification card */}
       <div className="absolute left-3 top-3 z-10 w-[340px] max-w-[80%] space-y-1.5">
-        <div ref={m.hosts.searchHost} className={`${GLASS} [&_gmp-place-autocomplete]:w-full`} />
+        <AddressAutocomplete onPick={m.focusAddress} onActiveChange={m.setSearchActive} className={`${GLASS} w-full`} />
         {m.focus && m.mode !== "street" && !m.searchActive && (
           <div className={`px-3.5 py-3 ${GLASS}`}>
             <div className="flex items-start justify-between gap-2">
