@@ -630,25 +630,25 @@ function selectDQChip(widget,key,btn,isDQ){
             </div>
           )}
 
-          {/* Services Offered */}
+          {/* Services Offered — reference, collapsed: not a mid-call read */}
           {services.length > 0 && (
-            <div className="px-4 pt-4 pb-4 border-b border-border/60">
-              <div className="text-[11px] font-semibold uppercase tracking-[0.1em] text-muted-foreground mb-2">Services Offered</div>
-              <div className="flex flex-wrap gap-1.5">
+            <details className="group px-4 py-3 border-b border-border/60">
+              <summary className="flex items-center justify-between text-[11px] font-semibold uppercase tracking-[0.1em] text-muted-foreground cursor-pointer list-none select-none [&::-webkit-details-marker]:hidden hover:text-foreground transition-colors">Services Offered<ChevronRight className="h-3.5 w-3.5 transition-transform group-open:rotate-90" /></summary>
+              <div className="flex flex-wrap gap-1.5 pt-2.5">
                 {services.map(s => (
                   <span key={s} className="px-2.5 py-1 bg-muted text-foreground text-[13px] rounded-md border border-border">
                     {client.services_advertised?.length ? serviceLabel(s) : s}
                   </span>
                 ))}
               </div>
-            </div>
+            </details>
           )}
 
-          {/* Things to Know */}
+          {/* Things to Know — reference, collapsed */}
           {bullets.length > 0 && (
-            <div className="px-4 pt-4 pb-4 border-b border-border/60">
-              <div className="text-[11px] font-semibold uppercase tracking-[0.1em] text-muted-foreground mb-2">Things to Know</div>
-              <ul className="space-y-2">
+            <details className="group px-4 py-3 border-b border-border/60">
+              <summary className="flex items-center justify-between text-[11px] font-semibold uppercase tracking-[0.1em] text-muted-foreground cursor-pointer list-none select-none [&::-webkit-details-marker]:hidden hover:text-foreground transition-colors">Things to Know<ChevronRight className="h-3.5 w-3.5 transition-transform group-open:rotate-90" /></summary>
+              <ul className="space-y-2 pt-2.5">
                 {bullets.map((b, i) => (
                   <li key={i} className="flex items-start gap-2 text-sm text-foreground leading-snug">
                     <span className="mt-[6px] h-1.5 w-1.5 rounded-full bg-muted-foreground/50 shrink-0" />
@@ -656,12 +656,13 @@ function selectDQChip(widget,key,btn,isDQ){
                   </li>
                 ))}
               </ul>
-            </div>
+            </details>
           )}
 
-          {/* Recent Work */}
-          <div className="px-4 pt-4 pb-4">
-            <div className="text-[11px] font-semibold uppercase tracking-[0.1em] text-muted-foreground mb-2">Recent Work</div>
+          {/* Recent Work — reference, collapsed */}
+          <details className="group px-4 py-3">
+            <summary className="flex items-center justify-between text-[11px] font-semibold uppercase tracking-[0.1em] text-muted-foreground cursor-pointer list-none select-none [&::-webkit-details-marker]:hidden hover:text-foreground transition-colors">Recent Work<ChevronRight className="h-3.5 w-3.5 transition-transform group-open:rotate-90" /></summary>
+            <div className="pt-2.5">
             {workPhotos.length > 0 ? (
               <>
                 <div className="grid grid-cols-2 gap-2">
@@ -695,7 +696,8 @@ function selectDQChip(widget,key,btn,isDQ){
                 + Add work photos
               </Link>
             )}
-          </div>
+            </div>
+          </details>
         </aside>}
 
         {/* ── CENTER — Script + Tabs ────────────────────────────────────── */}
