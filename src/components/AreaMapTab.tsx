@@ -91,9 +91,11 @@ interface ZipCheckerRailProps {
   config: ClientAreaConfig | null;
   excludedZips: string[];  // legacy
   clientCity?: string;
+  // Bubbles the checked query up so the map canvas can satellite-focus the home
+  onResult?: (r: { query: string; result: AreaLookupResult }) => void;
 }
 
-function ZipCheckerRail({ config, excludedZips, clientCity }: ZipCheckerRailProps) {
+function ZipCheckerRail({ config, excludedZips, clientCity, onResult }: ZipCheckerRailProps) {
   const [input, setInput] = useState("");
   const [result, setResult] = useState<AreaLookupResult | null>(null);
   const [checking, setChecking] = useState(false);
@@ -105,13 +107,13 @@ function ZipCheckerRail({ config, excludedZips, clientCity }: ZipCheckerRailProp
     setResult(null);
     try {
       if (config) {
-        const token = await getMapboxToken();
-        if (token) {
-          const r = await lookupArea(q, config, token);
-          setResult(r);
-          setChecking(false);
-          return;
-        }
+        // Geocoding is keyless now (Nominatim) — no more dead-token gate, and
+        // full street addresses resolve, not just zips/cities.
+        const r = await lookupArea(q, config);
+        setResult(r);
+        onResult?.({ query: q, result: r });
+        setChecking(false);
+        return;
       }
       // Legacy fallback: just check excludedZips array
       const isZip = /^\d{5}/.test(q);
@@ -120,6 +122,7 @@ function ZipCheckerRail({ config, excludedZips, clientCity }: ZipCheckerRailProp
       } else {
         setResult({ status: "unknown" });
       }
+      onResult?.({ query: q, result: { status: "unknown" } });
     } finally {
       setChecking(false);
     }
@@ -428,6 +431,92 @@ function MapCanvas({
   return <div ref={containerRef} className="h-full w-full" />;
 }
 
+// ── Google canvas (keyless) ────────────────────────────────────────────────
+// Replaces the dead "Map token not configured" state. No key, no edge function,
+// no token table: a Google Maps embed driven by whatever the setter checked in
+// the rail. Check a full address → satellite view of the actual home (Andrew's
+// ask); no search yet → satellite overview of the HQ area. Toggle sat/map,
+// or pop out to full Google Maps (street view / Earth from there).
+
+interface GoogleCanvasProps {
+  searchedQuery?: string | null;   // the rail's last checked zip/city/address
+  hqAddress?: string;
+  hqLat?: number | null;
+  hqLng?: number | null;
+}
+
+function GoogleCanvas({ searchedQuery, hqAddress, hqLat, hqLng }: GoogleCanvasProps) {
+  const [mode, setMode] = useState<"satellite" | "map">("satellite");
+
+  // Focus priority: searched address (zoomed — see the home) > HQ address > HQ coords
+  const focus = searchedQuery?.trim()
+    ? { q: searchedQuery.trim(), z: 19 }
+    : hqAddress?.trim()
+      ? { q: hqAddress.trim(), z: 12 }
+      : hqLat != null && hqLng != null
+        ? { q: `${hqLat},${hqLng}`, z: 12 }
+        : null;
+
+  if (!focus) {
+    return (
+      <div className="h-full flex items-center justify-center text-center px-8">
+        <div>
+          <MapPin className="h-8 w-8 text-muted-foreground mx-auto mb-2" />
+          <div className="text-[13px] font-medium text-foreground">No location to show yet</div>
+          <div className="text-[12px] text-muted-foreground mt-1">Check an address in the rail, or set the HQ address in Edit Client → Service Area</div>
+        </div>
+      </div>
+    );
+  }
+
+  const t = mode === "satellite" ? "k" : "m";
+  const src = `https://maps.google.com/maps?q=${encodeURIComponent(focus.q)}&t=${t}&z=${focus.z}&output=embed`;
+
+  return (
+    <div className="relative h-full w-full">
+      <iframe
+        key={src} // remount on focus/mode change — embeds don't hot-swap src reliably
+        src={src}
+        className="h-full w-full border-0"
+        loading="lazy"
+        referrerPolicy="no-referrer-when-downgrade"
+        title={searchedQuery ? `Satellite view: ${focus.q}` : "Service area map"}
+      />
+      <div className="absolute top-3 right-3 z-10 flex gap-1.5">
+        <Button
+          size="sm"
+          variant={mode === "satellite" ? "default" : "outline"}
+          className="h-7 px-2.5 text-[11px] shadow-md"
+          onClick={() => setMode("satellite")}
+        >
+          Satellite
+        </Button>
+        <Button
+          size="sm"
+          variant={mode === "map" ? "default" : "outline"}
+          className="h-7 px-2.5 text-[11px] shadow-md"
+          onClick={() => setMode("map")}
+        >
+          Map
+        </Button>
+        <Button
+          size="sm"
+          variant="outline"
+          className="h-7 px-2.5 text-[11px] shadow-md"
+          onClick={() => window.open(`https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(focus.q)}`, "_blank", "noopener")}
+        >
+          Open in Google Maps
+        </Button>
+      </div>
+      {searchedQuery && (
+        <div className="absolute bottom-3 left-3 z-10 bg-background/95 border border-border rounded-lg px-3 py-1.5 text-[11px] font-medium shadow-md max-w-[70%] truncate">
+          📍 {searchedQuery}
+        </div>
+      )}
+    </div>
+  );
+}
+
 // ── Main AreaMapTab ────────────────────────────────────────────────────────
 
 export function AreaMapTab({
@@ -437,6 +526,8 @@ export function AreaMapTab({
 }: AreaMapTabProps) {
   const [token, setToken] = useState<string | null>(null);
   const [tokenLoading, setTokenLoading] = useState(true);
+  // Last address/zip the setter checked in the rail — drives the Google canvas focus
+  const [searched, setSearched] = useState<string | null>(null);
   const [appts, setAppts] = useState<TodayAppt[]>(propAppts ?? []);
   const [apptsLoading, setApptsLoading] = useState(false);
   const [apptsError, setApptsError] = useState<string | null>(null);
@@ -627,7 +718,7 @@ export function AreaMapTab({
         <div className="flex-1 overflow-y-auto px-3 py-3 space-y-4">
 
           {/* Zip checker */}
-          <ZipCheckerRail config={config} excludedZips={excludedZips} clientCity={clientCity} />
+          <ZipCheckerRail config={config} excludedZips={excludedZips} clientCity={clientCity} onResult={({ query }) => setSearched(query)} />
 
           {/* Layer toggles */}
           <div>
@@ -782,13 +873,9 @@ export function AreaMapTab({
             <Loader2 className="h-6 w-6 animate-spin text-muted-foreground" />
           </div>
         ) : !token ? (
-          <div className="h-full flex items-center justify-center text-center px-8">
-            <div>
-              <MapPin className="h-8 w-8 text-muted-foreground mx-auto mb-2" />
-              <div className="text-[13px] font-medium text-foreground">Map token not configured</div>
-              <div className="text-[12px] text-muted-foreground mt-1">Add MAPBOX_PUBLIC_TOKEN to Supabase edge function secrets</div>
-            </div>
-          </div>
+          // Keyless Google canvas — the Mapbox token pipeline is dead, and this is
+          // better anyway: check a full address in the rail → satellite of the home.
+          <GoogleCanvas searchedQuery={searched} hqAddress={hqAddress} hqLat={hqLat} hqLng={hqLng} />
         ) : !hasHq ? (
           <div className="h-full flex items-center justify-center text-center px-8">
             <div>
