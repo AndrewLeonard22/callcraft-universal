@@ -35,10 +35,23 @@ export interface BadassMapCanvasProps {
 }
 
 // One Loader per page — constructing twice with different options throws.
-let loaderSingleton: Loader | null = null;
-function getLoader(): Loader {
+// `importLibrary` exists at runtime (verified headless) but @types/google.maps
+// lags on the Loader instance, so we widen the return type to declare it.
+// eslint-disable-next-line @typescript-eslint/no-explicit-any -- matches google.maps.importLibrary's own Promise<any> signature
+type LoaderWithImport = Loader & { importLibrary: (name: string) => Promise<any> };
+
+// @types/google.maps.drawing's DrawingManager is incomplete (omits setMap/setDrawingMode
+// and types the constructor as 0-arg) though all exist at runtime — a minimal shim
+// covers the methods we actually call.
+interface DrawMgr {
+  setMap(map: google.maps.Map | null): void;
+  setDrawingMode(mode: unknown): void;
+  addListener(event: string, cb: (...args: unknown[]) => void): google.maps.MapsEventListener;
+}
+let loaderSingleton: LoaderWithImport | null = null;
+function getLoader(): LoaderWithImport {
   if (!loaderSingleton) {
-    loaderSingleton = new Loader({ apiKey: API_KEY as string, version: "weekly" });
+    loaderSingleton = new Loader({ apiKey: API_KEY as string, version: "weekly" }) as LoaderWithImport;
   }
   return loaderSingleton;
 }
@@ -96,7 +109,7 @@ function InteractiveMap({ searchedQuery, hqAddress, hqLat, hqLng }: BadassMapCan
   const panoRef = useRef<google.maps.StreetViewPanorama | null>(null);
   const dirServiceRef = useRef<google.maps.DirectionsService | null>(null);
   const dirRendererRef = useRef<google.maps.DirectionsRenderer | null>(null);
-  const drawingRef = useRef<google.maps.drawing.DrawingManager | null>(null);
+  const drawingRef = useRef<DrawMgr | null>(null);
   const measurePolyRef = useRef<google.maps.Polygon | null>(null);
   const markerRef = useRef<google.maps.marker.AdvancedMarkerElement | null>(null);
   const advMarkerCtor = useRef<typeof google.maps.marker.AdvancedMarkerElement | null>(null);
@@ -368,7 +381,7 @@ function InteractiveMap({ searchedQuery, hqAddress, hqLat, hqLng }: BadassMapCan
       getLoader().importLibrary("geometry") as Promise<google.maps.GeometryLibrary>,
     ]);
     if (!mapRef.current) return; // unmounted during the await
-    const dm = new DrawingManager({
+    const dm = new (DrawingManager as unknown as new (opts: unknown) => DrawMgr)({
       drawingMode: OverlayType.POLYGON,
       drawingControl: false,
       polygonOptions: {
