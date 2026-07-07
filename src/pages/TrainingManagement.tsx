@@ -1,3 +1,4 @@
+import { AppShell } from "@/components/AppShell";
 import { useState, useEffect } from "react";
 import { Link } from "react-router-dom";
 import { Plus, Edit, Trash2, ArrowLeft, Video, Package, CheckCircle2, DollarSign, Lightbulb, Shield, BookOpen, HelpCircle } from "lucide-react";
@@ -77,7 +78,6 @@ import {
 } from "@/components/ui/accordion";
 import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
-import agentIqLogo from "@/assets/agent-iq-logo.png";
 import QuizQuestionsAdmin from "@/components/QuizQuestionsAdmin";
 import WheelSegmentsAdmin from "@/components/WheelSegmentsAdmin";
 import { logger } from "@/utils/logger";
@@ -809,35 +809,15 @@ const [moduleForm, setModuleForm] = useState({
   };
 
   return (
-    <div className="min-h-screen bg-background">
-      {/* Header */}
-      <div className="border-b border-border/50 bg-card/30 backdrop-blur-xl sticky top-0 z-50">
-        <div className="container mx-auto px-4 sm:px-6 py-4 sm:py-6 max-w-7xl">
-          <div className="flex items-center justify-between">
-            <div className="flex items-center gap-4">
-              <img 
-                src={agentIqLogo} 
-                alt="Agent IQ" 
-                className="h-12 sm:h-14 w-auto"
-              />
-              <div className="h-6 sm:h-8 w-px bg-border/50" />
-              <h1 className="text-2xl font-semibold tracking-tight">Training Management</h1>
-            </div>
-            <div className="flex items-center gap-2">
-              <Link to="/training">
-                <Button variant="outline">
-                  <ArrowLeft className="mr-2 h-4 w-4" />
-                  View Training
-                </Button>
-              </Link>
-              <Link to="/">
-                <Button variant="outline">Back to Dashboard</Button>
-              </Link>
-            </div>
-          </div>
-        </div>
-      </div>
-
+    <AppShell
+      title="Training Management"
+      subtitle="Modules, quizzes, and spin-the-wheel content"
+      actions={
+        <Link to="/training">
+          <Button variant="outline" size="sm">View Training</Button>
+        </Link>
+      }
+    >
       <div className="container mx-auto px-4 sm:px-6 py-8 max-w-7xl">
         <div className="mb-12">
           <div className="flex justify-between items-center">
@@ -1408,6 +1388,6 @@ const [moduleForm, setModuleForm] = useState({
           </DialogContent>
         </Dialog>
       </div>
-    </div>
+    </AppShell>
   );
 }
