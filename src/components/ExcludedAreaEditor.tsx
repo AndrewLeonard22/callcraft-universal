@@ -346,9 +346,24 @@ export function AreaSettingsEditor({ value, onChange }: AreaSettingsEditorProps)
           }
         />
         {value.hqLat && value.hqLng && (
-          <p className="text-[11px] text-muted-foreground">
-            {value.hqLat.toFixed(5)}, {value.hqLng.toFixed(5)}
-          </p>
+          <div className="mt-2 rounded-[12px] overflow-hidden border border-border">
+            {/* Instant visual confirmation the geocode picked the RIGHT place —
+                keyless Google satellite, no API key, no config. The onboarder
+                sees the actual building, not decimal coordinates. */}
+            <iframe
+              title="HQ satellite preview"
+              src={`https://maps.google.com/maps?q=${value.hqLat},${value.hqLng}&t=k&z=17&output=embed`}
+              className="w-full h-52 block"
+              loading="lazy"
+              referrerPolicy="no-referrer-when-downgrade"
+            />
+            <div className="flex items-center justify-between px-3 py-2 bg-card text-[11px] text-muted-foreground">
+              <span className="truncate">{value.hqAddress}</span>
+              <span className="shrink-0 tabular-nums pl-3">
+                {value.serviceRadiusMiles ? `serves ${value.serviceRadiusMiles} mi from here` : `${value.hqLat.toFixed(4)}, ${value.hqLng.toFixed(4)}`}
+              </span>
+            </div>
+          </div>
         )}
       </div>
 
