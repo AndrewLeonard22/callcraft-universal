@@ -598,7 +598,7 @@ export default function Training() {
         </div>
       </div>
 
-      <div className="container mx-auto px-4 sm:px-6 py-8 max-w-6xl">
+      <div className="container mx-auto px-4 sm:px-6 py-5 max-w-6xl">
 
         <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full">
           <TabsList className="grid w-full max-w-2xl mx-auto grid-cols-3 mb-8">
@@ -649,11 +649,11 @@ export default function Training() {
                     <div key={serviceType.id} className="space-y-6">
                       {/* Service Type Header */}
                       <div className="flex items-center gap-4 pb-4 border-b-2 border-border/60">
-                        <div className="p-2.5 bg-gradient-to-br from-primary/10 to-primary/5 rounded-xl">
+                        <div className="p-2 bg-primary/10 rounded-[10px]">
                           <Package className="h-6 w-6 text-primary" />
                         </div>
                         <div>
-                          <h2 className="text-2xl font-bold tracking-tight">{serviceType.name}</h2>
+                          <h2 className="text-lg font-semibold tracking-tight">{serviceType.name}</h2>
                           <p className="text-sm text-muted-foreground mt-0.5">
                             {serviceModules.length} training {serviceModules.length === 1 ? 'module' : 'modules'}
                           </p>
@@ -671,7 +671,7 @@ export default function Training() {
                             <CardHeader className="pb-4 space-y-3">
                               <div className="flex items-start justify-between gap-3">
                                 <div className="flex items-start gap-3 flex-1 min-w-0">
-                                  <div className="p-2.5 bg-gradient-to-br from-primary/10 to-primary/5 rounded-xl group-hover:from-primary/20 group-hover:to-primary/10 transition-all">
+                                  <div className="p-2 bg-primary/10 rounded-[10px] group-hover:bg-primary/15 transition-colors">
                                     <IconComponent className="h-5 w-5 text-primary" />
                                   </div>
                                   <div className="flex-1 min-w-0">
@@ -881,7 +881,7 @@ export default function Training() {
                                             {section.benefits && section.benefits.length > 0 && (
                                               <div className="grid gap-3 sm:grid-cols-2">
                                                 {section.benefits.filter(b => b.benefit_type === "pro").length > 0 && (
-                                                  <div className="border border-green-500/30 rounded-lg p-3 bg-gradient-to-br from-green-500/10 to-green-500/5">
+                                                  <div className="border border-green-500/30 rounded-lg p-3 bg-green-500/10">
                                                     <div className="flex items-center gap-2 mb-2">
                                                       <div className="p-1 bg-green-500/20 rounded">
                                                         <CheckCircle2 className="h-3.5 w-3.5 text-green-600 dark:text-green-500" />
@@ -902,7 +902,7 @@ export default function Training() {
                                                 )}
 
                                                 {section.benefits.filter(b => b.benefit_type === "con").length > 0 && (
-                                                  <div className="border border-amber-500/30 rounded-lg p-3 bg-gradient-to-br from-amber-500/10 to-amber-500/5">
+                                                  <div className="border border-amber-500/30 rounded-lg p-3 bg-amber-500/10">
                                                     <div className="flex items-center gap-2 mb-2">
                                                       <div className="p-1 bg-amber-500/20 rounded">
                                                         <AlertCircle className="h-3.5 w-3.5 text-amber-600 dark:text-amber-500" />
@@ -1080,7 +1080,7 @@ export default function Training() {
                           {/* Front of card */}
                           <div className="absolute inset-0 backface-hidden">
                             <Card className="h-full border-2 shadow-xl hover:shadow-2xl transition-shadow">
-                              <CardContent className="h-full flex flex-col items-center justify-center p-8 bg-gradient-to-br from-background to-muted/20">
+                              <CardContent className="h-full flex flex-col items-center justify-center p-8 bg-muted/20">
                                 <div className="space-y-6 text-center w-full">
                                   <Badge variant="secondary" className="text-xs">
                                     Question
@@ -1102,7 +1102,7 @@ export default function Training() {
                           {/* Back of card */}
                           <div className="absolute inset-0 backface-hidden [transform:rotateY(180deg)]">
                             <Card className="h-full border-2 border-green-500/50 shadow-xl hover:shadow-2xl transition-shadow">
-                              <CardContent className="h-full flex flex-col items-center justify-center p-8 bg-gradient-to-br from-green-500/10 via-background to-green-500/5">
+                              <CardContent className="h-full flex flex-col items-center justify-center p-8 bg-green-500/10">
                                 <div className="space-y-6 text-center w-full">
                                   <Badge className="bg-green-500/20 text-green-700 dark:text-green-400 border-green-500/30">
                                     Answer

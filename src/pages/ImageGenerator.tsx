@@ -300,7 +300,7 @@ export default function ImageGenerator() {
   };
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-background via-background to-muted/20 p-4 md:p-8">
+    <div className="min-h-screen bg-background p-4 md:p-6">
       <div className="max-w-7xl mx-auto">
         <div className="mb-8">
           <Button
@@ -311,7 +311,7 @@ export default function ImageGenerator() {
             <ArrowLeft className="mr-2 h-4 w-4" />
             Back to Dashboard
           </Button>
-          <h1 className="text-4xl font-bold mb-2 bg-gradient-to-r from-primary to-accent bg-clip-text text-transparent">
+          <h1 className="text-xl font-semibold mb-1.5">
             Backyard Design Generator
           </h1>
           <p className="text-muted-foreground">

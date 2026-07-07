@@ -370,8 +370,8 @@ export default function CallAgents() {
               <ArrowLeft className="h-5 w-5" />
             </Button>
             <div>
-              <h1 className="text-3xl font-bold">Call Agents</h1>
-              <p className="text-muted-foreground">Manage your sales team</p>
+              <h1 className="text-lg font-semibold">Call Agents</h1>
+              <p className="text-sm text-muted-foreground">Manage your sales team</p>
             </div>
           </div>
           <Button onClick={() => {

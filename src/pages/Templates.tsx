@@ -899,10 +899,10 @@ export default function Templates() {
 
   return (
     <div className="min-h-screen bg-background">
-      <div className="container mx-auto px-6 py-8 max-w-5xl">
-        <div className="flex items-center justify-between border-b border-border pb-4 mb-6">
+      <div className="container mx-auto px-6 py-5 max-w-5xl">
+        <div className="flex items-center justify-between border-b border-border pb-3 mb-5">
           <div>
-            <h1 className="text-2xl font-semibold">Templates</h1>
+            <h1 className="text-lg font-semibold">Templates</h1>
             <p className="text-sm text-muted-foreground mt-1">
               Manage reusable scripts, objection handling, and FAQs
             </p>
@@ -1054,7 +1054,7 @@ export default function Templates() {
               </div>
             ) : objectionTemplates.length === 0 ? (
               <Card>
-                <CardContent className="flex flex-col items-center justify-center py-12">
+                <CardContent className="flex flex-col items-center justify-center py-10">
                   <MessageSquare className="h-12 w-12 text-muted-foreground/50 mb-3" />
                   <h3 className="text-lg font-semibold mb-1">No objection templates yet</h3>
                   <p className="text-sm text-muted-foreground mb-4 text-center max-w-sm">
@@ -1077,7 +1077,7 @@ export default function Templates() {
                             <div className="flex items-center justify-between gap-4">
                               <div className="flex items-center gap-3 flex-1 min-w-0">
                                 <GripVertical className="h-4 w-4 text-muted-foreground/50 flex-shrink-0" />
-                                <div className="h-8 w-8 rounded-md bg-gradient-to-br from-primary/10 to-primary/5 flex items-center justify-center flex-shrink-0">
+                                <div className="h-8 w-8 rounded-md bg-primary/10 flex items-center justify-center flex-shrink-0">
                                   <MessageSquare className="h-4 w-4 text-primary/70" />
                                 </div>
                                 <CardTitle className="text-sm font-medium leading-tight truncate">{template.service_name}</CardTitle>
@@ -1216,7 +1216,7 @@ export default function Templates() {
               </div>
             ) : faqs.length === 0 ? (
               <Card>
-                <CardContent className="flex flex-col items-center justify-center py-12">
+                <CardContent className="flex flex-col items-center justify-center py-10">
                   <HelpCircle className="h-12 w-12 text-muted-foreground/50 mb-3" />
                   <h3 className="text-lg font-semibold mb-1">No FAQs yet</h3>
                   <p className="text-sm text-muted-foreground mb-4 text-center max-w-sm">
@@ -1277,7 +1277,7 @@ export default function Templates() {
                                        <div className="flex items-center justify-between gap-4">
                                         <div className="flex items-center gap-3 flex-1 min-w-0">
                                           <GripVertical className="h-4 w-4 text-muted-foreground/50 flex-shrink-0" />
-                                          <div className="h-8 w-8 rounded-md bg-gradient-to-br from-primary/10 to-primary/5 flex items-center justify-center flex-shrink-0">
+                                          <div className="h-8 w-8 rounded-md bg-primary/10 flex items-center justify-center flex-shrink-0">
                                             <HelpCircle className="h-4 w-4 text-primary/70" />
                                           </div>
                                           <CardTitle className="text-sm font-medium leading-tight truncate">
@@ -1416,7 +1416,7 @@ export default function Templates() {
               </div>
             ) : qualificationQuestions.length === 0 ? (
               <Card>
-                <CardContent className="flex flex-col items-center justify-center py-12">
+                <CardContent className="flex flex-col items-center justify-center py-10">
                   <ClipboardCheck className="h-12 w-12 text-muted-foreground/50 mb-3" />
                   <h3 className="text-lg font-semibold mb-1">No Qualification Questions yet</h3>
                   <p className="text-sm text-muted-foreground mb-4 text-center max-w-sm">
@@ -1444,7 +1444,7 @@ export default function Templates() {
                                   <div className="flex items-center justify-between gap-4">
                                     <div className="flex items-center gap-3 flex-1 min-w-0">
                                       <GripVertical className="h-4 w-4 text-muted-foreground/50 flex-shrink-0" />
-                                      <div className="h-8 w-8 rounded-md bg-gradient-to-br from-primary/10 to-primary/5 flex items-center justify-center flex-shrink-0">
+                                      <div className="h-8 w-8 rounded-md bg-primary/10 flex items-center justify-center flex-shrink-0">
                                         <ClipboardCheck className="h-4 w-4 text-primary/70" />
                                       </div>
                                       <CardTitle className="text-sm font-medium leading-tight truncate">{question.question}</CardTitle>
@@ -1519,7 +1519,7 @@ export default function Templates() {
                                     <div className="flex items-center justify-between gap-4">
                                       <div className="flex items-center gap-3 flex-1 min-w-0">
                                         <GripVertical className="h-4 w-4 text-muted-foreground/50 flex-shrink-0" />
-                                        <div className="h-8 w-8 rounded-md bg-gradient-to-br from-primary/10 to-primary/5 flex items-center justify-center flex-shrink-0">
+                                        <div className="h-8 w-8 rounded-md bg-primary/10 flex items-center justify-center flex-shrink-0">
                                           <ClipboardCheck className="h-4 w-4 text-primary/70" />
                                         </div>
                                         <CardTitle className="text-sm font-medium leading-tight truncate">{question.question}</CardTitle>
