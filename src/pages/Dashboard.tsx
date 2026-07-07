@@ -824,159 +824,86 @@ export default function Dashboard() {
             ))}
           </div>
         ) : (
-          <div className="border rounded-lg shadow-sm overflow-hidden">
-            <Table>
-              <TableHeader>
-                <TableRow>
-                  <TableHead className="w-[300px]">Company</TableHead>
-                  <TableHead>Service Type</TableHead>
-                  <TableHead>Call Agent</TableHead>
-                  <TableHead>Location</TableHead>
-                  <TableHead className="w-[350px]">Scripts</TableHead>
-                  <TableHead className="w-[120px] text-right">Actions</TableHead>
-                </TableRow>
-              </TableHeader>
-              <TableBody>
-                {filteredClients.map((client) => (
-                  <TableRow 
-                    key={client.id} 
-                    className="cursor-pointer hover:bg-muted/50"
-                    onMouseEnter={() => prefetchClient(client.id)}
-                    onClick={() => openClient(client.id)}
-                  >
-                    <TableCell>
-                      <div className="flex items-center gap-3">
-                        <div className="h-10 w-10 rounded-lg overflow-hidden bg-muted flex-shrink-0">
-                          <img 
-                            src={getClientLogo(client.service_type, client.logo_url)} 
-                            alt={`${client.name} logo`}
-                            className="h-full w-full object-cover"
-                          />
-                        </div>
-                        <div className="min-w-0">
-                          <div className="font-medium truncate">{client.business_name || client.name}</div>
-                          {client.owners_name && (
-                            <div className="text-sm text-muted-foreground truncate">{client.owners_name}</div>
-                          )}
-                        </div>
+          <div className="overflow-hidden rounded-xl border shadow-control bg-card">
+            {filteredClients.map((client) => {
+              const parts = client.service_type
+                .replace(/\(.*?\)/g, "")
+                .split(/[,;•]| - /)
+                .map((t) => t.trim())
+                .filter(Boolean)
+                .map((t) => t.charAt(0).toUpperCase() + t.slice(1));
+              const shownServices = parts.slice(0, 3);
+              return (
+                <div
+                  key={client.id}
+                  className="group flex cursor-pointer items-center gap-4 border-b border-border/70 px-4 py-3.5 transition-colors last:border-b-0 hover:bg-muted/50"
+                  onMouseEnter={() => prefetchClient(client.id)}
+                  onClick={() => openClient(client.id)}
+                >
+                  <div className="flex w-[290px] shrink-0 items-center gap-3">
+                    <div className="h-10 w-10 shrink-0 overflow-hidden rounded-[10px] bg-muted ring-1 ring-border">
+                      <img src={getClientLogo(client.service_type, client.logo_url)} alt="" className="h-full w-full object-cover" />
+                    </div>
+                    <div className="min-w-0">
+                      <div className="truncate text-[14px] font-semibold leading-tight">{client.business_name || client.name}</div>
+                      <div className="truncate text-xs text-muted-foreground">
+                        {[client.owners_name, client.city].filter(Boolean).join(" · ") || "—"}
                       </div>
-                    </TableCell>
-                    <TableCell>
-                      {(() => {
-                        // prose→chips (2026-07-06): service_type arrives as a whole
-                        // sentence; one nowrap Badge made rows sprawl sideways.
-                        const parts = client.service_type
-                          .replace(/\(.*?\)/g, "")
-                          .split(/[,;•]| - /)
-                          .map((t) => t.trim())
-                          .filter(Boolean)
-                          .map((t) => t.charAt(0).toUpperCase() + t.slice(1));
-                        const shown = parts.slice(0, 3);
-                        return (
-                          <div className="flex min-w-0 items-center gap-1.5" title={client.service_type}>
-                            {shown.map((t) => (
-                              <Badge key={t} variant="secondary" className="max-w-[180px] truncate whitespace-nowrap font-normal">{t}</Badge>
-                            ))}
-                            {parts.length > shown.length && (
-                              <span className="whitespace-nowrap text-xs text-muted-foreground">+{parts.length - shown.length} more</span>
-                            )}
-                          </div>
-                        );
-                      })()}
-                    </TableCell>
-                    <TableCell>
-                      {client.call_agent_name ? (
-                        <div className="flex items-center gap-2 text-sm">
-                          <Phone className="h-3.5 w-3.5 text-muted-foreground" />
-                          {client.call_agent_name}
-                        </div>
-                      ) : (
-                        <span className="text-muted-foreground text-sm">Unassigned</span>
-                      )}
-                    </TableCell>
-                    <TableCell className="text-muted-foreground">{client.city || '—'}</TableCell>
-                    <TableCell>
-                      <div className="flex flex-wrap gap-1.5">
-                        {client.scripts.length > 0 ? (
-                          <>
-                            {client.scripts.slice(0, 4).map((script) => (
-                              <Badge 
-                                key={script.id} 
-                                variant="outline"
-                                className="cursor-pointer hover:bg-muted/60 whitespace-nowrap flex items-center gap-1.5 px-2 py-1"
-                                onClick={(e) => {
-                                  e.stopPropagation();
-                                  navigate(`/script/${script.id}`);
-                                }}
-                              >
-                                {script.service_type?.icon_url ? (
-                                  <div className="h-4 w-4 rounded overflow-hidden flex-shrink-0">
-                                    <img 
-                                      src={script.service_type.icon_url} 
-                                      alt=""
-                                      className="h-full w-full object-contain"
-                                    />
-                                  </div>
-                                ) : script.image_url ? (
-                                  <div className="h-4 w-4 rounded overflow-hidden flex-shrink-0">
-                                    <img 
-                                      src={script.image_url} 
-                                      alt=""
-                                      className="h-full w-full object-cover"
-                                    />
-                                  </div>
-                                ) : (
-                                  <FileText className="h-3.5 w-3.5 flex-shrink-0" />
-                                )}
-                                {script.service_name}
-                              </Badge>
-                            ))}
-                            {client.scripts.length > 4 && (
-                              <Badge variant="outline" className="whitespace-nowrap">
-                                +{client.scripts.length - 4} more
-                              </Badge>
-                            )}
-                          </>
-                        ) : (
-                          <span className="text-sm text-muted-foreground">No scripts</span>
-                        )}
-                      </div>
-                    </TableCell>
-                    <TableCell>
-                      <div className="flex items-center justify-end gap-1">
-                        <Button 
-                          variant="ghost" 
-                          size="sm"
-                          className="h-8 w-8 p-0"
-                          onClick={(e) => {
-                            e.stopPropagation();
-                            handleArchiveToggle(client.id, client.archived || false);
-                          }}
-                          title={client.archived ? "Restore company" : "Archive company"}
-                        >
-                          {client.archived ? (
-                            <ArchiveRestore className="h-4 w-4" />
-                          ) : (
-                            <Archive className="h-4 w-4" />
-                          )}
-                        </Button>
-                        <Button
-                          variant="ghost"
-                          size="sm"
-                          className="h-8 w-8 p-0 hover:text-destructive"
-                          onClick={(e) => {
-                            e.stopPropagation();
-                            openDeleteDialog(client.id, client.business_name || client.name);
-                          }}
-                        >
-                          <Trash2 className="h-4 w-4" />
-                        </Button>
-                      </div>
-                    </TableCell>
-                  </TableRow>
-                ))}
-              </TableBody>
-            </Table>
+                    </div>
+                  </div>
+                  <div className="hidden min-w-0 flex-1 items-center gap-1.5 md:flex" title={client.service_type}>
+                    {shownServices.map((t) => (
+                      <Badge key={t} variant="secondary" className="max-w-[170px] truncate whitespace-nowrap font-normal">{t}</Badge>
+                    ))}
+                    {parts.length > shownServices.length && (
+                      <span className="whitespace-nowrap text-xs text-muted-foreground">+{parts.length - shownServices.length}</span>
+                    )}
+                  </div>
+                  <div className="hidden w-[110px] shrink-0 truncate text-[13px] lg:block">
+                    {client.call_agent_name
+                      ? <span className="text-muted-foreground">{client.call_agent_name}</span>
+                      : <span className="text-muted-foreground/50">Unassigned</span>}
+                  </div>
+                  <div className="hidden shrink-0 items-center gap-1.5 xl:flex">
+                    {client.scripts.slice(0, 2).map((script) => (
+                      <Badge
+                        key={script.id}
+                        variant="outline"
+                        className="cursor-pointer whitespace-nowrap font-normal text-muted-foreground hover:bg-muted hover:text-foreground"
+                        onClick={(e) => { e.stopPropagation(); navigate(`/script/${script.id}`); }}
+                      >
+                        {script.service_name}
+                      </Badge>
+                    ))}
+                    {client.scripts.length > 2 && (
+                      <span className="whitespace-nowrap text-xs text-muted-foreground">+{client.scripts.length - 2}</span>
+                    )}
+                    {client.scripts.length === 0 && (
+                      <span className="text-xs text-muted-foreground/50">No scripts</span>
+                    )}
+                  </div>
+                  <div className="flex shrink-0 items-center gap-0.5 opacity-0 transition-opacity group-hover:opacity-100">
+                    <Button
+                      variant="ghost"
+                      size="sm"
+                      className="h-8 w-8 p-0"
+                      onClick={(e) => { e.stopPropagation(); handleArchiveToggle(client.id, client.archived || false); }}
+                      title={client.archived ? "Restore company" : "Archive company"}
+                    >
+                      {client.archived ? <ArchiveRestore className="h-4 w-4" /> : <Archive className="h-4 w-4" />}
+                    </Button>
+                    <Button
+                      variant="ghost"
+                      size="sm"
+                      className="h-8 w-8 p-0 hover:text-destructive"
+                      onClick={(e) => { e.stopPropagation(); openDeleteDialog(client.id, client.business_name || client.name); }}
+                    >
+                      <Trash2 className="h-4 w-4" />
+                    </Button>
+                  </div>
+                </div>
+              );
+            })}
           </div>
         )}
       </div>
