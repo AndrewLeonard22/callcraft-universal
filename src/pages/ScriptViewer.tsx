@@ -719,17 +719,23 @@ function selectDQChip(widget,key,btn,isDQ){
 
           {/* Tab content — Area tab gets full-height flex treatment; others scroll */}
           {centerTab === "area" ? (
-            <div className="flex-1 min-h-0">
-              <AreaMapTab
-                hqLat={client.hq_lat}
-                hqLng={client.hq_lng}
-                hqAddress={client.hq_address ?? undefined}
-                serviceRadiusMiles={Number(getDetailValue("service_radius_miles")) || 30}
-                excludedAreas={client.excluded_areas ?? []}
-                excludedZips={client.excluded_zips}
-                clientCity={client.city ?? undefined}
-                businessName={businessName}
-              />
+            <div className="flex-1 overflow-y-auto">
+              {/* Scope-back (Fable ruling off Andrew's screenshots): the call
+                  cockpit's Area surface is address-in -> house + verdict, nothing
+                  else. The full interactive canvas lives on for a dedicated map
+                  view — not here. */}
+              <div className="px-8 py-6 max-w-xl mx-auto">
+                <h2 className="text-[15px] font-semibold mb-1">Address check</h2>
+                <p className="text-xs text-muted-foreground mb-4">Type the prospect's address — see the home and whether it's in range.</p>
+                <ZipChecker
+                  excludedZips={client.excluded_zips ?? []}
+                  clientCity={client.city ?? undefined}
+                  clientAddress={getDetailValue("address") || undefined}
+                  serviceRadiusMiles={Number(getDetailValue("service_radius_miles")) || 30}
+                  hqLat={client.hq_lat ?? undefined}
+                  hqLng={client.hq_lng ?? undefined}
+                />
+              </div>
             </div>
           ) : (
           <div className="flex-1 overflow-y-auto">
@@ -750,7 +756,7 @@ function selectDQChip(widget,key,btn,isDQ){
 
             {/* OBJECTIONS */}
             {centerTab === "objections" && (
-              <div className="px-6 py-4 max-w-2xl">
+              <div className="px-8 py-6 max-w-[780px] mx-auto text-[15px] leading-relaxed">
                 {objectionTemplates.length === 0 ? (
                   <div className="flex flex-col items-center py-16 text-center gap-2">
                     <MessageSquare className="h-8 w-8 text-muted-foreground/30" />
@@ -782,7 +788,7 @@ function selectDQChip(widget,key,btn,isDQ){
 
             {/* FAQ */}
             {centerTab === "faq" && (
-              <div className="px-6 py-4 max-w-2xl">
+              <div className="px-6 py-5 max-w-[720px] mx-auto">
                 {faqs.length === 0 ? (
                   <div className="flex flex-col items-center py-16 text-center gap-2">
                     <MessageSquare className="h-8 w-8 text-muted-foreground/30" />
@@ -814,7 +820,7 @@ function selectDQChip(widget,key,btn,isDQ){
 
             {/* QUALIFICATION */}
             {centerTab === "qualification" && (
-              <div className="px-6 py-4 max-w-2xl">
+              <div className="px-6 py-5 max-w-[720px] mx-auto">
                 {qualificationQuestions.length === 0 ? (
                   <div className="flex flex-col items-center py-16 text-center gap-2">
                     <ClipboardCheck className="h-8 w-8 text-muted-foreground/30" />

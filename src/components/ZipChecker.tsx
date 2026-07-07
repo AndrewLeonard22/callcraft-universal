@@ -1,5 +1,4 @@
 import { useState } from "react";
-import { BadassMapCanvas } from "@/components/BadassMapCanvas";
 import { Ban, CheckCircle, AlertTriangle, Search, Loader2 } from "lucide-react";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
@@ -38,6 +37,39 @@ const haversineDistance = (
   return R * 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
 };
 
+// Keyless satellite preview of the resolved location. Was a mapbox-gl canvas that
+// needed a (dead) token to render anything; this is a keyless Google embed (t=k =
+// satellite) — no secret, and it shows what the home actually looks like. The
+// in-range/out-of-range VERDICT is the decision info and lives in the badges above.
+function MiniMap({ center }: { center: [number, number] }) {
+  const [lng, lat] = center;
+  // z18 = rooftop scale — the setter needs to SEE the yard, not the zip code.
+  const src = `https://maps.google.com/maps?q=${lat},${lng}&t=k&z=18&output=embed`;
+  return (
+    <div className="mt-2.5 rounded-lg overflow-hidden border border-border shadow-sm">
+      <iframe
+        key={src}
+        title="Location satellite view"
+        src={src}
+        className="h-[240px] w-full border-0 block"
+        loading="lazy"
+        referrerPolicy="no-referrer-when-downgrade"
+      />
+      <div className="flex items-center justify-between px-2.5 py-1.5 bg-card">
+        <a
+          href={`https://www.google.com/maps/@?api=1&map_action=pano&viewpoint=${lat},${lng}`}
+          target="_blank" rel="noopener noreferrer"
+          className="text-[11px] font-medium text-primary hover:underline"
+        >Street View</a>
+        <a
+          href={`https://www.google.com/maps/search/?api=1&query=${lat},${lng}`}
+          target="_blank" rel="noopener noreferrer"
+          className="text-[11px] font-medium text-muted-foreground hover:text-foreground"
+        >Open in Google Maps</a>
+      </div>
+    </div>
+  );
+}
 
 export function ZipChecker({
   excludedZips,
@@ -189,15 +221,7 @@ export function ZipChecker({
         <p className="text-[12px] text-muted-foreground px-1">{state.message}</p>
       )}
 
-      {mapCenter && (
-        <div className="mt-2.5 h-[280px] rounded-lg overflow-hidden border border-border shadow-sm">
-          <BadassMapCanvas
-            searchedQuery={leadCoords ? input : null}
-            hqLat={mapCenter[1]}
-            hqLng={mapCenter[0]}
-          />
-        </div>
-      )}
+      {mapCenter && <MiniMap center={mapCenter} />}
     </div>
   );
 }
