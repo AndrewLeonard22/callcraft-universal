@@ -296,7 +296,7 @@ export default function ScriptViewer() {
       <div className="h-screen flex flex-col bg-background">
         <div className="h-14 border-b border-border shrink-0" />
         <div className="flex flex-1 min-h-0">
-          <div className="w-[420px] border-r border-border animate-pulse bg-muted/20 shrink-0" />
+          <div className="w-[340px] border-r border-border animate-pulse bg-muted/20 shrink-0" />
           <div className="flex-1 p-10 space-y-3">
             {[100, 90, 95, 80, 85].map((w, i) => <div key={i} className="h-4 bg-muted rounded" style={{ width: `${w}%` }} />)}
           </div>
@@ -523,7 +523,7 @@ function selectDQChip(widget,key,btn,isDQ){
       <div className="flex flex-1 min-h-0">
 
         {/* ── LEFT SIDEBAR ─────────────────────────────────────────────── */}
-        {centerTab !== "area" && <aside className="w-[500px] shrink-0 border-r border-border overflow-y-auto bg-background">
+        {centerTab !== "area" && <aside className="w-[340px] shrink-0 border-r border-border overflow-y-auto bg-background">
 
           {/* Book Appointment — primary CTA button */}
           {quickLinks.some(l => l.key === "appointment_calendar") && (
@@ -532,9 +532,9 @@ function selectDQChip(widget,key,btn,isDQ){
                 href={safeUrl(getDetailValue("appointment_calendar"))}
                 target="_blank"
                 rel="noopener noreferrer"
-                className="flex items-center justify-center gap-2 w-full h-11 rounded-lg bg-foreground text-background text-[15px] font-semibold hover:bg-foreground/90 transition-colors shadow-sm"
+                className="flex items-center justify-center gap-2 w-full h-10 rounded-lg bg-foreground text-background text-[13.5px] font-semibold hover:bg-foreground/90 transition-colors shadow-sm"
               >
-                <Calendar className="h-4.5 w-4.5" />
+                <Calendar className="h-4 w-4" />
                 Book Appointment
               </a>
             </div>
@@ -549,7 +549,7 @@ function selectDQChip(widget,key,btn,isDQ){
                   href={safeUrl(getDetailValue(key))}
                   target="_blank"
                   rel="noopener noreferrer"
-                  className="flex items-center gap-3 h-10 px-4 text-sm text-foreground hover:bg-muted/50 transition-colors group"
+                  className="flex items-center gap-2.5 h-9 px-4 text-[13px] text-foreground hover:bg-muted/50 transition-colors group"
                 >
                   <Icon className="h-4 w-4 text-muted-foreground shrink-0" />
                   <span className="flex-1">{label}</span>
