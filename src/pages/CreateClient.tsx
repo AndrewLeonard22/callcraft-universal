@@ -207,9 +207,9 @@ export default function CreateClient() {
         </div>
       </div>
 
-      <div className="container mx-auto px-6 py-8 max-w-3xl">
+      <div className="container mx-auto px-6 py-5 max-w-3xl">
         <div className="mb-8">
-          <h1 className="text-2xl font-semibold tracking-tight mb-1">Create New Company</h1>
+          <h1 className="text-lg font-semibold tracking-tight mb-1">Create New Company</h1>
           <p className="text-sm text-muted-foreground">Fill in the company profile to get started with call scripts</p>
         </div>
 

@@ -330,7 +330,7 @@ export default function CreateScript() {
 
   return (
     <div className="min-h-screen bg-background">
-      <div className="container mx-auto px-6 py-8 max-w-4xl">
+      <div className="container mx-auto px-6 py-5 max-w-4xl">
         <Link to={`/client/${clientId}`}>
           <Button variant="ghost" size="sm" className="mb-6">
             <ArrowLeft className="mr-2 h-4 w-4" />
@@ -339,7 +339,7 @@ export default function CreateScript() {
         </Link>
 
         <div className="mb-8">
-          <h1 className="text-3xl font-bold mb-2">Add New Script</h1>
+          <h1 className="text-lg font-semibold mb-1.5">Add New Script</h1>
           <p className="text-muted-foreground">
             For {client.name} - {client.service_type}
           </p>
