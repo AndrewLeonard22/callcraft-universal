@@ -32,6 +32,7 @@ export interface BadassMapCanvasProps {
   hqAddress?: string;
   hqLat?: number | null;
   hqLng?: number | null;
+  serviceRadiusMiles?: number;
 }
 
 // One Loader per page — constructing twice with different options throws.
@@ -105,7 +106,9 @@ export function BadassMapCanvas(props: BadassMapCanvasProps) {
   return <InteractiveMap {...props} />;
 }
 
-function InteractiveMap({ searchedQuery, hqAddress, hqLat, hqLng }: BadassMapCanvasProps) {
+function InteractiveMap({ searchedQuery, hqAddress, hqLat, hqLng, serviceRadiusMiles }: BadassMapCanvasProps) {
+  // In-range verdict for the focused address (the ZipChecker's one irreplaceable job, now native)
+  const [verdict, setVerdict] = useState<{ miles: number; inRange: boolean } | null>(null);
   const mapDiv = useRef<HTMLDivElement>(null);
   const svDiv = useRef<HTMLDivElement>(null);
   const acHost = useRef<HTMLDivElement>(null);
@@ -209,6 +212,14 @@ function InteractiveMap({ searchedQuery, hqAddress, hqLat, hqLng }: BadassMapCan
       map.setZoom(19);
       setFocusLabel(label);
       lastFocusRef.current = { lat, lng };
+      if (hqLat != null && hqLng != null) {
+        const R = 3958.8;
+        const dLat = ((lat - hqLat) * Math.PI) / 180;
+        const dLng = ((lng - hqLng) * Math.PI) / 180;
+        const a = Math.sin(dLat / 2) ** 2 + Math.cos((hqLat * Math.PI) / 180) * Math.cos((lat * Math.PI) / 180) * Math.sin(dLng / 2) ** 2;
+        const miles = R * 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
+        setVerdict({ miles, inRange: serviceRadiusMiles ? miles <= serviceRadiusMiles : true });
+      }
       // Keep the 3D view (if it exists) tracking the same address.
       if (map3dRef.current) map3dRef.current.center = { lat, lng, altitude: 0 };
 
@@ -479,12 +490,25 @@ function InteractiveMap({ searchedQuery, hqAddress, hqLat, hqLng }: BadassMapCan
         </div>
       )}
 
-      {/* Address search (Places autocomplete) */}
-      <div className="absolute top-3 left-3 z-10 w-72 max-w-[70%]">
+      {/* Address search (Places autocomplete) + in-range verdict */}
+      <div className="absolute top-3 left-3 z-10 w-72 max-w-[70%] space-y-1.5">
         <div
           ref={acHost}
           className="rounded-lg bg-background/95 shadow-md border border-border [&_gmp-place-autocomplete]:w-full"
         />
+        {verdict && (
+          <div
+            className={`rounded-lg border px-3 py-1.5 text-[12.5px] font-semibold shadow-md backdrop-blur ${
+              verdict.inRange
+                ? "border-green-200 bg-green-50/95 text-green-800"
+                : "border-red-200 bg-red-50/95 text-red-700"
+            }`}
+          >
+            {verdict.miles < 1 ? "<1" : Math.round(verdict.miles)} mi from HQ ·{" "}
+            {verdict.inRange ? "inside" : "OUTSIDE"}
+            {serviceRadiusMiles ? ` ${serviceRadiusMiles} mi radius` : " service area"}
+          </div>
+        )}
       </div>
 
       {/* Controls */}

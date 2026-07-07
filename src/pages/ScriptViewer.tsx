@@ -734,16 +734,7 @@ function selectDQChip(widget,key,btn,isDQ){
                   hqAddress={getDetailValue("address") || undefined}
                   hqLat={client.hq_lat ?? undefined}
                   hqLng={client.hq_lng ?? undefined}
-                />
-              </div>
-              <div className="absolute left-4 top-4 z-10 w-[380px] max-w-[calc(100%-2rem)] rounded-xl border border-border bg-card/95 p-4 shadow-pop backdrop-blur">
-                <ZipChecker
-                  excludedZips={client.excluded_zips ?? []}
-                  clientCity={client.city ?? undefined}
-                  clientAddress={getDetailValue("address") || undefined}
                   serviceRadiusMiles={Number(getDetailValue("service_radius_miles")) || 30}
-                  hqLat={client.hq_lat ?? undefined}
-                  hqLng={client.hq_lng ?? undefined}
                 />
               </div>
             </div>
