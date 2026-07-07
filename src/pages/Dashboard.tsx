@@ -140,9 +140,20 @@ export default function Dashboard() {
     const userOrganizationId = orgMember.organization_id;
     setOrganizationId(userOrganizationId);
 
-    // Batch parallel API calls for better performance
+    // Wave 1: the org's clients (one indexed query) — every other fetch is
+    // then BOUNDED to those client ids. The Lovable original pulled the whole
+    // scripts / generated_images / client_details TABLES across every
+    // organization and filtered in JS.
+    const { data: clientsData, error: clientsError } = await supabase
+      .from("clients")
+      .select("*")
+      .eq("organization_id", userOrganizationId)
+      .neq("id", "00000000-0000-0000-0000-000000000001")
+      .order("last_accessed_at", { ascending: false, nullsFirst: false });
+    if (clientsError) throw clientsError;
+    const clientIds = (clientsData || []).map((c) => c.id);
+
     const [
-      { data: clientsData, error: clientsError },
       { data: scriptsData, error: scriptsError },
       { data: serviceTypesData, error: serviceTypesError },
       { data: generatedImagesData, error: generatedImagesError },
@@ -151,36 +162,39 @@ export default function Dashboard() {
       { data: callAgentsData },
     ] = await Promise.all([
       supabase
-        .from("clients")
-        .select("*")
-        .eq("organization_id", userOrganizationId)
-        .neq("id", "00000000-0000-0000-0000-000000000001")
-        .order("last_accessed_at", { ascending: false, nullsFirst: false }),
-      supabase
         .from("scripts")
         .select("id, service_name, created_at, client_id, service_type_id, image_url")
         .eq("is_template", false)
+        .eq("organization_id", userOrganizationId)
         .order("created_at", { ascending: false }),
       supabase.from("service_types").select("*"),
-      supabase
-        .from("generated_images")
-        .select("id, client_id, image_url, features, feature_size, created_at")
-        .order("created_at", { ascending: false }),
-      supabase
-        .from("client_details")
-        .select("client_id, field_value")
-        .eq("field_name", "logo_url"),
-      supabase
-        .from("client_details")
-        .select("client_id, field_name, field_value")
-        .in("field_name", ["business_name", "owners_name"]),
+      clientIds.length
+        ? supabase
+            .from("generated_images")
+            .select("id, client_id, image_url, features, feature_size, created_at")
+            .in("client_id", clientIds)
+            .order("created_at", { ascending: false })
+        : Promise.resolve({ data: [], error: null }),
+      clientIds.length
+        ? supabase
+            .from("client_details")
+            .select("client_id, field_value")
+            .eq("field_name", "logo_url")
+            .in("client_id", clientIds)
+        : Promise.resolve({ data: [], error: null }),
+      clientIds.length
+        ? supabase
+            .from("client_details")
+            .select("client_id, field_name, field_value")
+            .in("field_name", ["business_name", "owners_name"])
+            .in("client_id", clientIds)
+        : Promise.resolve({ data: [], error: null }),
       supabase
         .from("call_agents" as any)
         .select("id, name")
         .eq("organization_id", userOrganizationId),
     ]);
 
-    if (clientsError) throw clientsError;
     if (scriptsError) throw scriptsError;
     if (serviceTypesError) throw serviceTypesError;
     if (generatedImagesError) throw generatedImagesError;
