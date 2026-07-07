@@ -13,9 +13,9 @@ import { Checkbox } from "@/components/ui/checkbox";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
 import { ZipChecker } from "@/components/ZipChecker";
-import { RichTextEditor } from "@/components/RichTextEditor";
 import { AreaCockpit } from "@/components/AreaCockpit";
 import { ScriptTeleprompter } from "@/components/ScriptTeleprompter";
+import { ScriptBlockEditor } from "@/components/ScriptBlockEditor";
 import { FormattedScript } from "@/components/FormattedScript";
 import { ScriptActions } from "@/components/ScriptActions";
 import { ProjectEstimatePanel } from "@/components/ProjectEstimatePanel";
@@ -88,6 +88,8 @@ export default function ScriptViewer() {
   const [saving, setSaving] = useState(false);
   const [selectedImageIndex, setSelectedImageIndex] = useState<number | null>(null);
   const [rescheduleOpen, setRescheduleOpen] = useState(false);
+  // null = unknown (let the iframe try) · false = site refuses framing
+  const [frameable, setFrameable] = useState<Record<string, boolean>>({});
   const [expandedObjection, setExpandedObjection] = useState<string | null>(null);
   const [expandedFaq, setExpandedFaq] = useState<string | null>(null);
 
@@ -190,11 +192,32 @@ export default function ScriptViewer() {
     return () => { supabase.removeChannel(ch1); supabase.removeChannel(ch2); };
   }, [client?.id, loadClientData]);
 
+  // Probe whether a URL allows iframing so blocked sites get a designed
+  // fallback instead of the browser's "refused to connect" error.
+  const checkFrameable = useCallback((url: string) => {
+    if (!url) return;
+    setFrameable(prev => {
+      if (url in prev) return prev;
+      fetch(`/api/embed-check?url=${encodeURIComponent(url)}`)
+        .then(r => (r.ok ? r.json() : null))
+        .then(d => {
+          if (d && typeof d.frameable === "boolean") setFrameable(p => ({ ...p, [url]: d.frameable }));
+        })
+        .catch(() => {});
+      return prev;
+    });
+  }, []);
+
   const getDetailValue = (fieldName: string): string => {
     const scriptSpecific = details.find(d => d.field_name === `script_${scriptId}_${fieldName}`)?.field_value;
     if (scriptSpecific) return scriptSpecific;
     return details.find(d => d.field_name === fieldName)?.field_value || "";
   };
+
+  useEffect(() => {
+    const w = details.find(d => d.field_name === "website")?.field_value;
+    if (w) checkFrameable(w);
+  }, [details, checkFrameable]);
 
   const getWorkPhotos = (): string[] => {
     const raw = getDetailValue("work_photos");
@@ -497,7 +520,7 @@ export default function ScriptViewer() {
                   // to be a pop up") — no tab-jumping mid-call.
                   if (key === "reschedule_calendar") {
                     return (
-                      <button key={key} className={pill} onClick={() => setRescheduleOpen(true)}>
+                      <button key={key} className={pill} onClick={() => { checkFrameable(rescheduleUrl); setRescheduleOpen(true); }}>
                         <Icon className="h-3.5 w-3.5 shrink-0 text-muted-foreground" />
                         <span className="truncate">{label}</span>
                       </button>
@@ -712,12 +735,25 @@ export default function ScriptViewer() {
                   Open <ExternalLink className="h-3 w-3" />
                 </a>
               </div>
-              <iframe
-                src={safeUrl(websiteUrl)}
-                title="Company website"
-                className="min-h-0 w-full flex-1 bg-white"
-                sandbox="allow-scripts allow-same-origin allow-forms allow-popups"
-              />
+              {frameable[websiteUrl] === false ? (
+                <div className="flex min-h-0 flex-1 flex-col items-center justify-center gap-2 bg-muted/20">
+                  <Globe className="h-8 w-8 text-muted-foreground/30" />
+                  <div className="text-[13px] font-medium text-foreground">This site doesn't allow embedding</div>
+                  <div className="text-[12px] text-muted-foreground">{websiteUrl.replace(/^https?:\/\//, "").replace(/\/$/, "")}</div>
+                  <Button asChild size="sm" className="mt-1 h-8">
+                    <a href={safeUrl(websiteUrl)} target="_blank" rel="noopener noreferrer">
+                      Open website <ExternalLink className="ml-1.5 h-3.5 w-3.5" />
+                    </a>
+                  </Button>
+                </div>
+              ) : (
+                <iframe
+                  src={safeUrl(websiteUrl)}
+                  title="Company website"
+                  className="min-h-0 w-full flex-1 bg-white"
+                  sandbox="allow-scripts allow-same-origin allow-forms allow-popups"
+                />
+              )}
             </div>
           )}
           {centerTab !== "area" && centerTab !== "website" && (
@@ -727,9 +763,8 @@ export default function ScriptViewer() {
             {centerTab === "script" && (
               <div className="px-6 pb-5">
                 {isEditing ? (
-                  <div className="space-y-3 pt-5">
-                    <p className="text-[12px] text-muted-foreground">Editing — save with the button in the top bar.</p>
-                    <RichTextEditor value={editedContent} onChange={setEditedContent} placeholder="Enter script content..." minHeight="500px" />
+                  <div className="pt-5">
+                    <ScriptBlockEditor value={editedContent} onChange={setEditedContent} />
                   </div>
                 ) : (
                   <ScriptTeleprompter
@@ -886,7 +921,19 @@ export default function ScriptViewer() {
                 <X className="h-4 w-4" />
               </button>
             </div>
-            <iframe src={safeUrl(rescheduleUrl)} title="Reschedule calendar" className="min-h-0 w-full flex-1 bg-white" />
+            {frameable[rescheduleUrl] === false ? (
+              <div className="flex min-h-0 flex-1 flex-col items-center justify-center gap-2 bg-muted/20">
+                <RotateCcw className="h-8 w-8 text-muted-foreground/30" />
+                <div className="text-[13px] font-medium text-foreground">This calendar doesn't allow embedding</div>
+                <Button asChild size="sm" className="mt-1 h-8">
+                  <a href={safeUrl(rescheduleUrl)} target="_blank" rel="noopener noreferrer">
+                    Open calendar <ExternalLink className="ml-1.5 h-3.5 w-3.5" />
+                  </a>
+                </Button>
+              </div>
+            ) : (
+              <iframe src={safeUrl(rescheduleUrl)} title="Reschedule calendar" className="min-h-0 w-full flex-1 bg-white" />
+            )}
           </div>
         </div>
       )}

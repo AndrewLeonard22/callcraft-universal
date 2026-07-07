@@ -24,9 +24,9 @@ export interface TeleprompterProps {
   timeline?: { options: TimelineOpt[] } | null;
 }
 
-type RuleItem = { lead: string | null; body: string };
+export type RuleItem = { lead: string | null; body: string };
 
-type Block =
+export type Block =
   | { kind: "module"; num: string | null; title: string; id: string }
   | { kind: "section"; title: string; id: string }
   | { kind: "caption"; lane: "say" | "rules"; text: string }
@@ -62,7 +62,7 @@ function splitLead(t: string): RuleItem {
   return m ? { lead: m[1], body: m[2] } : { lead: null, body: t };
 }
 
-function parseScript(content: string, wantTimeline: boolean): Block[] {
+export function parseScript(content: string, wantTimeline: boolean): Block[] {
   const isHtml = /<p[\s>]|<span|<strong>|<mark>|<h[1-4][\s>]|<ul[\s>]|<ol[\s>]/i.test(content);
   const html = isHtml
     ? clean(content)

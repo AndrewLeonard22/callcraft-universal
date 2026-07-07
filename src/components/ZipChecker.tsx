@@ -1,9 +1,10 @@
-import { useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { Ban, CheckCircle, AlertTriangle, Search, Loader2 } from "lucide-react";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { logger } from "@/utils/logger";
 import { geocodeOne } from "@/utils/areaLookup";
+import { importLibrary, MAP_ID } from "@/map/loader";
 
 interface ZipCheckerProps {
   excludedZips: string[];
@@ -37,24 +38,61 @@ const haversineDistance = (
   return R * 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
 };
 
-// Keyless satellite preview of the resolved location. Was a mapbox-gl canvas that
-// needed a (dead) token to render anything; this is a keyless Google embed (t=k =
-// satellite) — no secret, and it shows what the home actually looks like. The
-// in-range/out-of-range VERDICT is the decision info and lives in the badges above.
+// Live satellite preview of the resolved location — a real Maps JS map, so
+// the mouse wheel zooms (the old keyless <iframe> embed swallowed the wheel;
+// Andrew: "you can't scroll to zoom on the Preview in the Script section").
+// Falls back to the keyless embed only if the JS API fails to load.
 function MiniMap({ center }: { center: [number, number] }) {
   const [lng, lat] = center;
-  // z18 = rooftop scale — the setter needs to SEE the yard, not the zip code.
-  const src = `https://maps.google.com/maps?q=${lat},${lng}&t=k&z=18&output=embed`;
+  const host = useRef<HTMLDivElement>(null);
+  const mapRef = useRef<google.maps.Map | null>(null);
+  const markerRef = useRef<google.maps.marker.AdvancedMarkerElement | null>(null);
+  const [failed, setFailed] = useState(false);
+
+  useEffect(() => {
+    let cancelled = false;
+    void (async () => {
+      try {
+        const [{ Map }, { AdvancedMarkerElement }] = await Promise.all([
+          importLibrary<google.maps.MapsLibrary>("maps"),
+          importLibrary<google.maps.MarkerLibrary>("marker"),
+        ]);
+        if (cancelled || !host.current) return;
+        if (!mapRef.current) {
+          mapRef.current = new Map(host.current, {
+            center: { lat, lng },
+            zoom: 18, // rooftop scale — the setter needs to SEE the yard
+            mapId: MAP_ID,
+            mapTypeId: "hybrid",
+            gestureHandling: "greedy", // plain mouse wheel zooms, no ctrl needed
+            disableDefaultUI: true,
+            zoomControl: true,
+          });
+        } else {
+          mapRef.current.setCenter({ lat, lng });
+        }
+        if (markerRef.current) markerRef.current.map = null;
+        markerRef.current = new AdvancedMarkerElement({ map: mapRef.current, position: { lat, lng } });
+      } catch {
+        if (!cancelled) setFailed(true);
+      }
+    })();
+    return () => { cancelled = true; };
+  }, [lat, lng]);
+
   return (
     <div className="mt-2.5 rounded-lg overflow-hidden border border-border shadow-sm">
-      <iframe
-        key={src}
-        title="Location satellite view"
-        src={src}
-        className="h-[240px] w-full border-0 block"
-        loading="lazy"
-        referrerPolicy="no-referrer-when-downgrade"
-      />
+      {failed ? (
+        <iframe
+          title="Location satellite view"
+          src={`https://maps.google.com/maps?q=${lat},${lng}&t=k&z=18&output=embed`}
+          className="h-[240px] w-full border-0 block"
+          loading="lazy"
+          referrerPolicy="no-referrer-when-downgrade"
+        />
+      ) : (
+        <div ref={host} className="h-[240px] w-full" />
+      )}
       <div className="flex items-center justify-between px-2.5 py-1.5 bg-card">
         <a
           href={`https://www.google.com/maps/@?api=1&map_action=pano&viewpoint=${lat},${lng}`}
