@@ -93,9 +93,38 @@ All colors MUST be HSL.
     @apply border-border;
   }
 
+  html {
+    -webkit-font-smoothing: antialiased;
+    text-rendering: optimizeLegibility;
+  }
+
   body {
     @apply bg-background text-foreground;
+    font-feature-settings: "cv02", "cv03", "cv04", "cv11";
+    letter-spacing: -0.006em;
   }
+
+  h1, h2, h3 {
+    letter-spacing: -0.02em;
+    text-wrap: balance;
+  }
+
+  /* Instant-feel micro-transitions on every interactive surface — color/border/
+     shadow only (never transform/layout, so nothing can jank). */
+  button, a, input, select, textarea, [role="button"] {
+    transition: background-color 0.12s ease, border-color 0.12s ease, color 0.12s ease, box-shadow 0.12s ease;
+  }
+
+  /* Quiet scrollbars — the OS default chrome reads as unfinished. */
+  ::-webkit-scrollbar { width: 10px; height: 10px; }
+  ::-webkit-scrollbar-track { background: transparent; }
+  ::-webkit-scrollbar-thumb {
+    background: hsl(240 2% 82%);
+    border-radius: 8px;
+    border: 2px solid transparent;
+    background-clip: content-box;
+  }
+  ::-webkit-scrollbar-thumb:hover { background: hsl(240 1% 70%); border-radius: 8px; border: 2px solid transparent; background-clip: content-box; }
 }
 
 @layer components {
