@@ -292,8 +292,6 @@ export function AreaMapTab({
   excludedAreas = [], excludedZips = [], clientCity,
   businessName, liveLead, todayAppts: propAppts,
 }: AreaMapTabProps) {
-  const [token, setToken] = useState<string | null>(null);
-  const [tokenLoading, setTokenLoading] = useState(true);
   // Last address/zip the setter checked in the rail — drives the Google canvas focus
   const [searched, setSearched] = useState<string | null>(null);
   const [appts, setAppts] = useState<TodayAppt[]>(propAppts ?? []);
@@ -328,34 +326,19 @@ export function AreaMapTab({
           return;
         }
 
-        // Geocode appointments using clientCity (best available)
-        const mapboxToken = await getMapboxToken();
-        const geocodedAppts: TodayAppt[] = await Promise.all(
-          (data.appointments ?? []).map(async (a: any, i: number) => {
-            let lat: number | undefined;
-            let lng: number | undefined;
-            const cityToGeocode = a.city || clientCity;
-            if (mapboxToken && cityToGeocode) {
-              try {
-                const geoRes = await fetch(
-                  `https://api.mapbox.com/geocoding/v5/mapbox.places/${encodeURIComponent(cityToGeocode)}.json?access_token=${mapboxToken}&limit=1&types=place`
-                );
-                const geoData = await geoRes.json();
-                const feat = geoData.features?.[0];
-                if (feat) { [lng, lat] = feat.center as [number, number]; }
-              } catch { /* skip */ }
-            }
-            return {
+        // Appointments list for the rail. (Map pins were only ever drawn on the
+        // retired mapbox canvas; the keyless Google canvas focuses the address the
+        // setter checks, so per-appt geocoding is dropped — the rail list is the surface.)
+        const mappedAppts: TodayAppt[] = (data.appointments ?? []).map(
+          (a: any, i: number) =>
+            ({
               ...a,
               number: i + 1,
-              lat,
-              lng,
               flagged: a.showStatus === "Flagged" || (a.projectNotes ?? "").toLowerCase().includes("flag"),
               flagNote: a.showStatus === "Flagged" ? a.showStatus : undefined,
-            } as TodayAppt;
-          })
+            }) as TodayAppt
         );
-        setAppts(geocodedAppts);
+        setAppts(mappedAppts);
       } catch (e) {
         const msg = e instanceof Error ? e.message : String(e);
         logger.error("Failed to load Airtable appointments:", e);
@@ -390,12 +373,6 @@ export function AreaMapTab({
   const [selectedAppt, setSelectedAppt] = useState<TodayAppt | null>(null);
   const [leadPopupOpen, setLeadPopupOpen] = useState(false);
 
-  useEffect(() => {
-    getMapboxToken().then(t => {
-      setToken(t);
-      setTokenLoading(false);
-    });
-  }, []);
 
   const hasHq = !!(hqLat && hqLng);
 
@@ -636,37 +613,9 @@ export function AreaMapTab({
 
       {/* ── MAP CANVAS ───────────────────────────────────────────────────── */}
       <div className="flex-1 relative overflow-hidden bg-muted/30">
-        {tokenLoading ? (
-          <div className="h-full flex items-center justify-center">
-            <Loader2 className="h-6 w-6 animate-spin text-muted-foreground" />
-          </div>
-        ) : !token ? (
-          // Keyless Google canvas — the Mapbox token pipeline is dead, and this is
-          // better anyway: check a full address in the rail → satellite of the home.
-          <GoogleCanvas searchedQuery={searched} hqAddress={hqAddress} hqLat={hqLat} hqLng={hqLng} />
-        ) : !hasHq ? (
-          <div className="h-full flex items-center justify-center text-center px-8">
-            <div>
-              <MapPin className="h-8 w-8 text-muted-foreground mx-auto mb-2" />
-              <div className="text-[13px] font-medium text-foreground">HQ location not set</div>
-              <div className="text-[12px] text-muted-foreground mt-1">Set the HQ address in Edit Client → Service Area</div>
-            </div>
-          </div>
-        ) : (
-          <MapCanvas
-            token={token}
-            hqLat={hqLat!}
-            hqLng={hqLng!}
-            serviceRadiusMiles={serviceRadiusMiles}
-            excludedAreas={excludedAreas}
-            liveLead={layers.currentLead ? liveLead : null}
-            todayAppts={layers.todayAppts ? todayAppts : []}
-            selectedDay={selectedDay}
-            layers={layers}
-            onLeadClick={() => setLeadPopupOpen(true)}
-            onApptClick={setSelectedAppt}
-          />
-        )}
+        {/* Keyless Google canvas — the Mapbox token pipeline is dead, and this is
+            better anyway: check a full address in the rail → satellite of the home. */}
+        <GoogleCanvas searchedQuery={searched} hqAddress={hqAddress} hqLat={hqLat} hqLng={hqLng} />
 
         {/* Live lead popup */}
         {leadPopupOpen && liveLead && (
