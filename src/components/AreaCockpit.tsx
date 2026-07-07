@@ -65,7 +65,8 @@ export function AreaCockpit({ hqAddress, hqLat, hqLng, serviceRadiusMiles }: Are
     <div className="relative h-full w-full overflow-hidden bg-muted/30">
       {/* layers — the engine decides which is visible */}
       <div ref={m.hosts.mapHost} className="h-full w-full" />
-      <div ref={m.hosts.threeHost} className={`absolute inset-0 ${m.mode === "3d" ? "" : "hidden"}`} />
+      {/* invisible (not hidden) so the pre-warmed Earth keeps streaming tiles */}
+      <div ref={m.hosts.threeHost} className={`absolute inset-0 ${m.mode === "3d" ? "" : "invisible pointer-events-none"}`} />
       <div ref={m.hosts.streetHost} className={`absolute inset-0 ${m.mode === "street" ? "" : "hidden"}`} />
 
       {!m.ready && !m.failReason && (
@@ -83,7 +84,7 @@ export function AreaCockpit({ hqAddress, hqLat, hqLng, serviceRadiusMiles }: Are
       {/* top-left: search + the qualification card */}
       <div className="absolute left-3 top-3 z-10 w-[340px] max-w-[80%] space-y-1.5">
         <div ref={m.hosts.searchHost} className={`${GLASS} [&_gmp-place-autocomplete]:w-full`} />
-        {m.focus && m.mode !== "street" && (
+        {m.focus && m.mode !== "street" && !m.searchActive && (
           <div
             className={`space-y-1 px-3.5 py-2.5 text-[12px] font-medium ${GLASS} ${
               m.verdict ? (m.verdict.inRange ? "border-green-300 bg-green-50/95" : "border-red-300 bg-red-50/95") : ""
@@ -121,7 +122,16 @@ export function AreaCockpit({ hqAddress, hqLat, hqLng, serviceRadiusMiles }: Are
       {/* top-right: modes + measure */}
       <div className="absolute right-3 top-3 z-10 flex flex-wrap justify-end gap-1.5">
         {modeBtn("map", "Map")}
-        {modeBtn("3d", "3D", !m.threeDAvailable)}
+        <Button
+          size="sm"
+          variant={m.mode === "3d" ? "default" : "outline"}
+          className="h-7 gap-1 px-2.5 text-[11px] shadow-md"
+          disabled={!m.threeDAvailable || m.busy3d}
+          onClick={() => void m.setMode("3d")}
+        >
+          {m.busy3d && <Loader2 className="h-3 w-3 animate-spin" />}
+          3D
+        </Button>
         {modeBtn("street", "Street")}
         <Button
           size="sm"
@@ -137,7 +147,7 @@ export function AreaCockpit({ hqAddress, hqLat, hqLng, serviceRadiusMiles }: Are
       {/* bottom-center: measure readout */}
       {m.measuring && (
         <div className={`absolute bottom-3 left-1/2 z-10 -translate-x-1/2 px-3 py-1.5 text-[12px] font-semibold ${GLASS}`}>
-          {m.areaSqFt != null ? <>📐 {Math.round(m.areaSqFt).toLocaleString()} sq ft · Measure again to reset</> : <>👆 Click each corner of the yard — area tallies as you go</>}
+          {m.areaSqFt != null ? <>📐 {Math.round(m.areaSqFt).toLocaleString()} sq ft · drag any corner to adjust</> : <>👆 Click each corner of the yard — drag corners to fine-tune</>}
         </div>
       )}
 

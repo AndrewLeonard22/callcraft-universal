@@ -71,6 +71,10 @@ export function useAreaMap({ hqAddress, hqLat, hqLng, serviceRadiusMiles }: Area
   const [homeValue, setHomeValue] = useState<HomeValue | null>(null);
   const [measuring, setMeasuring] = useState(false);
   const [areaSqFt, setAreaSqFt] = useState<number | null>(null);
+  // While the user is typing an address, Google's suggestion dropdown owns
+  // that corner — the stale verdict card must get out of its way.
+  const [searchActive, setSearchActive] = useState(false);
+  const [busy3d, setBusy3d] = useState(false);
 
   /* ── mode machine ─────────────────────────────────────────────── */
 
@@ -99,7 +103,9 @@ export function useAreaMap({ hqAddress, hqLat, hqLng, serviceRadiusMiles }: Area
       if (next === "3d") {
         const at = focus ?? origin.current;
         if (!at) return;
+        setBusy3d(true);
         const ok = await show3d(at);
+        setBusy3d(false);
         if (!ok) return;
       }
       if (next === "street") {
@@ -255,10 +261,16 @@ export function useAreaMap({ hqAddress, hqLat, hqLng, serviceRadiusMiles }: Area
         path.push({ lat: e.latLng.lat(), lng: e.latLng.lng() });
         if (markerCtor.current) {
           const dot = document.createElement("div");
-          dot.style.cssText = "width:10px;height:10px;border-radius:50%;background:#2f6bff;border:2px solid #fff;box-shadow:0 1px 3px rgba(0,0,0,.4)";
-          measureMarkers.current.push(
-            new markerCtor.current({ map, position: e.latLng, content: dot }),
-          );
+          dot.style.cssText = "width:14px;height:14px;border-radius:50%;background:#2f6bff;border:2.5px solid #fff;box-shadow:0 1px 4px rgba(0,0,0,.45);cursor:grab";
+          const idx = path.length - 1;
+          const mk = new markerCtor.current({ map, position: e.latLng, content: dot, gmpDraggable: true });
+          // Drag a corner → the shape and sq-ft follow live.
+          mk.addListener("drag", (ev: google.maps.MapMouseEvent) => {
+            if (!ev.latLng) return;
+            path[idx] = { lat: ev.latLng.lat(), lng: ev.latLng.lng() };
+            recompute();
+          });
+          measureMarkers.current.push(mk);
         }
         recompute();
       });
@@ -361,6 +373,21 @@ export function useAreaMap({ hqAddress, hqLat, hqLng, serviceRadiusMiles }: Area
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
+  /* ── pre-warm 3D: build the Earth element while the user reads ── */
+  // The maps3d library + photorealistic tiles take seconds to stream; doing
+  // it on-click made 3D feel broken. Build it idle at the HQ so the switch
+  // is near-instant (the host stays visibility-hidden, tiles stream behind).
+  useEffect(() => {
+    if (!ready) return;
+    const w = window as Window & { requestIdleCallback?: (cb: () => void) => void };
+    const idle = w.requestIdleCallback ?? ((cb: () => void) => setTimeout(cb, 800));
+    idle(() => {
+      const at = origin.current;
+      if (at && !threeRef.current) void show3d(at);
+    });
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [ready]);
+
   /* ── search: Places autocomplete mounts into the host ─────────── */
 
   useEffect(() => {
@@ -374,7 +401,15 @@ export function useAreaMap({ hqAddress, hqLat, hqLng, serviceRadiusMiles }: Area
         el = new PlaceAutocompleteElement({ includedRegionCodes: ["us"] }) as unknown as HTMLElement;
         el.style.width = "100%";
         searchHost.current.appendChild(el);
+        // Typing opens Google's suggestion dropdown right where the verdict
+        // card sits — flag it so the card yields until a pick or blur.
+        const host = searchHost.current;
+        host.addEventListener("focusin", () => setSearchActive(true));
+        host.addEventListener("focusout", (e: FocusEvent) => {
+          if (!(e.relatedTarget instanceof Node) || !host.contains(e.relatedTarget)) setSearchActive(false);
+        });
         el.addEventListener("gmp-select", async (e: unknown) => {
+          setSearchActive(false);
           const prediction = (e as { placePrediction?: { toPlace: () => google.maps.places.Place } }).placePrediction;
           if (!prediction) return;
           const place = prediction.toPlace();
@@ -400,6 +435,8 @@ export function useAreaMap({ hqAddress, hqLat, hqLng, serviceRadiusMiles }: Area
     mode,
     setMode,
     threeDAvailable,
+    busy3d,
+    searchActive,
     focus,
     verdict,
     route,
