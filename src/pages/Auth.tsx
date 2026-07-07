@@ -7,9 +7,8 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/com
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
-import { Loader2 } from "lucide-react";
+import { Headphones, Loader2 } from "lucide-react";
 import { z } from "zod";
-import logo from "@/assets/agent-iq-logo.png";
 
 function ForgotPasswordLink() {
   const { toast } = useToast();
@@ -367,20 +366,63 @@ export default function Auth() {
     );
   }
 
-  return (
-    <div className="min-h-screen bg-background flex items-center justify-center p-4">
-      <div className="w-full max-w-md">
-        <div className="flex flex-col items-center justify-center mb-6 sm:mb-8 space-y-3 sm:space-y-4">
-          <img 
-            src={logo} 
-            alt="Agent IQ" 
-            className="h-20 w-20 sm:h-28 sm:w-28 object-contain"
-          />
-          <h1 className="text-3xl sm:text-4xl font-bold text-foreground tracking-tight">Agent IQ</h1>
-          <p className="text-muted-foreground text-xs sm:text-sm">Intelligent call center management platform</p>
-        </div>
+  // Two-zone auth (Relay front-door treatment, 2026-07-06): dark brand panel
+  // carries the identity; the form column stays quiet. All auth logic untouched.
+  const brandMark = (size: number, icon: number) => (
+    <div
+      className="flex items-center justify-center rounded-xl"
+      style={{ width: size, height: size, background: "linear-gradient(125deg, hsl(218 100% 55%), hsl(258 90% 62%))", boxShadow: "0 8px 24px hsl(218 100% 55% / 0.35)" }}
+    >
+      <Headphones color="#fff" size={icon} strokeWidth={2.2} />
+    </div>
+  );
 
-        <Tabs defaultValue="login" className="w-full">
+  return (
+    <div className="min-h-screen grid lg:grid-cols-[1.05fr_1fr]">
+      {/* brand panel */}
+      <div
+        className="relative hidden lg:flex flex-col justify-between p-12"
+        style={{
+          background: `radial-gradient(640px 420px at 20% 10%, hsl(218 100% 55% / 0.16), transparent 65%),
+             radial-gradient(520px 400px at 85% 80%, hsl(258 90% 62% / 0.12), transparent 65%), #0A0F1A`,
+        }}
+      >
+        <div className="flex items-center gap-3">
+          {brandMark(40, 20)}
+          <span className="text-xl font-bold tracking-tight text-white">Agent IQ</span>
+        </div>
+        <div>
+          <h1 className="text-4xl font-bold leading-[1.08] tracking-tight text-white max-w-md">
+            Every call, on script.
+            <br />
+            <span style={{ background: "linear-gradient(120deg, hsl(218 100% 65%), hsl(258 90% 70%))", WebkitBackgroundClip: "text", backgroundClip: "text", color: "transparent" }}>
+              Every agent, coached.
+            </span>
+          </h1>
+          <p className="mt-5 max-w-sm text-[15px] leading-relaxed" style={{ color: "#9AA3C0" }}>
+            Scripts, call agents, and training for your whole team — one place,
+            kept sharp.
+          </p>
+          <div className="mt-8 flex gap-2.5">
+            {["Scripts", "Call agents", "Training"].map((t) => (
+              <span key={t} className="rounded-full px-3.5 py-1.5 text-xs font-medium" style={{ border: "1px solid hsl(230 60% 70% / 0.22)", color: "#B6BDD4", background: "hsl(230 60% 70% / 0.06)" }}>
+                {t}
+              </span>
+            ))}
+          </div>
+        </div>
+        <p className="text-xs" style={{ color: "#566078" }}>Agent IQ · Intelligent call center management</p>
+      </div>
+
+      {/* form column */}
+      <div className="flex items-center justify-center bg-background p-4 sm:p-8">
+        <div className="w-full max-w-[400px]">
+          <div className="mb-7 flex flex-col items-center gap-3 lg:hidden">
+            {brandMark(48, 24)}
+            <h1 className="text-2xl font-bold tracking-tight text-foreground">Agent IQ</h1>
+          </div>
+
+          <Tabs defaultValue="login" className="w-full">
           <TabsList className="grid w-full grid-cols-2 bg-muted mb-4 sm:mb-6">
             <TabsTrigger value="login" className="data-[state=active]:bg-background data-[state=active]:shadow-sm text-sm sm:text-base">Login</TabsTrigger>
             <TabsTrigger value="signup" className="data-[state=active]:bg-background data-[state=active]:shadow-sm text-sm sm:text-base">Sign Up</TabsTrigger>
@@ -520,7 +562,8 @@ export default function Auth() {
               </CardContent>
             </Card>
           </TabsContent>
-        </Tabs>
+          </Tabs>
+        </div>
       </div>
     </div>
   );
